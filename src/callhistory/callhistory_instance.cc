@@ -18,14 +18,22 @@
 
 #include "common/picojson.h"
 #include "common/logger.h"
+#include "common/tools.h"
 #include "common/platform_exception.h"
 
 namespace extension {
 namespace callhistory {
 
+namespace {
+// The privileges that required in CallHistory API
+const std::string kPrivilegeCallHistoryRead = "http://tizen.org/privilege/callhistory.read";
+const std::string kPrivilegeCallHistoryWrite = "http://tizen.org/privilege/callhistory.write";
+}
+
 using namespace common;
 
 CallHistoryInstance::CallHistoryInstance() : history_(*this) {
+  LoggerD("Entered");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -49,53 +57,59 @@ CallHistoryInstance::~CallHistoryInstance() {
 
 void CallHistoryInstance::Find(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   history_.find(args.get<picojson::object>());
   ReportSuccess(out);
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   PlatformResult result = history_.remove(args.get<picojson::object>());
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   PlatformResult result = history_.removeBatch(args.get<picojson::object>());
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   history_.removeAll(args.get<picojson::object>());
   ReportSuccess(out);
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   PlatformResult result = history_.startCallHistoryChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   PlatformResult result = history_.stopCallHistoryChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

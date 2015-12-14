@@ -2,6 +2,9 @@
   'includes':[
     '../common/common.gypi',
   ],
+  'variables': {
+    'enable_common_debug_logs%': '0',
+  },
   'targets': [
     {
       'target_name': 'tizen_common',
@@ -84,6 +87,14 @@
                   'libsmack',
                 ],
               },
+            }],
+          ],
+        }],
+        ['extension_build_type == "Debug"', {
+          'conditions': [
+            ['enable_common_debug_logs == 0', {
+              # remove TIZEN_DEBUG_ENABLE flag
+              'defines!': ['TIZEN_DEBUG_ENABLE'],
             }],
           ],
         }],

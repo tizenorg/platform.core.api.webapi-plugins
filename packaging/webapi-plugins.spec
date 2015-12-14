@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.25
+Version:    0.27
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -500,7 +500,9 @@ install -p -m 644 out/Default/libtizen*.so %{buildroot}%{crosswalk_extensions_pa
 
 # devel files
 mkdir -p %{buildroot}%{_libdir}/pkgconfig
-cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
+sed -i s,__LIB_DIR__,%{crosswalk_extensions_path},g packaging/%{name}.pc.in
+sed -i s,__INCLUDE_DIR__,%{_includedir}/%{name}/src,g packaging/%{name}.pc.in
+cp packaging/%{name}.pc.in %{buildroot}%{_libdir}/pkgconfig/%{name}.pc
 mkdir -p %{buildroot}%{_includedir}/%{name}/src/common
 install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{name}/src/common
 install -p -m 644 src/common/*.gypi %{buildroot}%{_includedir}/%{name}/src/common
@@ -511,6 +513,7 @@ install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
 install -p -m 644 tools/js_minimize.py %{buildroot}%{_includedir}/%{name}/tools
 cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
 cp -a tools/slimit %{buildroot}%{_includedir}/%{name}/tools/slimit
+cp -a out/Default/desc_gentool %{buildroot}%{_includedir}/%{name}/tools/desc_gentool
 
 # execute desc_gentool
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{crosswalk_extensions_path} out/Default/desc_gentool \

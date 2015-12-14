@@ -20,11 +20,18 @@
 
 #include "common/picojson.h"
 #include "common/logger.h"
+#include "common/tools.h"
 #include "common/platform_exception.h"
 #include "sound_manager.h"
 
 namespace extension {
 namespace sound {
+
+namespace {
+// The privileges that required in Sound API
+const std::string kPrivilegeSound = "http://tizen.org/privilege/volume.set";
+
+} // namespace
 
 using namespace common;
 using namespace extension::sound;
@@ -58,7 +65,7 @@ SoundInstance::~SoundInstance() {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -71,21 +78,20 @@ void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(picojson::value(sound_mode_type), out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
                                           picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeSound, &out);
   PlatformResult status = manager_.SetVolume(args.get<picojson::object>());
 
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -100,8 +106,7 @@ void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(picojson::value(volume), out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -112,8 +117,7 @@ void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -125,8 +129,7 @@ void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::val
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -151,8 +154,7 @@ void SoundInstance::SoundManagerSetVolumeChangeListener(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -164,8 +166,7 @@ void SoundInstance::SoundManagerUnsetVolumeChangeListener(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -192,8 +193,7 @@ void SoundInstance::SoundManagerAddDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -206,8 +206,7 @@ void SoundInstance::SoundManagerRemoveDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

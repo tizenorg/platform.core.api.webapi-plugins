@@ -123,8 +123,7 @@ void RadioInstance::Start(const picojson::value& args, picojson::object& out) {
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -136,8 +135,7 @@ void RadioInstance::Stop(const picojson::value& args, picojson::object& out) {
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -164,8 +162,7 @@ void RadioInstance::SetFMRadioInterruptedListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -178,8 +175,7 @@ void RadioInstance::UnsetFMRadioInterruptedListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -192,8 +188,7 @@ void RadioInstance::SetAntennaChangeListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -206,8 +201,7 @@ void RadioInstance::UnsetAntennaChangeListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

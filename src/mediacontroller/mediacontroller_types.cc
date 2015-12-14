@@ -71,8 +71,8 @@ PlatformResult Types::GetPlatformEnumMap(const std::string& type,
 
   auto iter = platform_enum_map_.find(type);
   if (iter == platform_enum_map_.end()) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          std::string("Undefined platform enum type ") + type);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              std::string("Undefined platform enum type ") + type);
   }
 
   *enum_map = platform_enum_map_.at(type);
@@ -100,7 +100,7 @@ PlatformResult Types::StringToPlatformEnum(const std::string& type,
 
   std::string message =
       "Platform enum value " + value + " not found for " + type;
-  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+  return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 PlatformResult Types::PlatformEnumToString(const std::string& type,
@@ -120,7 +120,7 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
 
   auto it = platform_enum_reverse_map_.find(type);
   if (it == platform_enum_reverse_map_.end()) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
         std::string("Undefined platform enum type ") + type);
   }
 
@@ -133,7 +133,7 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
 
   std::string message = "Platform enum value " + std::to_string(value) +
       " not found for " + type;
-  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+  return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
@@ -144,9 +144,9 @@ PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
   mc_playback_states_e state_e;
   ret = mc_client_get_playback_state(playback_h, &state_e);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_client_get_playback_state failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error getting playback state");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error getting playback state",
+                              ("mc_client_get_playback_state() error: %d, message: %s", ret, get_error_message(ret)));
   }
   if (state_e == MC_PLAYBACK_STATE_NONE) {
     state_e = MC_PLAYBACK_STATE_STOPPED;
@@ -172,9 +172,9 @@ PlatformResult Types::ConvertPlaybackPosition(mc_playback_h playback_h,
   unsigned long long pos;
   ret = mc_client_get_playback_position(playback_h, &pos);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_client_get_playback_position failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error getting playback position");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error getting playback position",
+                              ("mc_client_get_playback_position() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   *position = static_cast<double>(pos);
@@ -204,10 +204,9 @@ PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
                                  static_cast<mc_meta_e>(field.second),
                                  &value);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "mc_client_get_metadata failed for field '"
-          << field.first << "', error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Error getting metadata");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Error getting metadata",
+                                ("mc_client_get_metadata(%s) error: %d, message: %s", field.first.c_str(), ret, get_error_message(ret)));
     }
 
     (*metadata)[field.first] = picojson::value(std::string(value ? value : ""));

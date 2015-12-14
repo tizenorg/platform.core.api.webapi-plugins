@@ -31,7 +31,6 @@ function KeyManager() {
 }
 
 KeyManager.prototype.saveData = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
     var args = validator.validateArgs(arguments, [
       {
         name: 'aliasName',
@@ -61,7 +60,7 @@ KeyManager.prototype.saveData = function() {
       }
     ]);
 
-    native.call('KeyManager_saveData', {
+    var result = native.call('KeyManager_saveData', {
       aliasName: _trim(args.aliasName),
       rawData: args.rawData,
       password: (args.password ? converter.toString(args.password) : null)
@@ -73,10 +72,13 @@ KeyManager.prototype.saveData = function() {
         }
       }
     );
+
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
   };
 
 KeyManager.prototype.removeData = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
 
   var args = validator.validateArgs(arguments, [
     {
@@ -99,7 +101,6 @@ KeyManager.prototype.removeData = function() {
 };
 
 KeyManager.prototype.getData = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "dataAlias",
@@ -130,7 +131,6 @@ KeyManager.prototype.getData = function() {
 };
 
 KeyManager.prototype.getDataAliasList = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_getDataAliasList', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -139,7 +139,6 @@ KeyManager.prototype.getDataAliasList = function() {
 };
 
 KeyManager.prototype.setPermission = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "dataAlias",
@@ -173,7 +172,7 @@ KeyManager.prototype.setPermission = function() {
     data_alias = args.dataAlias.packageId + ' ' + data_alias;
   }
 
-  native.call('KeyManager_setPermissions', {
+  var result = native.call('KeyManager_setPermissions', {
     aliasName: data_alias,
     packageId: args.packageId,
     permissionType: args.permissionType
@@ -184,6 +183,10 @@ KeyManager.prototype.setPermission = function() {
       native.callIfPossible(args.successCallback);
     }
   });
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
 function _trim(str){

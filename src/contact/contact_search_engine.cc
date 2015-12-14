@@ -147,7 +147,7 @@ common::PlatformResult ContactSearchEngine::ApplyFilter(const picojson::value& f
   LoggerD("Entered");
 
   if (!filter.is<picojson::object>()) {
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set filter");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set filter");
   }
 
   common::FilterVisitor visitor;
@@ -207,7 +207,7 @@ PlatformResult ContactSearchEngine::SetSortMode(const picojson::value& sort_mode
   LoggerD("Entered");
 
   if (!sort_mode.is<picojson::object>()) {
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
   }
 
   std::string attribute = sort_mode.get("attributeName").to_str();
@@ -215,8 +215,7 @@ PlatformResult ContactSearchEngine::SetSortMode(const picojson::value& sort_mode
   const auto iter = s_properties_map_.find(attribute);
   if (s_properties_map_.end() == iter) {
     std::string msg = "SortMode doesn't support attribute: " + attribute;
-    LoggerE("%s", msg.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
   }
 
   is_sort_mode_set_ = true;
@@ -292,8 +291,7 @@ PlatformResult ContactSearchEngine::ApplyAttributeFilter(
   const auto iter =  s_properties_map_.find(name);
   if (s_properties_map_.end() == iter) {
     std::string msg = "Unknown attribute name: " + name;
-    LoggerE("%s", msg.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
   }
 
   const auto& properties = iter->second;
@@ -411,8 +409,7 @@ PlatformResult ContactSearchEngine::ApplyAttributeRangeFilter(
   const auto iter =  s_properties_map_.find(name);
   if (s_properties_map_.end() == iter) {
     std::string msg = "Unknown attribute name: " + name;
-    LoggerE("%s", msg.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, msg);
   }
 
   LongSetPtr id_set = LongSetPtr(new LongSet());

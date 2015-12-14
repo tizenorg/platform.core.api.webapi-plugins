@@ -192,9 +192,9 @@ void BluetoothInstance::AsyncResponse(double callback_handle, const PlatformResu
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
   if (result.IsError()) {
-    tools::ReportError(result, &response->get<picojson::object>());
+    LogAndReportError(result, &response->get<picojson::object>());
   } else {
-    tools::ReportSuccess(response->get<picojson::object>());
+    ReportSuccess(response->get<picojson::object>());
   }
 
   TaskQueue::GetInstance().Async<picojson::value>([this, callback_handle](const std::shared_ptr<picojson::value>& response) {

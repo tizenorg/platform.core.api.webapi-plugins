@@ -96,16 +96,19 @@ PlatformResult EmailManager::InitializeEmailService()
 
     if (!instance.m_is_initialized) {
         instance.getUniqueOpId();
-        const int non_err = EMAIL_ERROR_NONE;
-
-        if(non_err != email_service_begin()){
-            LoggerE("Email service failed to begin");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Email service failed to begin");
+        
+        int ntv_ret = email_service_begin();
+        if(ntv_ret != EMAIL_ERROR_NONE){
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Email service failed to begin",
+                      ("email_service_begin error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         }
 
-        if(non_err != email_open_db()){
-            LoggerE("Email DB failed to open");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Email DB failed to open");
+        ntv_ret = email_open_db();
+        if(ntv_ret != EMAIL_ERROR_NONE){
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Email DB failed to open",
+                      ("email_open_db error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         }
 
         int slot_size = -1;
@@ -120,7 +123,7 @@ PlatformResult EmailManager::InitializeEmailService()
         CHECK_ERROR(ret, "create sync proxy failed");
         if (!instance.m_proxy_sync) {
             LoggerE("Sync proxy is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Sync proxy is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Sync proxy is null");
         }
         instance.m_proxy_sync->signalSubscribe();
 
@@ -129,8 +132,7 @@ PlatformResult EmailManager::InitializeEmailService()
                                           &instance.m_proxy_load_body);
         CHECK_ERROR(ret, "create load body proxy failed");
         if (!instance.m_proxy_load_body) {
-            LoggerE("Load body proxy is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Load body proxy is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Load body proxy is null");
         }
         instance.m_proxy_load_body->signalSubscribe();
 
@@ -147,16 +149,14 @@ PlatformResult EmailManager::InitializeEmailService()
         ret = DBus::MessageProxy::create(&instance.m_proxy_messageStorage);
         CHECK_ERROR(ret, "create message proxy failed");
         if (!instance.m_proxy_messageStorage) {
-            LoggerE("Message proxy is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Message proxy is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Message proxy is null");
         }
         instance.m_proxy_messageStorage->signalSubscribe();
 
         ret = DBus::SendProxy::create(&instance.m_proxy_send);
         CHECK_ERROR(ret, "create send proxy failed");
         if (!instance.m_proxy_send) {
-            LoggerE("Send proxy is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Send proxy is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Send proxy is null");
         }
         instance.m_proxy_send->signalSubscribe();
 
@@ -201,12 +201,13 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
     email_account_t* account = NULL;
     err = email_get_account(account_id, GET_FULL_DATA_WITHOUT_PASSWORD, &account);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerE("email_get_account failed. [%d]\n",err);
-        err = email_free_mail_data(&mail_data,1);
-        if(EMAIL_ERROR_NONE != err) {
-            LoggerE("Failed to free mail data memory");
+        int ntv_ret = email_free_mail_data(&mail_data,1);
+        if(EMAIL_ERROR_NONE != ntv_ret) {
+            LoggerE("Failed to free mail data memory %d (%s)", ntv_ret, get_error_message(ntv_ret));
         }
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot retrieve email account information");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Cannot retrieve email account information",
+                  ("email_get_account error: %d (%s)", err, get_error_message(err)));
     }
     LoggerE("FROM %s", account->user_email_address);
     std::stringstream ss;
@@ -224,12 +225,13 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
     err = email_get_mailbox_by_mailbox_type(account_id, mailbox_type,
             &mailbox_data);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerD("email_get_mailbox_by_mailbox_type failed. [%d]\n",err);
-        err = email_free_mail_data(&mail_data,1);
-        if(EMAIL_ERROR_NONE != err) {
-            LoggerE("Failed to free mail data memory");
+        int ntv_ret = email_free_mail_data(&mail_data,1);
+        if(EMAIL_ERROR_NONE != ntv_ret) {
+            LoggerE("Failed to free mail data memory: %d (%s)", ntv_ret, get_error_message(ntv_ret));
         }
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot retrieve draft mailbox");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Cannot retrieve draft mailbox",
+                  ("email_get_mailbox_by_mailbox_type error: %d (%s)", err, get_error_message(err)));
     }
     else {
         LoggerD("email_get_mailbox_by_mailbox_type success.\n");
@@ -244,16 +246,17 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
     //adding email without attachments
     err = email_add_mail(mail_data, NULL, 0, NULL, 0);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerD("email_add_mail failed. [%d]\n",err);
-        err = email_free_mail_data(&mail_data,1);
-        if(EMAIL_ERROR_NONE != err) {
-            LoggerE("Failed to free mail data memory");
+        int ntv_ret = email_free_mail_data(&mail_data,1);
+        if(EMAIL_ERROR_NONE != ntv_ret) {
+            LoggerE("Failed to free mail data memory: %d (%s)", ntv_ret, get_error_message(ntv_ret));
         }
-        err = email_free_mailbox(&mailbox_data, 1);
-        if (EMAIL_ERROR_NONE != err) {
-            LoggerE("Failed to destroy mailbox");
+        ntv_ret = email_free_mailbox(&mailbox_data, 1);
+        if (EMAIL_ERROR_NONE != ntv_ret) {
+            LoggerE("Failed to destroy mailbox: %d (%s)", ntv_ret, get_error_message(ntv_ret));
         }
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't add message to draft mailbox");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Couldn't add message to draft mailbox",
+                  ("email_add_mail error: %d (%s)", err, get_error_message(err)));
     }
     else {
         LoggerD("email_add_mail success.\n");
@@ -271,25 +274,26 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
 
     err = email_get_mail_data(message->getId(), &mail_data_final);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to retrieve added mail data");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't retrieve added mail data");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Couldn't retrieve added mail data",
+                  ("email_get_mail_data error: %d (%s)", err, get_error_message(err)));
     }
     ret = message->updateEmailMessage(*mail_data_final);
     if (ret.IsError()) return ret;
 
     err = email_free_mail_data(&mail_data_final,1);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to free mail data final memory");
+        LoggerE("Failed to free mail data final memory: %d (%s)", err, get_error_message(err));
     }
 
     err = email_free_mail_data(&mail_data,1);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to free mail data memory");
+        LoggerE("Failed to free mail data memory: %d (%s)", err, get_error_message(err));
     }
 
     err = email_free_mailbox(&mailbox_data, 1);
     if (EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to destroy mailbox");
+        LoggerE("Failed to destroy mailbox: %d (%s)", err, get_error_message(err));
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -336,7 +340,6 @@ void EmailManager::addDraftMessage(MessageCallbackUserData* callback)
     std::shared_ptr<Message> message = callback->getMessage();
     PlatformResult ret = addDraftMessagePlatform(callback->getAccountId(), message);
     if (ret.IsError()) {
-      LoggerE("%d (%s)", ret.error_code(), ret.message().c_str());
       callback->SetError(ret);
     }
   }
@@ -402,8 +405,7 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
   LoggerD("Entered");
 
   if (!callback) {
-    LoggerE("Callback is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
   }
 
   int err = EMAIL_ERROR_NONE;
@@ -421,8 +423,9 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
     if (platform_result) {
       err = email_get_mail_data(message->getId(),&mail_data);
       if (EMAIL_ERROR_NONE != err) {
-        LoggerE("email_get_mail_data failed. [%d]\n", err);
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure");
+        platform_result = LogAndCreateResult(
+                              ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure",
+                              ("email_get_mail_data %d (%s)", err, get_error_message(err)));
       } else {
         LoggerD("email_get_mail_data success.\n");
 
@@ -433,8 +436,9 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
         err = email_send_mail(mail_data->mail_id, &req_id);
 
         if (EMAIL_ERROR_NONE != err) {
-          LoggerE("Failed to send message %d", err);
-          platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+          platform_result = LogAndCreateResult(
+                                ErrorCode::UNKNOWN_ERR, "Failed to send message",
+                                ("email_send_mail error: %d (%s)", err, get_error_message(err)));
         } else {
           LoggerD("req_id: %d", req_id);
           callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
@@ -444,7 +448,7 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
     }
   } else {
     LoggerE("Message is null");
-    platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Message is null");
+    platform_result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Message is null");
   }
 
   if (!platform_result) {
@@ -496,13 +500,15 @@ void EmailManager::sendStatusCallback(int mail_id,
                 case EMAIL_ERROR_INVALID_STREAM:
                 case EMAIL_ERROR_NO_RESPONSE:
                 {
-                    LoggerE("Network error %d", error_code);
-                    callback->SetError(PlatformResult(ErrorCode::NETWORK_ERR, "Failed to send message"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::NETWORK_ERR, "Failed to send message",
+                                          ("Network error: %d (%s)", error_code, get_error_message(error_code))));
                     break;
                 }
                 default:
-                    LoggerE("Unknown error %d", error_code);
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Failed to send message",
+                                          ("Unknown error: %d (%s)", error_code, get_error_message(error_code))));
                     break;
             }
         } else if (NOTI_SEND_FINISH == status) {
@@ -525,7 +531,7 @@ email_mail_data_t* EmailManager::loadMessage(int msg_id)
     email_mail_data_t* mail_data = NULL;
     int err = email_get_mail_data(msg_id, &mail_data);
     if (EMAIL_ERROR_NONE != err) {
-        LoggerE("email_get_mail_data failed. [%d]", err);
+        LoggerE("email_get_mail_data failed. [%d] (%s)", err, get_error_message(err));
     } else {
         LoggerD("email_get_mail_data success.");
     }
@@ -576,7 +582,7 @@ void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
     int op_handle = -1;
     int err = email_download_body(mailId, 0, &op_handle);
     if(EMAIL_ERROR_NONE != err){
-        LoggerE("Email download body failed, %d", err);
+        LoggerE("Email download body failed, %d (%s)", err, get_error_message(err));
         m_proxy_load_body->removeCallback(callback);
         return;
     }
@@ -588,13 +594,11 @@ PlatformResult EmailManager::loadMessageAttachment(MessageAttachmentCallbackData
   LoggerD("Entered");
 
   if (!callback) {
-    LoggerE("Callback is null");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Callback is null");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Callback is null");
   }
 
   if (!callback->getMessageAttachment()) {
-    LoggerE("Callback's message attachment is null");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Callback's message attachment is null");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Callback's message attachment is null");
   }
 
   std::shared_ptr<MessageAttachment> msgAttachment = callback->getMessageAttachment();
@@ -608,8 +612,9 @@ PlatformResult EmailManager::loadMessageAttachment(MessageAttachmentCallbackData
   };
 
   if (!mail_data) {
-    LoggerE("Couldn't get email_mail_data_t for messageId: %d", msgAttachment->getMessageId());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't load message.");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Couldn't load message.",
+              ("Couldn't get email_mail_data_t for messageId: %d", msgAttachment->getMessageId()));
   }
 
   AttachmentPtrVector attachments;
@@ -632,8 +637,9 @@ PlatformResult EmailManager::loadMessageAttachment(MessageAttachmentCallbackData
   }
 
   if (attachmentIndex < 0) {
-    LoggerE("Attachment with id: %d not found", msgAttachment->getId());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't find attachment.");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Couldn't find attachment.",
+              ("Attachment with id: %d not found", msgAttachment->getId()));
   }
 
   LoggerD("Attachment with id: [%d] is located at index: [%d]",
@@ -646,8 +652,9 @@ PlatformResult EmailManager::loadMessageAttachment(MessageAttachmentCallbackData
   int err = email_download_attachment(msgAttachment->getMessageId(), nth, &op_handle);
 
   if (EMAIL_ERROR_NONE != err) {
-    LoggerE("Download email attachment failed with error: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load attachment.");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to load attachment.",
+              ("Download email attachment failed with error: %d (%s)", err, get_error_message(err)));
   } else {
     LoggerD("email_download_attachment returned handle: [%d]", op_handle);
     callback->setOperationHandle(op_handle);
@@ -686,7 +693,7 @@ void EmailManager::sync(void* data)
   err = email_set_mail_slot_size(0, 0, slot_size);
 
   if (EMAIL_ERROR_NONE != err) {
-    LoggerE("Email set slot size failed, %d", err);
+    LoggerE("Email set slot size failed, %d (%s)", err, get_error_message(err));
     m_proxy_sync->removeCallback(op_id);
     return;
   }
@@ -695,7 +702,7 @@ void EmailManager::sync(void* data)
   err = email_sync_header(account_id, 0, &op_handle);
 
   if (EMAIL_ERROR_NONE != err) {
-    LoggerE("Email sync header failed, %d", err);
+    LoggerE("Email sync header failed, %d (%s)", err, get_error_message(err));
     m_proxy_sync->removeCallback(op_id);
   } else {
     callback->setOperationHandle(op_handle);
@@ -733,7 +740,7 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
   int err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
 
   if (EMAIL_ERROR_NONE != err || NULL == mailbox) {
-    LoggerE("Couldn't get mailbox, error code: %d", err);
+    LoggerE("Couldn't get mailbox, error code: %d (%s)", err, get_error_message(err));
     m_proxy_sync->removeCallback(op_id);
     return;
   }
@@ -749,7 +756,7 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
 
   err = email_set_mail_slot_size(0, 0, slot_size);
   if (EMAIL_ERROR_NONE != err) {
-    LoggerE("Email set slot size failed, %d", err);
+    LoggerE("Email set slot size failed, %d (%s)", err, get_error_message(err));
   } else {
     int op_handle = -1;
     const int account_id = callback->getAccountId();
@@ -757,7 +764,7 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
     err = email_sync_header(account_id, mailbox->mailbox_id, &op_handle);
 
     if (EMAIL_ERROR_NONE != err) {
-      LoggerE("Email sync header failed, %d", err);
+      LoggerE("Email sync header failed, %d (%s)", err, get_error_message(err));
       m_proxy_sync->removeCallback(op_id);
     } else {
       callback->setOperationHandle(op_handle);
@@ -767,7 +774,7 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
   if (NULL != mailbox) {
     err = email_free_mailbox(&mailbox, 1);
     if (EMAIL_ERROR_NONE != err) {
-      LoggerE("Failed to email_free_mailbox - err:%d ", err);
+      LoggerE("Failed to email_free_mailbox - err: %d (%s)", err, get_error_message(err));
     }
     mailbox = NULL;
   }
@@ -793,10 +800,10 @@ void EmailManager::stopSync(long op_id)
                          EMAIL_CANCELED_BY_USER);
 
   if (EMAIL_ERROR_NONE != err) {
-    LoggerE("Email cancel job failed, %d", err);
+    LoggerE("Email cancel job failed, %d (%s)", err, get_error_message(err));
   }
 
-  callback->SetError(PlatformResult(ErrorCode::ABORT_ERR, "Sync aborted by user"));
+  callback->SetError(LogAndCreateResult(ErrorCode::ABORT_ERR, "Sync aborted by user"));
 
   callback->Post();
   m_proxy_sync->removeCallback(op_id);
@@ -877,8 +884,7 @@ void EmailManager::removeStatusCallback(const std::vector<int> &ids,
         }
         MessagesCallbackUserData* callback = it->callback;
         if (NOTI_MAIL_DELETE_FAIL == status) {
-            LoggerD("Failed to remove mail");
-            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Messages remove failed"));
+            callback->SetError(LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Messages remove failed"));
         }
         //if one of mails failed, call error callback
         //if all mails are deleted, call success.
@@ -908,23 +914,26 @@ PlatformResult EmailManager::RemoveMessagesPlatform(MessagesCallbackUserData* ca
   MessageType type = callback->getMessageServiceType();
   for(auto it = messages.begin() ; it != messages.end(); ++it) {
     if((*it)->getType() != type) {
-      LoggerE("Invalid message type");
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting email");
+      return LogAndCreateResult(
+                ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting email",
+                ("Invalid message type %d", (*it)->getType()));
     }
   }
   for (auto it = messages.begin() ; it != messages.end(); ++it) {
     error = email_get_mail_data((*it)->getId(), &mail);
     if (EMAIL_ERROR_NONE != error) {
-      LoggerE("Couldn't retrieve mail data");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting mail");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Error while deleting mail",
+                ("Couldn't retrieve mail data: %d (%s)", error, get_error_message(error)));
     }
 
     //This task (_EMAIL_API_DELETE_MAIL) is for async
     error = email_delete_mail(mail->mailbox_id, &mail->mail_id, 1, 0);
     if (EMAIL_ERROR_NONE != error) {
       email_free_mail_data(&mail, 1);
-      LoggerE("Error while deleting mail");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting mail");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Error while deleting mail",
+                ("email_delete_mail error: %d (%s)", error, get_error_message(error)));
     }
     email_free_mail_data(&mail, 1);
   }
@@ -970,8 +979,9 @@ PlatformResult EmailManager::UpdateMessagesPlatform(MessagesCallbackUserData* ca
   MessageType type = callback->getMessageServiceType();
   for (auto it = messages.begin() ; it != messages.end(); ++it) {
     if ((*it)->getType() != type) {
-      LoggerE("Invalid message type");
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while updating message");
+      return LogAndCreateResult(
+                ErrorCode::TYPE_MISMATCH_ERR, "Error while updating message",
+                ("Invalid message type: %d", (*it)->getType()));
     }
   }
   for (auto it = messages.begin() ; it != messages.end(); ++it) {
@@ -1001,16 +1011,17 @@ PlatformResult EmailManager::UpdateMessagesPlatform(MessagesCallbackUserData* ca
       LoggerD("mail deleted = [%d]\n", mail->mail_id);
       error = email_delete_mail(mail->mailbox_id,&mail->mail_id,1,1);
       if (EMAIL_ERROR_NONE != error) {
-        LoggerE("Error while deleting old mail on update: %d", error);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Error while deleting old mail on update");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while deleting old mail on update",
+                  ("email_delete_mail error: %d (%s)", error, get_error_message(error)));
       }
     } else {
       LoggerD("There are no attachments, updating only email data.");
       error = email_update_mail(mail, NULL, 0, NULL, 0);
       if (EMAIL_ERROR_NONE != error) {
-        LoggerE("Error while updating mail");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while updating mail");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while updating mail",
+                  ("email_update_mail error: %d (%s)", error, get_error_message(error)));
       }
     }
   }
@@ -1225,8 +1236,7 @@ PlatformResult EmailManager::FindFoldersPlatform(FoldersCallbackData* callback)
 
   tizen::AbstractFilterPtr filter = callback->getFilter();
   if (!filter) {
-    LoggerE("Filter not provided");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Filter not provided");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Filter not provided");
   }
 
   for(FilterIterator it(filter); false == it.isEnd(); it++) {
@@ -1234,8 +1244,9 @@ PlatformResult EmailManager::FindFoldersPlatform(FoldersCallbackData* callback)
     if (FIS_COMPOSITE_START == it.getState()) {
       CompositeFilterPtr cf = castToCompositeFilter((*it));
       if(cf && INTERSECTION != cf->getType()) {
-        LoggerE("[ERROR] >>> invalid Filter type: %d", cf->getType());
-        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid Filter Type");
+        return LogAndCreateResult(
+                  ErrorCode::TYPE_MISMATCH_ERR, "Invalid Filter Type",
+                  ("Invalid Filter type: %d", cf->getType()));
       }
     }
     else if (FIS_ATTRIBUTE_FILTER == it.getState()) {
@@ -1245,9 +1256,9 @@ PlatformResult EmailManager::FindFoldersPlatform(FoldersCallbackData* callback)
         if (FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME == attr_name) {
           account_id = static_cast<int>(attrf->getMatchValue()->toLong());
         } else {
-          LoggerE("The attribute name: %s is invalid", attr_name.c_str());
-          return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                                "The attribute name is invalid");
+          return LogAndCreateResult(
+                    ErrorCode::INVALID_VALUES_ERR, "The attribute name is invalid",
+                    ("The attribute name: %s is invalid", attr_name.c_str()));
         }
       }
     }
@@ -1260,8 +1271,9 @@ PlatformResult EmailManager::FindFoldersPlatform(FoldersCallbackData* callback)
                                  &mailboxes,
                                  &mailboxes_count);
     if (EMAIL_ERROR_NONE != ret || !mailboxes) {
-      LoggerE("Cannot get folders: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error, cannot get folders");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Platform error, cannot get folders",
+                ("email_get_mailbox_list error: %d (%s)", ret, get_error_message(ret)));
     }
 
     if (mailboxes_count <= 0) {
@@ -1335,9 +1347,9 @@ PlatformResult EmailManager::RemoveConversationsPlatform(ConversationCallbackDat
   int thread_id = 0;
   for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
     if ((*it)->getType() != type) {
-      LoggerE("Invalid message type");
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                            "Error while deleting email conversation");
+      return LogAndCreateResult(
+                ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting email conversation",
+                ("Invalid message type %d", (*it)->getType()));
     }
   }
 
@@ -1345,9 +1357,9 @@ PlatformResult EmailManager::RemoveConversationsPlatform(ConversationCallbackDat
     thread_id = (*it)->getConversationId();
     error = email_delete_thread(thread_id, false);
     if (EMAIL_ERROR_NONE != error) {
-      LoggerE("Couldn't delete email conversation data");
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                            "Error while deleting email conversation");
+      return LogAndCreateResult(
+                ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting email conversation",
+                ("Couldn't delete email conversation data %d (%s)", error, get_error_message(error)));
     }
 
     // for now, there is no way to recognize deleting email thread job is completed.
@@ -1406,7 +1418,7 @@ std::string EmailManager::getMessageStatus(int id) {
 
   int ret = email_get_mail_data(id, &mail);
   if (EMAIL_ERROR_NONE != ret ) {
-    LoggerD("Failed to get data.");
+    LoggerD("Failed to get data %d (%s)", ret, get_error_message(ret));
     return "";
   }
 
@@ -1430,7 +1442,7 @@ std::string EmailManager::getMessageStatus(int id) {
 
   ret = email_free_mail_data(&mail, 1);
   if (EMAIL_ERROR_NONE != ret ) {
-    LoggerD("Failed to free mail data.");
+    LoggerD("Failed to free mail data %d (%s)", ret, get_error_message(ret));
   }
 
   return MessagingUtil::messageStatusToString(status);

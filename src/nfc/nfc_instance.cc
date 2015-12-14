@@ -24,6 +24,7 @@
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 #include "nfc/defs.h"
 #include "nfc/nfc_message_utils.h"
 #include "nfc/nfc_util.h"
@@ -34,6 +35,16 @@ namespace nfc {
 
 using namespace common;
 using namespace extension::nfc;
+
+namespace {
+
+const std::string kPrivilegeNfcAdmin = "http://tizen.org/privilege/nfc.admin";
+const std::string kPrivilegeNfcCardEmulation = "http://tizen.org/privilege/nfc.cardemulation";
+const std::string kPrivilegeNfcCommon = "http://tizen.org/privilege/nfc";
+const std::string kPrivilegeNfcP2P = "http://tizen.org/privilege/nfc";
+const std::string kPrivilegeNfcTag = "http://tizen.org/privilege/nfc";
+
+} // namespace
 
 void NFCInstance::RespondAsync(const char* msg) {
   LoggerD("Entered");
@@ -140,11 +151,11 @@ NFCInstance::NFCInstance() {
   NFCAdapter::GetInstance()->SetResponder(this);
 }
 
-#define CHECK_EXIST(args, name, out)                                           \
-  if (!args.contains(name)) {                                                  \
-    LoggerE("args doesn't contain attribute '%s'", name);                      \
-    ReportError(TypeMismatchException(name" is required argument"), out);      \
-    return;                                                                    \
+#define CHECK_EXIST(args, name, out)                                                 \
+  if (!args.contains(name)) {                                                        \
+    LoggerE("args doesn't contain attribute '%s'", name);                            \
+    LogAndReportError(TypeMismatchException(name" is required argument"), out);      \
+    return;                                                                          \
   }
 
 NFCInstance::~NFCInstance() {
@@ -158,12 +169,14 @@ void NFCInstance::GetDefaultAdapter(
   // Here there's only check for NFC support
   LoggerD("Entered");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
+
   if(!nfc_manager_is_supported()) {
-    LoggerE("NFC manager is not supported");
     // According to API reference only Security and Unknown
     // exceptions are allowed here
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
-                               "NFC manager not supported"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "NFC manager not supported"),
+        &out);
   }
   else {
     ReportSuccess(out);
@@ -173,15 +186,16 @@ void NFCInstance::GetDefaultAdapter(
 void NFCInstance::SetExclusiveMode(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
+
   CHECK_EXIST(args, "exclusiveMode", out);
   bool exmode = args.get("exclusiveMode").get<bool>();
 
   int ret = nfc_manager_set_system_handler_enable(!exmode);
   if (NFC_ERROR_NONE != ret) {
-    LoggerE("Error: %d", ret);
     PlatformResult result = NFCUtil::CodeToResult(ret,
                                                   "Failed to set exclusive mode.");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("nfc_manager_set_system_handler_enable() error: %d, message: %s", ret, get_error_message(ret)));
   } else {
     ReportSuccess(out);
   }
@@ -191,12 +205,13 @@ void NFCInstance::SetExclusiveMode(
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcAdmin, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -210,66 +225,70 @@ void NFCInstance::GetPowered(
 void NFCInstance::CardEmulationModeSetter(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, "emulationMode", out);
   std::string mode = args.get("emulationMode").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::CardEmulationModeGetter(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   std::string mode = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetCardEmulationMode(&mode);
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(mode), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementSetter(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, "secureElement", out);
   std::string ase = args.get("secureElement").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementGetter(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   std::string ase = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetActiveSecureElement(&ase);
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ase), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::SetTagListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
     bool supported = isTagSupported();
       if (supported) {
           SLoggerE("Tag is supported");
       } else {
-          SLoggerE("Tag is not supported");
-          ReportError(
+          LogAndReportError(
               common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                      "Tag is not supported on this device."),
               &out);
@@ -279,8 +298,7 @@ void NFCInstance::SetTagListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -296,8 +314,7 @@ void NFCInstance::PeerIsConnectedGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ret), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 
 }
@@ -305,12 +322,12 @@ void NFCInstance::PeerIsConnectedGetter(
 void NFCInstance::SetPeerListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
   bool supported = isP2PSupported();
   if (supported) {
     SLoggerE("P2P is supported");
   } else {
-    SLoggerE("P2P is not supported");
-    ReportError(
+    LogAndReportError(
         common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                "P2P is not supported on this device."),
                                &out);
@@ -320,20 +337,19 @@ void NFCInstance::SetPeerListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::UnsetTagListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
   bool supported = isTagSupported();
   if (supported) {
     SLoggerE("Tag is supported");
   } else {
-    SLoggerE("Tag is not supported");
-    ReportError(
+    LogAndReportError(
         common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                "Tag is not supported on this device."),
                                &out);
@@ -346,12 +362,12 @@ void NFCInstance::UnsetTagListener(
 void NFCInstance::UnsetPeerListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
     bool supported = isP2PSupported();
       if (supported) {
           SLoggerE("P2P is supported");
       } else {
-          SLoggerE("P2P is not supported");
-          ReportError(
+          LogAndReportError(
               common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                      "P2P is not supported on this device."),
               &out);
@@ -361,86 +377,93 @@ void NFCInstance::UnsetPeerListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::AddCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::AddTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->AddTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::AddActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::GetCachedMessage(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
+
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -448,14 +471,15 @@ void NFCInstance::GetCachedMessage(
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
 void NFCInstance::SetExclusiveModeForTransaction(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, "transactionMode", out);
 
   bool transaction_mode = args.get("transactionMode").get<bool>();
@@ -464,8 +488,7 @@ void NFCInstance::SetExclusiveModeForTransaction(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -473,6 +496,8 @@ void NFCInstance::SetExclusiveModeForTransaction(
 void NFCInstance::ReadNDEF(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
+
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -482,8 +507,7 @@ void NFCInstance::ReadNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -491,6 +515,8 @@ void NFCInstance::ReadNDEF(
 void NFCInstance::WriteNDEF(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
+
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -500,8 +526,7 @@ void NFCInstance::WriteNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -509,6 +534,7 @@ void NFCInstance::WriteNDEF(
 void NFCInstance::Transceive(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
 
   CHECK_EXIST(args, "id", out);
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -518,14 +544,15 @@ void NFCInstance::Transceive(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::SetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
+
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -533,14 +560,15 @@ void NFCInstance::SetReceiveNDEFListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::UnsetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
+
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -548,8 +576,7 @@ void NFCInstance::UnsetReceiveNDEFListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -557,6 +584,8 @@ void NFCInstance::UnsetReceiveNDEFListener(
 void NFCInstance::SendNDEF(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
+
   CHECK_EXIST(args, "id", out);
 
   int peer_id = static_cast<int>(args.get("id").get<double>());
@@ -567,8 +596,7 @@ void NFCInstance::SendNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -583,8 +611,7 @@ void NFCInstance::ToByte(
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -598,8 +625,7 @@ void NFCInstance::NDEFMessageContructor(const picojson::value& args, picojson::o
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -612,8 +638,7 @@ void NFCInstance::NDEFRecordContructor(const picojson::value& args, picojson::ob
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -627,8 +652,7 @@ void NFCInstance::NDEFRecordTextContructor(const picojson::value& args, picojson
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -641,8 +665,7 @@ void NFCInstance::NDEFRecordURIContructor(const picojson::value& args, picojson:
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -656,8 +679,7 @@ void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojso
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
-    LoggerE("Error: %s", ret.message().c_str());
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out);
   }
 }
 
@@ -675,8 +697,7 @@ void NFCInstance::TagTypeGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
     return;
   }
 
@@ -694,8 +715,7 @@ void NFCInstance::TagTypeGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(tag_type), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -711,8 +731,7 @@ void NFCInstance::TagIsSupportedNDEFGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
     return;
   }
 
@@ -729,8 +748,7 @@ void NFCInstance::TagIsSupportedNDEFGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_supported), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -747,8 +765,7 @@ void NFCInstance::TagNDEFSizeGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
     return;
   }
 
@@ -766,8 +783,7 @@ void NFCInstance::TagNDEFSizeGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value((double)ndef_size), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -784,8 +800,7 @@ void NFCInstance::TagPropertiesGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
     return;
   }
 
@@ -820,8 +835,7 @@ void NFCInstance::TagPropertiesGetter(
     }
     ReportSuccess(properties, out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 
 }
@@ -841,36 +855,41 @@ void NFCInstance::TagIsConnectedGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(connected), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::AddHCEEventListener(const picojson::value& args,
                                       picojson::object& out) {
+  LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->AddHCEEventListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveHCEEventListener(const picojson::value& args,
                                          picojson::object& out) {
+  LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   PlatformResult result = NFCAdapter::GetInstance()->RemoveHCEEventListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
                                        picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_APDU, out);
   const picojson::array& apdu_array = FromJson<picojson::array>(
       args.get<picojson::object>(), JSON_APDU);
@@ -891,7 +910,7 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
-    ReportError(error, &response_obj);
+    LogAndReportError(error, &response_obj);
     Instance::PostMessage(this, response.serialize().c_str());
   };
 
@@ -903,6 +922,8 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
 void NFCInstance::IsActivatedHandlerForAID(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
 
@@ -916,14 +937,15 @@ void NFCInstance::IsActivatedHandlerForAID(const picojson::value& args,
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_activated_handler), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
 
@@ -939,14 +961,15 @@ void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_activated_handler), out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::RegisterAID(const picojson::value& args,
                               picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
@@ -961,14 +984,15 @@ void NFCInstance::RegisterAID(const picojson::value& args,
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::UnregisterAID(const picojson::value& args,
                                 picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
@@ -984,14 +1008,15 @@ void NFCInstance::UnregisterAID(const picojson::value& args,
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Error: %s", result.message().c_str());
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
 void NFCInstance::GetAIDsForCategory(const picojson::value& args,
                                      picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
+
   CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
   const std::string& type = args.get(JSON_TYPE).get<std::string>();
@@ -1018,7 +1043,7 @@ void NFCInstance::GetAIDsForCategory(const picojson::value& args,
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
-    ReportError(error, &response_obj);
+    LogAndReportError(error, &response_obj);
     Instance::PostMessage(this, response.serialize().c_str());
   };
 

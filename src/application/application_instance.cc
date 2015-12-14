@@ -21,9 +21,18 @@
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
 #include "common/current_application.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace application {
+
+namespace {
+// The privileges that are required in Application API
+const std::string kPrivilegeAppManagerCertificate = "http://tizen.org/privilege/notexist";
+const std::string kPrivilegeAppManagerKill = "http://tizen.org/privilege/appmanager.kill";
+const std::string kPrivilegeApplicationInfo = "http://tizen.org/privilege/packagemanager.info";
+const std::string kPrivilegeApplicationLaunch = "http://tizen.org/privilege/appmanager.launch";
+}  // namespace
 
 using namespace common;
 
@@ -36,7 +45,6 @@ ApplicationInstance::ApplicationInstance() :
 
   if (app_id_.empty()) {
     LoggerE("app_id_ is empty. Application instance will not be created.");
-    //return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
   }
 
   using std::placeholders::_1;
@@ -112,6 +120,8 @@ void ApplicationInstance::GetAppInfo(const picojson::value& args, picojson::obje
 void ApplicationInstance::GetAppCerts(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerCertificate, &out);
+
   std::string app_id = app_id_;
   const auto& id = args.get("id");
   if (id.is<std::string>()) {
@@ -135,6 +145,8 @@ void ApplicationInstance::GetAppSharedURI(const picojson::value& args, picojson:
 
 void ApplicationInstance::GetAppMetaData(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationInfo, &out);
 
   std::string app_id = app_id_;
   const auto& id = args.get("id");
@@ -179,11 +191,15 @@ void ApplicationInstance::ReplyFailure(const picojson::value& args, picojson::ob
 void ApplicationInstance::GetSize(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationInfo, &out);
+
   manager_.GetApplicationInformationSize(args, &out);
 }
 
 void ApplicationInstance::Kill(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerKill, &out);
 
   manager_.Kill(args);
 }
@@ -191,11 +207,15 @@ void ApplicationInstance::Kill(const picojson::value& args, picojson::object& ou
 void ApplicationInstance::Launch(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
+
   manager_.Launch(args);
 }
 
 void ApplicationInstance::LaunchAppControl(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
 
   manager_.LaunchAppControl(args);
 }
@@ -249,7 +269,7 @@ void ApplicationInstance::AddEventListener(const picojson::value& args, picojson
   if (result) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

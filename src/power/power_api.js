@@ -15,7 +15,6 @@
  */
 
 var validator_ = xwalk.utils.validator;
-var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
@@ -121,8 +120,6 @@ function PowerManager() {
  *     is desired to be.
  */
 PowerManager.prototype.request = function(resource, state) {
-   xwalk.utils.checkPrivilegeAccess(privilege_.POWER);
-
    var args = validator_.validateArgs(arguments, [
         {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']},
         {'name' : 'state', 'type': types_.ENUM, 'values' : ['SCREEN_OFF', 'SCREEN_DIM', 'SCREEN_NORMAL', 'SCREEN_BRIGHT', 'CPU_AWAKE']}
@@ -216,8 +213,6 @@ PowerManager.prototype.getScreenBrightness = function() {
  * @param {!number} brightness The screen brightness value to set.
  */
 PowerManager.prototype.setScreenBrightness = function(brightness) {
-    xwalk.utils.checkPrivilegeAccess(privilege_.POWER);
-
     var args = validator_.validateArgs(arguments, [
         {'name' : 'brightness', 'type': types_.DOUBLE}
     ]);
@@ -274,8 +269,6 @@ PowerManager.prototype.restoreScreenBrightness = function() {
  * Turns on the screen.
  */
 PowerManager.prototype.turnScreenOn = function() {
-    xwalk.utils.checkPrivilegeAccess(privilege_.POWER);
-
     var nativeParam = {
     };
 
@@ -291,8 +284,6 @@ PowerManager.prototype.turnScreenOn = function() {
  * Turns off the screen.
  */
 PowerManager.prototype.turnScreenOff = function() {
-    xwalk.utils.checkPrivilegeAccess(privilege_.POWER);
-
     var nativeParam = {
     };
 

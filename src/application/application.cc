@@ -41,7 +41,7 @@ void Application::GetRequestedAppControl(const picojson::value& args, picojson::
   if (!encoded_bundle.empty()) {
     PlatformResult ret = app_control_.set_bundle(encoded_bundle);
     if (ret.IsError()) {
-      ReportError(ret, out);
+      LogAndReportError(ret, out);
       return;
     }
 

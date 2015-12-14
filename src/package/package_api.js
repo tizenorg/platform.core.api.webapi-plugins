@@ -15,7 +15,6 @@
  */
 
 var validator_ = xwalk.utils.validator;
-var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 
 
@@ -144,8 +143,6 @@ function PackageManager() {
 
 
 PackageManager.prototype.install = function(packageFileURI, progressCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGEMANAGER_INSTALL);
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'packageFileURI', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -185,8 +182,6 @@ PackageManager.prototype.install = function(packageFileURI, progressCallback) {
 };
 
 PackageManager.prototype.uninstall = function(id, progressCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGEMANAGER_INSTALL);
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'id', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -227,8 +222,6 @@ PackageManager.prototype.uninstall = function(id, progressCallback) {
 };
 
 PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGE_INFO);
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'successCallback', 'type' : types_.FUNCTION},
     {'name' : 'errorCallback', 'type' : types_.FUNCTION, 'optional' : true, 'nullable' : true}
@@ -263,8 +256,6 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
 };
 
 PackageManager.prototype.getPackageInfo = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGE_INFO);
-
   var args = validator_.validateArgs(arguments, [
     {'name': 'id', 'type': types_.STRING, 'optional' : true, 'nullable' : true}
   ]);
@@ -285,8 +276,6 @@ PackageManager.prototype.getPackageInfo = function() {
 };
 
 PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGE_INFO);
-
   var args = validator_.validateArgs(
       arguments,
       [
@@ -325,8 +314,6 @@ PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
 };
 
 PackageManager.prototype.unsetPackageInfoEventListener = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.PACKAGE_INFO);
-
   var nativeParam = {
   };
 

@@ -21,11 +21,18 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "common/tools.h"
 
 #include "notification/notification_manager.h"
 
 namespace extension {
 namespace notification {
+
+namespace {
+// The privileges that required in Notification API
+const std::string kPrivilegeNotification = "http://tizen.org/privilege/notification";
+const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
+}  // namespace
 
 using namespace common;
 
@@ -56,12 +63,13 @@ NotificationInstance::~NotificationInstance() {
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \
-    ReportError(TypeMismatchException(name " is required argument"), out); \
+    LogAndReportError(TypeMismatchException(name " is required argument"), out); \
     return;                                                                \
   }
 
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   picojson::value val{picojson::object{}};
@@ -71,14 +79,14 @@ void NotificationInstance::NotificationManagerPost(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
 void NotificationInstance::NotificationManagerUpdate(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->Update(args.get<picojson::object>());
@@ -86,14 +94,14 @@ void NotificationInstance::NotificationManagerUpdate(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
 void NotificationInstance::NotificationManagerRemove(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->Remove(args.get<picojson::object>());
@@ -101,14 +109,14 @@ void NotificationInstance::NotificationManagerRemove(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
 void NotificationInstance::NotificationManagerRemoveAll(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->RemoveAll();
@@ -116,8 +124,7 @@ void NotificationInstance::NotificationManagerRemoveAll(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -132,8 +139,7 @@ void NotificationInstance::NotificationManagerGet(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -148,8 +154,7 @@ void NotificationInstance::NotificationManagerGetAll(
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -157,14 +162,14 @@ void NotificationInstance::NotificationManagerPlayLEDCustomEffect(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   PlatformResult status = manager_->PlayLEDCustomEffect(args.get<picojson::object>());
 
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -172,14 +177,14 @@ void NotificationInstance::NotificationManagerStopLEDCustomEffect(
     const picojson::value& /*args*/, picojson::object& out) {
 
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   PlatformResult status = manager_->StopLEDCustomEffect();
 
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 

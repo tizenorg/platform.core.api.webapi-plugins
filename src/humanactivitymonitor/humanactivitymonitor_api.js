@@ -77,7 +77,7 @@ HumanActivityMonitorManager.prototype.getHumanActivityData = function(type, succ
     throw new WebAPIException(WebAPIException.NOT_SUPPORTED_ERR);
   }
 
-  var listenerId ='HumanActivityMonitor_'  + args.type;
+  var listenerId = 'HumanActivityMonitor_'  + args.type;
   if (!native_.isListenerSet(listenerId)) {
     throw new WebAPIException(WebAPIException.SERVICE_NOT_AVAILABLE_ERR);
   }
@@ -96,37 +96,60 @@ HumanActivityMonitorManager.prototype.getHumanActivityData = function(type, succ
         convertActivityData(args.type, native_.getResultObject(result)));
   };
 
-  native_.call('HumanActivityMonitorManager_getHumanActivityData', data, callback);
+  var result = native_.call('HumanActivityMonitorManager_getHumanActivityData', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
-HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
-  // TODO(r.galka) check access
-  // HRM - http://tizen.org/privilege/healthinfo
-  // GPS - http://tizen.org/privilege/location
-
-  var args = validator_.validateArgs(arguments, [
-    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
-    {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true}
-  ]);
-
-  var listenerId ='HumanActivityMonitor_'  + args.type;
-
-  var data = {
-    type: args.type,
-    listenerId: listenerId
-  };
-
+function startListener(listenerId, listener, method, data) {
   if (!native_.isListenerSet(listenerId)) {
-    var result = native_.callSync('HumanActivityMonitorManager_start', data);
+    var result = native_.callSync(method, data);
     if (native_.isFailure(result)) {
       throw native_.getErrorObject(result);
     }
   }
 
-  var listener = function(result) {
-    native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
-  };
+  // always set the listener, if it's another call to startListener() overwrite the old one
   native_.addListener(listenerId, listener);
+}
+
+function checkPrivilegesForMethod(method, type) {
+  utils_.checkPrivilegeAccess(utils_.privilege.HEALTHINFO);
+  if ('HumanActivityMonitorManager_stop' === method && 'GPS' === type) {
+    utils_.checkPrivilegeAccess(utils_.privilege.LOCATION);
+  }
+}
+
+function stopListener(listenerId, method, data) {
+  if (!native_.isListenerSet(listenerId)) {
+    checkPrivilegesForMethod(method, data.type);
+    return;
+  }
+
+  var result = native_.callSync(method, data);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  native_.removeListener(listenerId);
+}
+
+HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
+    {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var listenerId = 'HumanActivityMonitor_'  + args.type;
+
+  startListener(listenerId,
+                function(result) {
+                  native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
+                },
+                'HumanActivityMonitorManager_start',
+                { type: args.type, listenerId: listenerId });
 };
 
 HumanActivityMonitorManager.prototype.stop = function(type) {
@@ -134,50 +157,32 @@ HumanActivityMonitorManager.prototype.stop = function(type) {
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)}
   ]);
 
-  var data = {
-    type: args.type
-  };
-
-  var listenerId ='HumanActivityMonitor_'  + args.type;
-
-  if (!native_.isListenerSet(listenerId)) {
-    return;
-  }
-
-  var result = native_.callSync('HumanActivityMonitorManager_stop', data);
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
-
-  native_.removeListener(listenerId);
+  stopListener('HumanActivityMonitor_'  + args.type,
+               'HumanActivityMonitorManager_stop',
+               { type: args.type });
 };
+
+var accumulativePedometerListenerId = 'HumanActivityMonitor_AccumulativePedometerListener';
 
 HumanActivityMonitorManager.prototype.setAccumulativePedometerListener = function(changeCallback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'changeCallback', type: types_.FUNCTION}
   ]);
 
-  var data = {
-  };
+  var listenerId = accumulativePedometerListenerId;
 
-  var callback = function(result) {
-    native_.callIfPossible(args.changeCallback);
-  };
-
-  native_.call('HumanActivityMonitorManager_setAccumulativePedometerListener', data, callback);
+  startListener(listenerId,
+                function(result) {
+                  args.changeCallback(convertActivityData(HumanActivityType.PEDOMETER, result));
+                },
+                'HumanActivityMonitorManager_setAccumulativePedometerListener',
+                { listenerId: listenerId });
 };
 
 HumanActivityMonitorManager.prototype.unsetAccumulativePedometerListener = function() {
-
-  var data = {
-  };
-
-  var result = native_.callSync(
-      'HumanActivityMonitorManager_unsetAccumulativePedometerListener', data);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  stopListener(accumulativePedometerListenerId,
+               'HumanActivityMonitorManager_unsetAccumulativePedometerListener',
+               {});
 };
 
 function StepDifference() {

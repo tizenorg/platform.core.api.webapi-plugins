@@ -73,18 +73,15 @@ PlatformResult ZipAddRequest::run()
 {
     LoggerD("Enter");
     if(!m_callback) {
-        LoggerE("m_callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive", ("m_callback is NULL"));
     }
 
     if(!m_callback->getFileEntry()) {
-        LoggerE("m_callback->getFileEntry() is NULL");
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Provided ArchiveFileEntry is not correct");
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Provided ArchiveFileEntry is not correct", ("m_callback->getFileEntry() is NULL"));
     }
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     m_compression_level = m_callback->getFileEntry()->getCompressionLevel();
@@ -136,8 +133,7 @@ PlatformResult ZipAddRequest::run()
     addNodeAndSubdirsToList(m_root_src_file_node, all_sub_nodes);
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     // Calculate total size to be compressed
@@ -168,8 +164,7 @@ PlatformResult ZipAddRequest::run()
             bytesToReadableString(m_bytes_to_compress).c_str());
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     // Begin files compression
@@ -232,10 +227,8 @@ PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_
             &is_directory, &conflicting_name)) {
 
         if(!is_directory) {
-            LoggerE("Entry: [%s] exists and is NOT directory!", conflicting_name.c_str());
-
-            LoggerE("Throwing InvalidValuesException - File with the same name exists");
-            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "File with the same name exists");
+            SLoggerE("Entry: [%s] exists and is NOT directory!", conflicting_name.c_str());
+            return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "File with the same name exists");
         }
 
         LoggerD("Directory: [%s] already exists -> nothing to do", name_in_zip.c_str());
@@ -243,8 +236,7 @@ PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_
     }
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     zip_fileinfo new_dir_info;
@@ -273,8 +265,7 @@ PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_
             NULL, 0);
 
     if (err != ZIP_OK) {
-        LoggerE("ret: %d", err);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "zipOpenNewFileInZip3()"));
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "zipOpenNewFileInZip3()"), ("ret: %d", err));
     }
 
     m_new_file_in_zip_opened = true;
@@ -312,20 +303,18 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
     }
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     std::string conflicting_name;
     if(m_callback->getArchiveFile()->isEntryWithNameInArchive(name_in_zip,
             NULL, &conflicting_name)) {
 
-        LoggerE("Cannot add new entry with name name: [%s] "
-                "it would conflict with existing entry: [%s]",
-                name_in_zip.c_str(), conflicting_name.c_str());
+        SLoggerE("Cannot add new entry with name name: [%s] "
+                 "it would conflict with existing entry: [%s]",
+                 name_in_zip.c_str(), conflicting_name.c_str());
 
-        LoggerE("Throwing InvalidModificationException - Archive entry name conflicts");
-        return PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR, "Archive entry name conflicts");
+        return LogAndCreateResult(ErrorCode::INVALID_MODIFICATION_ERR, "Archive entry name conflicts");
     }
 
     int err = zipOpenNewFileInZip3(m_owner.m_zip, name_in_zip.c_str(), &new_file_info,
@@ -336,8 +325,8 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
             NULL, 0);
 
     if (err != ZIP_OK) {
-        LoggerE("Error opening new file: [%s] in zipfile", name_in_zip.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add new file to zip archive");
+        SLoggerE("Error opening new file: [%s] in zipfile", name_in_zip.c_str());
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add new file to zip archive");
     }
 
     m_new_file_in_zip_opened = true;
@@ -375,8 +364,8 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
     if(src_file_node->getType() == filesystem::NT_FILE) {
         m_input_file = fopen(src_file_path.c_str(), "rb");
         if (!m_input_file) {
-            LoggerE("Error opening source file:%s", src_file_path.c_str());
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not open file to be added");
+            SLoggerE("Error opening source file: %s", src_file_path.c_str());
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not open file to be added");
         }
 
         //Get file length
@@ -392,8 +381,7 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
         if(!m_buffer) {
             m_buffer = new(std::nothrow) char[m_buffer_size];
             if(!m_buffer) {
-                LoggerE("Couldn't allocate m_buffer");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
             }
         }
 
@@ -404,8 +392,8 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
             size_read = fread(m_buffer, 1, m_buffer_size, m_input_file);
             if (size_read < m_buffer_size &&
                         feof(m_input_file) == 0) {
-                LoggerE("Error reading source file: %s\n", src_file_path.c_str());
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
+                SLoggerE("Error reading source file: %s", src_file_path.c_str());
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
             }
 
             LoggerD("Read: %d bytes from input file:[%s]", size_read,
@@ -416,9 +404,9 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
             if (size_read > 0) {
                 err = zipWriteInFileInZip (m_owner.m_zip, m_buffer, size_read);
                 if (err < 0) {
-                    LoggerE("Error during adding file: %s into zip archive",
-                            src_file_path.c_str());
-                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
+                    SLoggerE("Error during adding file: %s into zip archive",
+                             src_file_path.c_str());
+                    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
                 }
             }
 
@@ -452,9 +440,8 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
         } while (size_read > 0 && total_bytes_read < in_file_size);
 
         if(in_file_size != total_bytes_read) {
-            LoggerE("in_file_size(%d) != total_bytes_read(%d)", in_file_size,
-                    total_bytes_read);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive", ("in_file_size(%d) != total_bytes_read(%d)", in_file_size,
+                total_bytes_read));
         }
 
         fclose(m_input_file);

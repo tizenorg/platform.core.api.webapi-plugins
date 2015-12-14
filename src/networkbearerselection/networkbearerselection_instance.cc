@@ -22,9 +22,18 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace networkbearerselection {
+
+namespace {
+// The privileges that required in NetworkBearerSelection API
+const std::string kPrivilegeNetworkBearerSelection = "http://tizen.org/privilege/network.set";
+const std::string kPrivilegeInternet = "http://tizen.org/privilege/internet";
+const std::vector<std::string> kNbsPrivileges{kPrivilegeNetworkBearerSelection, kPrivilegeInternet};
+
+}  // namespace
 
 using namespace common;
 using namespace extension::networkbearerselection;
@@ -55,16 +64,18 @@ NetworkBearerSelectionInstance::~NetworkBearerSelectionInstance() {
   NetworkBearerSelectionManager::GetInstance()->RemoveListener(this);
 }
 
-#define CHECK_EXIST(args, name, out)                                       \
-  if (!args.contains(name)) {                                              \
-    ReportError(TypeMismatchException(name " is required argument"), out); \
-    return;                                                                \
+#define CHECK_EXIST(args, name, out)                                             \
+  if (!args.contains(name)) {                                                    \
+    LogAndReportError(TypeMismatchException(name " is required argument"), out); \
+    return;                                                                      \
   }
 
 void NetworkBearerSelectionInstance::NetworkBearerSelectionRequestRouteToHost(
     const picojson::value& args,
     picojson::object& out) {
   LoggerD("enter");
+
+  CHECK_PRIVILEGE_ACCESS(kNbsPrivileges, &out);
 
   CHECK_EXIST(args, "domainName", out)
   CHECK_EXIST(args, "id", out)
@@ -88,6 +99,8 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     picojson::object& out) {
   LoggerD("enter");
 
+  CHECK_PRIVILEGE_ACCESS(kNbsPrivileges, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "domainName", out)
   const double callback_id = args.get("callbackId").get<double>();
@@ -97,10 +110,11 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     LoggerD("enter");
     picojson::value response = picojson::value(picojson::object());
     picojson::object& obj = response.get<picojson::object>();
-    if (status)
+    if (status) {
       ReportSuccess(obj);
-    else
-      ReportError(UnknownException("PLATFORM ERROR"), obj);
+    } else {
+      LogAndReportError(UnknownException("PLATFORM ERROR"), obj, ("Failed to release route to host (callback)"));
+    }
     obj["callbackId"] = picojson::value(callback_id);
     Instance::PostMessage(this, response.serialize().c_str());
   };
@@ -115,7 +129,7 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
   if (status) {
     ReportSuccess(out);
   } else {
-    ReportError(status, &out);
+    LogAndReportError(status, &out, ("Failed to release route to host"));
   }
 }
 
@@ -143,7 +157,7 @@ void NetworkBearerSelectionInstance::onNBSError(const std::string& domain_name,
   LoggerD("enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  ReportError(UnknownException(info), obj);
+  LogAndReportError(UnknownException(info), obj);
   obj["domainName"] = picojson::value(domain_name);
   obj["state"] = picojson::value("Error");
 

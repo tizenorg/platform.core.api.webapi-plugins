@@ -332,7 +332,7 @@ static PlatformResult NdefRecordGetHandle(picojson::value& record,
   LoggerD("Entered");
   if (!record.is<picojson::object>() || !record.contains("tnf") || !record.contains("type") ||
       !record.contains("id") || !record.contains("payload")) {
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Record is empty");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Record is empty");
   }
   const picojson::object& record_obj = record.get<picojson::object>();
   short tnf_from_json = static_cast<short>(record.get("tnf").get<double>());
@@ -359,8 +359,9 @@ static PlatformResult NdefRecordGetHandle(picojson::value& record,
     payload[i] = static_cast<unsigned char>(payload_data[i].get<double>());
   }
   if ((tnf_from_json < TNF_MIN) || (tnf_from_json > TNF_MAX)) {
-    LoggerE("Not supported tnf");
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Type mismatch");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                              "Type mismatch",
+                              ("Not supported TNF"));
   }
   const int BYTE_ARRAY_MAX = 255;
   nfc_ndef_record_h ndef_record_handle = NULL;

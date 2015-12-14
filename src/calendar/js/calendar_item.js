@@ -348,9 +348,8 @@ var CalendarItem = function(data) {
 
 };
 
-CalendarItem.prototype.convertToString = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
+var CalendarItem_convertToString = function() {
+  utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
   var args = validator_.validateArgs(arguments, [
     {
       name: 'format',
@@ -434,15 +433,22 @@ CalendarItem.prototype.convertToString = function() {
 
 };
 
-CalendarItem.prototype.clone = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+CalendarItem.prototype.convertToString = function() {
+  return CalendarItem_convertToString.apply(this, arguments);
+}
 
+var CalendarItem_clone = function() {
+  utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
   var tmp = _itemConverter.toTizenObject(_itemConverter.fromTizenObject(this));
 
   tmp.id = null;
 
   return this instanceof tizen.CalendarEvent ? new tizen.CalendarEvent(tmp) :
       new tizen.CalendarTask(tmp);
+};
+
+CalendarItem.prototype.clone = function() {
+  return CalendarItem_clone.apply(this, arguments);
 };
 
 function _convertFromStringToItem(str) {
@@ -687,9 +693,8 @@ var CalendarEvent = function(eventInitDict, format) {
 CalendarEvent.prototype = new CalendarItem();
 CalendarEvent.prototype.constructor = CalendarEvent;
 
-CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
+var CalendarEvent_expandRecurrence = function(startDate, endDate, successCallback, errorCallback) {
+  utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
   if (arguments.length < 3) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
@@ -746,6 +751,10 @@ CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successC
       args.errorCallback(result);
     }
   }.bind(this), 1);
+};
+
+CalendarEvent.prototype.expandRecurrence = function() {
+  CalendarEvent_expandRecurrence.apply(this, arguments);
 };
 
 tizen.CalendarEventId = CalendarEventId;

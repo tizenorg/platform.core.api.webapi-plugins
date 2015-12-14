@@ -23,6 +23,7 @@
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_class.h"
+#include "bluetooth_privilege.h"
 #include "bluetooth_util.h"
 
 namespace extension {
@@ -104,6 +105,9 @@ void BluetoothDevice::ToJson(bt_adapter_device_discovery_info_s *info, picojson:
 void BluetoothDevice::ConnectToServiceByUUID(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothSpp, &out);
+
   const auto& args = util::GetArguments(data);
 
   adapter_.ConnectToServiceByUUID(FromJson<std::string>(args, "address"),
@@ -123,8 +127,8 @@ void BluetoothDevice::GetBoolValue(const picojson::value& data, picojson::object
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   bool value = false;
   bt_device_info_s *info = nullptr;
-  if (bt_adapter_get_bonded_device_info(address.c_str(), &info) == BT_ERROR_NONE &&
-      info != nullptr) {
+  int ntv_ret = bt_adapter_get_bonded_device_info(address.c_str(), &info);
+  if (BT_ERROR_NONE == ntv_ret && info != nullptr) {
     if (kDeviceIsBonded == field) {
       value = info->is_bonded;
     } else if (kDeviceIsTrusted == field) {
@@ -132,17 +136,21 @@ void BluetoothDevice::GetBoolValue(const picojson::value& data, picojson::object
     } else if (kDeviceIsConnected == field) {
       value = info->is_connected;
     } else {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Wrong field passed.");
+      result = LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Wrong field passed.",
+                  ("Wrong field passed: %s", field.c_str()));
     }
     bt_adapter_free_device_info(info);
   } else {
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+    result = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unknown error",
+                ("bt_adapter_get_bonded_device_info error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
 
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(value), out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

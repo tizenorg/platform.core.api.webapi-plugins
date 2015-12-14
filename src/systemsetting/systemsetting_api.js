@@ -16,22 +16,9 @@
 
 
 var validator_ = xwalk.utils.validator;
-var privilege_ = xwalk.utils.privilege;
 var type_ = xwalk.utils.type;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
-
-function throwException_(err) {
-    throw new WebAPIException(err.code, err.name, err.message);
-}
-
-function callSync_(msg) {
-    var ret = extension.internal.sendSyncMessage(JSON.stringify(msg));
-    var obj = JSON.parse(ret);
-    if (obj.error)
-        throwException_(obj.error);
-    return obj.result;
-}
 
 var SystemSettingTypeValues = ['HOME_SCREEN', 'LOCK_SCREEN', 'INCOMING_CALL', 'NOTIFICATION_EMAIL'];
 
@@ -58,12 +45,14 @@ SystemSettingManager.prototype.getProperty = function() {
         type: args.type
     };
 
-    native_.call('SystemSettingManager_getProperty', callArgs, callback);
+    var result = native_.call('SystemSettingManager_getProperty', callArgs, callback);
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 SystemSettingManager.prototype.setProperty = function() {
-    xwalk.utils.checkPrivilegeAccess(privilege_.SETTING);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'type', type: types_.ENUM, values: SystemSettingTypeValues },
         { name: 'value', type: types_.STRING },
@@ -85,7 +74,11 @@ SystemSettingManager.prototype.setProperty = function() {
         value: args.value
     };
 
-    native_.call('SystemSettingManager_setProperty', callArgs, callback);
+    var result = native_.call('SystemSettingManager_setProperty', callArgs, callback);
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 // Exports

@@ -46,18 +46,18 @@ void ReportSuccess(const picojson::value& result, picojson::object& out) {
 }
 
 void ReportError(picojson::object& out) {
-  LoggerD("Enter");
+  LoggerE("Error without error code");
   out.insert(std::make_pair("status", picojson::value("error")));
 }
 
 void ReportError(const PlatformException& ex, picojson::object& out) {
-  LoggerD("Enter");
+  LoggerE("PlatformException: %s, message: %s", ex.name().c_str(), ex.message().c_str());
   out.insert(std::make_pair("status", picojson::value("error")));
   out.insert(std::make_pair("error", ex.ToJSON()));
 }
 
 void ReportError(const PlatformResult& error, picojson::object* out) {
-  LoggerD("Enter");
+  LoggerE("PlatformResult: %d, message: %s", error.error_code(), error.message().c_str());
   out->insert(std::make_pair("status", picojson::value("error")));
   out->insert(std::make_pair("error", error.ToJSON()));
 }

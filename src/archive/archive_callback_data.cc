@@ -178,13 +178,11 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
 
     filesystem::FilePtr file = archive_file_ptr->getFile();
     if (!file) {
-        LoggerE("File is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is null");
     }
     filesystem::NodePtr node = file->getNode();
     if(!node) {
-        LoggerE("Node is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Node is null");
     }
     const FileMode fm = archive_file_ptr->m_file_mode;
     unsigned long long size = 0;
@@ -211,8 +209,7 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
             archive_file_ptr->setIsOpen(true);
         }
         else {
-            LoggerE("The file is empty throwing: InvalidValuesException - Invalid ZIP archive");
-            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid ZIP archive");
+            return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid ZIP archive", ("The file is empty"));
         }
     }
     else {
@@ -226,8 +223,7 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
 
     guint id = g_idle_add(ArchiveFile::openTaskCompleteCB, this);
     if (!id) {
-        LoggerE("g_idle_add fails");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -267,8 +263,7 @@ PlatformResult GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_f
 
     guint id = g_idle_add(ArchiveFile::getEntriesTaskCompleteCB, this);
     if (!id) {
-        LoggerE("g_idle_add fails");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -329,17 +324,15 @@ PlatformResult GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archi
     }
 
     if (it == entries->end()) {
-        LoggerE("GetEntryByName Entry with name: [%s] not found", getName().c_str());
-        LoggerE("Throwing NotFoundException - Entry not found");
-        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Entry not found");
+        SLoggerE("GetEntryByName Entry with name: [%s] not found", getName().c_str());
+        return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Entry not found");
     }
 
     setFileEntry(it->second);
 
     guint id = g_idle_add(ArchiveFile::getEntryByNameTaskCompleteCB, this);
     if (!id) {
-        LoggerE("g_idle_add fails");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -564,13 +557,11 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
     LoggerD("Entered");
 
     if(!m_file_entry) {
-        LoggerE("ArchiveFileEntry is not set in callback");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive", ("ArchiveFileEntry is not set in callback"));
     }
 
     if(!archive_file_ptr) {
-        LoggerE("archive_file_ptr is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry", ("archive_file_ptr is NULL"));
     }
 
     AddProgressCallback* callback = this;
@@ -806,13 +797,11 @@ PlatformResult ExtractEntryProgressCallback::executeOperation(ArchiveFilePtr arc
     LoggerD("Entered");
 
     if(!m_archive_file_entry) {
-        LoggerE("ArchiveFileEntry is not set in callback");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry", ("ArchiveFileEntry is not set in callback"));
     }
 
     if(!archive_file_ptr) {
-        LoggerE("archive_file_ptr is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry", ("archive_file_ptr is NULL"));
     }
 
     UnZipPtr unzip;

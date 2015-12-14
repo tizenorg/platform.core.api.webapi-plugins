@@ -46,12 +46,10 @@ common::PlatformResult MediaKeyManager::RegisterMediaKeyEventListener(
     int ret = media_key_reserve(MediaKeyEventCallback, NULL);
     LoggerD("after calling media_key_reserve - result = %d", ret);
     if (MEDIA_KEY_ERROR_NONE != ret) {
-      LoggerD("Failed to register "
-              "a media keys change event callback: %d",
-              ret);
-      return common::PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
-          "Failed to register a media keys change event callback");
+          "Failed to register a media keys change event callback",
+          ("media_key_reserve() error: %d, message: %s", ret, get_error_message(ret)));
     }
     m_media_key_listener = listener;
     m_media_key_listener_registered = true;
@@ -64,12 +62,10 @@ common::PlatformResult MediaKeyManager::UnregisterMediaKeyEventListener() {
   if (m_media_key_listener_registered) {
     int ret = media_key_release();
     if (MEDIA_KEY_ERROR_NONE != ret) {
-      LoggerD("Failed to unregister "
-              "the change event callback function: %d",
-              ret);
-      return common::PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
-          "Failed to unregister the change event callback function");
+          "Failed to unregister the change event callback function",
+          ("media_key_release() error: %d, message: %s", ret, get_error_message(ret)));
     }
   }
   m_media_key_listener = NULL;

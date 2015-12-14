@@ -61,9 +61,9 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
   int err = contacts_db_get_record(_contacts_contact._uri, contact_id,
                                    &contacts_record);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Contacts record get error, error code: %d", err);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Contacts record get error");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Contacts record get error",
+                          ("Contacts record get error, error code: %d", err));
   }
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
       &contacts_record, ContactUtil::ContactsDeleter);
@@ -88,17 +88,16 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
   long addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
 
   if (!IsNull(contact, "id")) {
-    LoggerW("Contact already exists");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact already exists");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contact already exists");
   }
 
   contacts_record_h contacts_record = nullptr;
   int err = 0;
   err = contacts_record_create(_contacts_contact._uri, &contacts_record);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Contacts record create error, error code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Contacts record create error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Contacts record create error",
+                          ("Contacts record create error, error code: %d", err));
   }
 
   // contacts_record starts to be protected by unique_ptr
@@ -115,15 +114,15 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
   int id = -1;
   err = contacts_db_insert_record(*contacts_record_ptr, &id);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Contacts db insert error, error code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts db insert error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts db insert error",
+                              ("Contacts db insert error, error code: %d", err));
   }
 
   contacts_record_h reset_record;
   err = contacts_db_get_record(_contacts_contact._uri, id, &reset_record);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Contacts record get error, error code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record get error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record get error",
+                              ("Contacts record get error, error code: %d", err));
   }
   if (nullptr != reset_record) {
     LoggerE("reset");
@@ -147,16 +146,15 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
   long contactId = common::stol(FromJson<JsonString>(contact, "id"));
 
   if (IsNull(contact, "id")) {
-    LoggerW("Contact doesn't exist");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
   }
 
   contacts_record_h to_update = nullptr;
   int err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Problem with getting contact. Error: %d", err);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Problem with getting contact");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Problem with getting contact",
+                          ("Problem with getting contact. Error: %d", err));
   }
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
       &to_update, ContactUtil::ContactsDeleter);
@@ -167,18 +165,16 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
   err = contacts_db_update_record(*contacts_record_ptr);
   if (CONTACTS_ERROR_NONE != err) {
     if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
-              err);
-      return PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::NOT_FOUND_ERR,
-          "Error during executing contacts_db_update_record().");
+          "Error during executing contacts_db_update_record().",
+          ("Error during executing contacts_db_update_record(). Error: %d", err));
     }
     if (CONTACTS_ERROR_DB == err) {
-      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
-              err);
-      return PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
-          "Error during executing contacts_db_update_record().");
+          "Error during executing contacts_db_update_record().",
+          ("Error during executing contacts_db_update_record(). Error: %d", err));
     }
   }
 
@@ -196,15 +192,15 @@ PlatformResult AddressBookRemove(const JsonObject& args, JsonObject&) {
   int contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
   if (contact_id < 0) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
   }
 
   int err = contacts_db_delete_record(_contacts_contact._uri, contact_id);
   if (CONTACTS_ERROR_NO_DATA == err) {
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                           "Remove failed: contact not found");
   } else if (CONTACTS_ERROR_NONE != err) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Contacts record delete error");
   }
 
@@ -226,8 +222,8 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
   contacts_list_h contacts_list = NULL;
   int error_code = contacts_list_create(&contacts_list);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("list creation failed, code: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "list creation failed",
+                          ("list creation failed, code: %d", error_code));
   }
   ContactUtil::ContactsListHPtr contacts_list_ptr(
       &contacts_list, ContactUtil::ContactsListDeleter);
@@ -237,9 +233,9 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     int err = 0;
     err = contacts_record_create(_contacts_contact._uri, &contacts_record);
     if (CONTACTS_ERROR_NONE != err) {
-      LoggerW("Contacts record create error, error code: %d", err);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Contacts record create error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Contacts record create error",
+                            ("Contacts record create error, error code: %d", err));
     }
     ContactUtil::ContactsRecordHPtr x(&contacts_record,
                                       ContactUtil::ContactsDeleter);
@@ -253,9 +249,9 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
 
     error_code = contacts_list_add(*contacts_list_ptr, *(x.release()));
     if (CONTACTS_ERROR_NONE != error_code) {
-      LoggerE("error during add record to list, code: %d", error_code);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "error during add record to list");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list",
+                            ("error during add record to list, code: %d", error_code));
     }
   }
 
@@ -268,9 +264,9 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
 
   error_code = contacts_db_insert_records(*contacts_list_ptr, &ids, &count);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == ids) {
-    LoggerE("inserting contacts to db fails, code: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "inserting contacts to db fails");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "inserting contacts to db fails",
+                          ("inserting contacts to db fails, code: %d", error_code));
   }
 
   if (length != count) {
@@ -283,9 +279,9 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     error_code =
         contacts_db_get_record(_contacts_contact._uri, ids[i], &contact_record);
     if (CONTACTS_ERROR_NONE != error_code) {
-      LoggerW("Contacts record get error, error code: %d", error_code);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Contacts record get error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Contacts record get error",
+                            ("Contacts record get error, error code: %d", error_code));
     }
     status = ContactUtil::ImportContactFromContactsRecord(
         contact_record, &out_object);
@@ -308,8 +304,8 @@ PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
   int err = 0;
   err = contacts_list_create(&contacts_list);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("list creation failed, code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "list creation failed",
+                          ("list creation failed, code: %d", err));
   }
   ContactUtil::ContactsListHPtr contacts_list_ptr(
       &contacts_list, ContactUtil::ContactsListDeleter);
@@ -317,15 +313,15 @@ PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
     const JsonObject& contact = JsonCast<JsonObject>(item);
     long contactId = common::stol(FromJson<JsonString>(contact, "id"));
     if (IsNull(contact, "id")) {
-      LoggerW("Contact doesn't exist");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist",
+                                ("Contact doesn't exist"));
     }
     contacts_record_h to_update = nullptr;
     err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
     if (CONTACTS_ERROR_NONE != err) {
-      LoggerW("Problem with getting contact. Error: %d", err);
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                            "Problem with getting contact");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                            "Problem with getting contact",
+                            ("Problem with getting contact. Error: %d", err));
     }
     ContactUtil::ContactsRecordHPtr x(&to_update,
                                       ContactUtil::ContactsDeleter);
@@ -339,26 +335,26 @@ PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
 
     err = contacts_list_add(*contacts_list_ptr, *(x.release()));
     if (CONTACTS_ERROR_NONE != err) {
-      LoggerE("error during add record to list, code: %d", err);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "error during add record to list");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list",
+                            ("error during add record to list, code: %d", err));
     }
   }
   err = contacts_db_update_records(*contacts_list_ptr);
   if (CONTACTS_ERROR_NONE != err) {
     if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
-              err);
-      return PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::NOT_FOUND_ERR,
-          "Error during executing contacts_db_update_record().");
+          "Error during executing contacts_db_update_record().",
+          ("Error during executing contacts_db_update_record(). Error: %d",
+                        err));
     }
     if (CONTACTS_ERROR_DB == err) {
-      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
-              err);
-      return PlatformResult(
+      return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
-          "Error during executing contacts_db_update_record().");
+          "Error during executing contacts_db_update_record().",
+          ("Error during executing contacts_db_update_record(). Error: %d",
+                        err));
     }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -375,17 +371,17 @@ PlatformResult AddressBookRemoveBatch(const JsonObject& args) {
   for (auto& item : batch_args) {
     long contact_id = common::stol(item.get<std::string>());
     if (contact_id < 0) {
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
     }
     ids[i] = contact_id;
     i++;
   }
   int err = contacts_db_delete_records(_contacts_contact._uri, ids, length);
   if (CONTACTS_ERROR_NO_DATA == err) {
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                           "Remove failed: contact not found");
   } else if (CONTACTS_ERROR_NONE != err) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Contacts record delete error");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -427,8 +423,7 @@ PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
 
   const JsonObject& group = FromJson<JsonObject>(args, "group");
   if (!IsNull(group, "id") || !IsNull(group, "addressBookId")) {
-    LoggerE("Group object is previously added");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                           "Group object is previously added");
   }
 
@@ -471,14 +466,13 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
   long id = common::stol(FromJson<JsonString>(args, "id"));
 
   if (id < 0) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
   }
 
   contacts_record_h contacts_record = nullptr;
   int err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-    LoggerE("Group not exist");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
   }
 
   ContactUtil::ContactsRecordHPtr record(&contacts_record,
@@ -491,7 +485,7 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
     if (status.IsError()) return status;
 
     if (address_book_id != addressbook_id) {
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                             "No group in this address book.");
     }
   }
@@ -511,8 +505,7 @@ PlatformResult AddressBookUpdateGroup(const JsonObject& args, JsonObject&) {
   const JsonObject& group = FromJson<JsonObject>(args, "group");
 
   if (IsNull(group, "id") || IsNull(group, "addressBookId")) {
-    LoggerE("Group object is not added");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                           "Group object is not added");
   }
 
@@ -521,27 +514,24 @@ PlatformResult AddressBookUpdateGroup(const JsonObject& args, JsonObject&) {
   long group_addressbook_id =
       common::stol(FromJson<JsonString>(group, "addressBookId"));
   if (IsUnified(addressbook_id) && (addressbook_id != group_addressbook_id)) {
-    LoggerE("Wrong address book");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Wrong address book");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Wrong address book");
   }
 
   if (FromJson<bool>(group, "readOnly")) {
-    LoggerW("Group is readonly - cancel update");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Group is readonly - cancel update");
   }
 
   long group_id = common::stol(FromJson<JsonString>(group, "id"));
   if (group_id < 0) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
   }
 
   contacts_record_h contacts_record = nullptr;
   int err =
       contacts_db_get_record(_contacts_group._uri, group_id, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-    LoggerE("Group not exist");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
   }
 
   status = ContactUtil::ErrorChecker(
@@ -556,8 +546,7 @@ PlatformResult AddressBookUpdateGroup(const JsonObject& args, JsonObject&) {
 
   err = contacts_db_update_record(contacts_record);
   if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-    LoggerE("Problem during db_update_record");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                           "Problem during db_update_record");
   }
   status = ContactUtil::ErrorChecker(err, "Problem during db_update_record");
@@ -573,7 +562,7 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
 
   long id = common::stol(FromJson<JsonString>(args, "id"));
   if (id < 0) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
   }
 
   int err;
@@ -582,7 +571,7 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
     contacts_record_h contacts_record = nullptr;
     err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
     if (CONTACTS_ERROR_NONE != err || contacts_record == nullptr) {
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
     }
 
     int group_addressbook_id = 0;
@@ -592,14 +581,14 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
     if (status.IsError()) return status;
 
     if (group_addressbook_id != addressbook_id) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Contact is not a member of this address book");
     }
   }
 
   err = contacts_db_delete_record(_contacts_group._uri, id);
   if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Problem during db_delete_record");
   }
   status = ContactUtil::ErrorChecker(err, "Problem during db_delete_record");
@@ -685,8 +674,7 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
     contacts_record_h contacts_record;
     err = contacts_list_get_current_record_p(groups_list, &contacts_record);
     if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-      LoggerE("Fail to get group record");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail to get group record");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get group record");
     }
 
     JsonValue group{JsonObject{}};
@@ -885,10 +873,10 @@ PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonOb
                                           AddressBookListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Error while registering listener to contacts db, code: %d",
-            error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error while registering listener to contacts db");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error while registering listener to contacts db",
+                          ("Error while registering listener to contacts db, code: %d",
+                                      error_code));
   }
 
   instance.set_is_listening(true);
@@ -905,8 +893,7 @@ PlatformResult AddressBookStopListening(ContactInstance& instance) {
       _contacts_contact._uri, AddressBookListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Error while removing listener");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Error while removing listener");
   }
 

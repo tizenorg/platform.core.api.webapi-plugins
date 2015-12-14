@@ -53,7 +53,7 @@ PlatformResult SoundManager::StrToPlatformEnum(const std::string& key,
   LoggerD("Enter");
   if (platform_enum_map_.find(key) == platform_enum_map_.end()) {
     std::string message = "Platform enum value not found for key " + key;
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
   }
 
   *sound_type = platform_enum_map_.at(key);
@@ -75,7 +75,7 @@ PlatformResult SoundManager::PlatformEnumToStr(const sound_type_e value,
   std::string message =
       "Platform enum value " + std::to_string(value) + " not found";
 
-  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+  return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 std::string SoundManager::SoundDeviceTypeToString(sound_device_type_e type) {
@@ -179,9 +179,10 @@ PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
     std::string sound_type;
     PlatformResult status = PlatformEnumToStr(type, &sound_type);
     if (status.IsError()) return status;
-    LoggerE("Failed to find maxVolume of type: %s", sound_type.c_str());
 
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume",
+              ("Failed to find maxVolume of type: %s", sound_type.c_str()));
   }
 
   *max_volume = it->second;
@@ -191,7 +192,7 @@ PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
 
 double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
   LoggerD("Enter");
-  return round(static_cast<double>(volume) * 10 / max_volume) / 10;
+  return round(static_cast<double>(volume) * 100 / max_volume) / 100;
 }
 
 void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
@@ -233,22 +234,22 @@ PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
 
   int ret = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &isEnableSound);
   if (VCONF_OK != ret) {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unknown error: " + std::to_string(ret));
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Unknown error: " + std::to_string(ret),
+              ("vconf_get_bool error: %d (%s)", ret, get_error_message(ret)));
   }
 
-  ret =
-      vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &isEnableVibrate);
+  ret = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &isEnableVibrate);
   if (VCONF_OK != ret) {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unknown error: " + std::to_string(ret));
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Unknown error: " + std::to_string(ret),
+              ("vconf_get_bool error: %d (%s)", ret, get_error_message(ret)));
   }
 
   if (isEnableSound && isEnableVibrate) {
-    LoggerE("Wrong state (sound && vibration)");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform has wrong state.");
+    LogAndCreateResult(
+        ErrorCode::UNKNOWN_ERR, "Platform has wrong state.",
+        ("Wrong state (sound && vibration)"));
   }
 
   if (isEnableSound) {
@@ -269,9 +270,9 @@ PlatformResult SoundManager::SetVolume(const picojson::object& args) {
   LoggerD("volume: %f", volume);
 
   if (volume > 1.0 || volume < 0.0) {
-    LoggerE("Volume should be the value between 0 and 1.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Volume should be the value between 0 and 1.");
+    return LogAndCreateResult(
+              ErrorCode::INVALID_VALUES_ERR,
+                "Volume should be the value between 0 and 1.");
   }
 
   sound_type_e sound_type;
@@ -280,8 +281,9 @@ PlatformResult SoundManager::SetVolume(const picojson::object& args) {
 
   auto it = max_volume_map_.find(sound_type);
   if (it == max_volume_map_.end()) {
-    LoggerE("Failed to find maxVolume of type: %d", type.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume",
+              ("Failed to find maxVolume of type: %d", type.c_str()));
   }
 
   int max_volume = it->second;
@@ -290,8 +292,9 @@ PlatformResult SoundManager::SetVolume(const picojson::object& args) {
 
   int ret = sound_manager_set_volume(sound_type, value);
   if (ret != SOUND_MANAGER_ERROR_NONE) {
-    LoggerE("Failed to set volume: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set volume");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to set volume",
+              ("Failed to set volume: %d (%s)", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -313,8 +316,9 @@ PlatformResult SoundManager::GetVolume(const picojson::object& args,
 
   int ret = sound_manager_get_volume(type_enum, &value);
   if (ret != SOUND_MANAGER_ERROR_NONE) {
-    LoggerE("Failed to get volume: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get volume");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to get volume",
+              ("Failed to get volume: %d (%s)", ret, get_error_message(ret)));
   }
 
   *volume = ConvertToSystemVolume(max_volume, value);
@@ -355,9 +359,8 @@ PlatformResult SoundManager::SetSoundModeChangeListener(
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  LoggerE("SoundModeChangeListener no setted");
-  return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                        "SoundModeChangeListener no setted");
+  return LogAndCreateResult(
+            ErrorCode::UNKNOWN_ERR, "SoundModeChangeListener not set");
 }
 
 PlatformResult SoundManager::UnsetSoundModeChangeListener() {
@@ -374,9 +377,8 @@ PlatformResult SoundManager::UnsetSoundModeChangeListener() {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  LoggerE("SoundModeChangeListener no unsetted");
-  return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                        "SoundModeChangeListener no unsetted");
+  return LogAndCreateResult(
+            ErrorCode::UNKNOWN_ERR, "SoundModeChangeListener not unset");
 }
 
 PlatformResult SoundManager::SetVolumeChangeListener() {
@@ -390,9 +392,10 @@ PlatformResult SoundManager::SetVolumeChangeListener() {
         static_cast<void*>(this));
 
     if (ret != SOUND_MANAGER_ERROR_NONE) {
-      LoggerE("Failed to set volume changed callback: error code: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to set volume changed callback");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Failed to set volume changed callback",
+                ("Failed to set volume changed callback: error: %d (%s)",
+                    ret, get_error_message(ret)));
     }
 
     is_volume_change_listener_ = true;
@@ -409,9 +412,9 @@ PlatformResult SoundManager::UnsetVolumeChangeListener() {
 
   int ret = sound_manager_unset_volume_changed_cb();
   if (ret != SOUND_MANAGER_ERROR_NONE) {
-    LoggerE("Failed to unset volume changed callback");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to unset volume changed callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to unset volume changed callback",
+              ("sound_manager_unset_volume_changed_cb error: %d (%s)", ret, get_error_message(ret)));
   }
 
   is_volume_change_listener_ = false;
@@ -430,7 +433,9 @@ void SoundManager::GetDeviceList(sound_device_mask_e mask, picojson::object& out
 
   int ret = sound_manager_get_current_device_list(mask, &device_list);
   if (SOUND_MANAGER_ERROR_NONE != ret && SOUND_MANAGER_ERROR_NO_DATA != ret) {
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed"), &out,
+        ("sound_manager_get_current_device_list error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -440,7 +445,7 @@ void SoundManager::GetDeviceList(sound_device_mask_e mask, picojson::object& out
     PlatformResult result = GetDeviceInfo(device, true, false, &obj);
 
     if (result.IsError()) {
-      ReportError(result, &out);
+      LogAndReportError(result, &out);
       return;
     }
     response_array.push_back(val);
@@ -459,7 +464,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
   int id = 0;
   int ret = sound_manager_get_device_id(device, &id);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device id failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device id failed",
+              ("sound_manager_get_device_id error: %d (%s)", ret, get_error_message(ret)));
   }
   obj->insert(std::make_pair("id", picojson::value(static_cast<double>(id))));
 
@@ -467,7 +474,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
   char *name = nullptr;
   ret = sound_manager_get_device_name(device, &name);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device name failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device name failed",
+              ("sound_manager_get_device_name error: %d (%s)", ret, get_error_message(ret)));
   }
   obj->insert(std::make_pair("name", picojson::value(name)));
 
@@ -475,7 +484,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
   sound_device_type_e type = SOUND_DEVICE_BUILTIN_SPEAKER;
   ret = sound_manager_get_device_type(device, &type);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device type failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device type failed",
+              ("sound_manager_get_device_type error: %d (%s)", ret, get_error_message(ret)));
   }
   obj->insert(std::make_pair("device", picojson::value(SoundDeviceTypeToString(type))));
 
@@ -483,7 +494,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
   sound_device_io_direction_e direction = SOUND_DEVICE_IO_DIRECTION_IN;
   ret = sound_manager_get_device_io_direction (device, &direction);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device direction failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device direction failed",
+              ("sound_manager_get_device_io_direction error: %d (%s)", ret, get_error_message(ret)));
   }
   obj->insert(std::make_pair("direction", picojson::value(SoundIOTypeToString(direction))));
 
@@ -491,7 +504,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
   sound_device_state_e state = SOUND_DEVICE_STATE_DEACTIVATED;
   ret = sound_manager_get_device_state(device, &state);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device state failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device state failed",
+              ("sound_manager_get_device_state error: %d (%s)", ret, get_error_message(ret)));
   }
   obj->insert(std::make_pair("isActivated", picojson::value(static_cast<bool>(state))));
 
@@ -521,8 +536,9 @@ PlatformResult SoundManager::IsDeviceConnected(sound_device_type_e type,
       mask = SOUND_DEVICE_IO_DIRECTION_BOTH_MASK;
       break;
     default:
-      LoggerD("Invalid IOType (%d)", direction);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid IO type");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Invalid IO type",
+                ("Invalid IOType (%d)", direction));
   }
 
   sound_device_list_h device_list = nullptr;
@@ -531,13 +547,17 @@ PlatformResult SoundManager::IsDeviceConnected(sound_device_type_e type,
 
   int ret = sound_manager_get_current_device_list(mask, &device_list);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Getting device list failed",
+              ("sound_manager_get_current_device_list error: %d (%s)", ret, get_error_message(ret)));
   }
 
   while (!(ret = sound_manager_get_next_device(device_list, &device))) {
     ret = sound_manager_get_device_type(device, &device_type);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device type failed");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Getting device type failed",
+                ("sound_manager_get_device_type error: %d (%s)", ret, get_error_message(ret)));
     }
 
     if (type == device_type) {
@@ -595,12 +615,18 @@ PlatformResult SoundManager::AddDeviceStateChangeListener() {
   if (!sound_device_change_listener_) {
     ret = sound_manager_set_device_connected_cb(mask, DeviceConnectionChangeCB, this);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting connection listener failed");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Setting connection listener failed",
+                ("sound_manager_set_device_connected_cb error: %d (%s)",
+                    ret, get_error_message(ret)));
     }
 
     ret = sound_manager_set_device_information_changed_cb(mask, DeviceActivationChangeCB, this);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting information listener failed");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Setting information listener failed",
+                ("sound_manager_set_device_information_changed_cb error: %d (%s)",
+                    ret, get_error_message(ret)));
     }
 
     sound_device_change_listener_ = true;
@@ -613,12 +639,18 @@ PlatformResult SoundManager::RemoveDeviceStateChangeListener() {
   LoggerD("Entered");
 
   if (sound_device_change_listener_) {
-    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_connected_cb()) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed");
+    int ret = sound_manager_unset_device_connected_cb();
+    if (SOUND_MANAGER_ERROR_NONE != ret) {
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed",
+                ("sound_manager_unset_device_connected_cb error: %d (%s)", ret, get_error_message(ret)));
     }
 
-    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_information_changed_cb()) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed");
+    ret = sound_manager_unset_device_information_changed_cb();
+    if (SOUND_MANAGER_ERROR_NONE != ret) {
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed",
+                ("sound_manager_unset_device_information_changed_cb error: %d (%s)", ret, get_error_message(ret)));
     }
 
     sound_device_change_listener_ = false;

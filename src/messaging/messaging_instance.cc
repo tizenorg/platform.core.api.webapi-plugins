@@ -21,6 +21,7 @@
 #include <system_info.h>
 
 #include "common/logger.h"
+#include "common/tools.h"
 
 #include "MsgCommon/AbstractFilter.h"
 #include "messages_change_callback.h"
@@ -37,6 +38,7 @@
 #include "email_manager.h"
 
 using common::ErrorCode;
+using common::TypeMismatchException;
 using common::PlatformResult;
 
 namespace extension {
@@ -118,6 +120,10 @@ auto getServiceIdFromJSON = [](picojson::object& data) -> int {
     }
 };
 
+const std::string kPrivilegeMessagingRead  = "http://tizen.org/privilege/messaging.read";
+const std::string kPrivilegeMessagingWrite = "http://tizen.org/privilege/messaging.write";
+
+const long kDumbCallbackId= -1;
 }
 
 MessagingInstance::MessagingInstance():
@@ -128,7 +134,7 @@ MessagingInstance::MessagingInstance():
     using std::placeholders::_1;
     using std::placeholders::_2;
     #define REGISTER_ASYNC(c,x) \
-      RegisterHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
+      RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
       REGISTER_ASYNC(FUN_GET_MESSAGE_SERVICES, GetMessageServices);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SEND_MESSAGE, MessageServiceSendMessage);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_BODY, MessageServiceLoadMessageBody);
@@ -159,12 +165,8 @@ MessagingInstance::~MessagingInstance()
     LoggerD("Entered");
 }
 
-#define POST_AND_RETURN(ret, json, obj, action) \
-    LoggerE("Error occured: (%s)", ret.message().c_str()); \
-    picojson::object args; \
-    ReportError(ret, &args); \
-    obj[JSON_DATA] = picojson::value(args); \
-    obj[JSON_ACTION] = picojson::value(action); \
+#define POST_AND_RETURN(ret, json, obj) \
+    LogAndReportError(ret, &obj); \
     queue_.addAndResolve( \
             obj.at(JSON_CALLBACK_ID).get<double>(), \
             PostPriority::HIGH, \
@@ -172,19 +174,21 @@ MessagingInstance::~MessagingInstance()
     ); \
     return;
 
+#define CHECK_EXIST(args, name, out) \
+    if (!args.contains(name)) {\
+      std::string message = std::string(name) + " is required argument";\
+      LogAndReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, message), &out);\
+      return;\
+    }
+
 void MessagingInstance::GetMessageServices(const picojson::value& args,
                                            picojson::object& out)
 {
   LoggerD("Entered");
 
-  if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-      !args.get(JSON_CALLBACK_ID).is<double>()) {
-    LoggerE("json is incorrect - missing required member");
-    return;
-  }
+  CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-  picojson::value data = args.get(JSON_DATA);
-  picojson::value serviceTag = data.get<picojson::object>().
+  picojson::value serviceTag = args.get<picojson::object>().
       at(GET_MESSAGE_SERVICES_ARGS_MESSAGE_SERVICE_TYPE);
   const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
   // above values should be validated in js
@@ -196,13 +200,10 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_message = data.at(SEND_MESSAGE_ARGS_MESSAGE);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
@@ -213,7 +214,7 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
     std::shared_ptr<Message> message;
     PlatformResult ret = MessagingUtil::jsonToMessage(v_message, &message);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 
     MessageRecipientsCallbackData* callback = new MessageRecipientsCallbackData(queue_, callbackId);
@@ -234,7 +235,7 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
         delete callback;
         callback = nullptr;
         POST_AND_RETURN(PlatformResult(ErrorCode::UNKNOWN_ERR, "set sim index failed"),
-                        json, obj, JSON_CALLBACK_ERROR)
+                        json, obj)
       }
     } else {
       LoggerD("cell_support is false");
@@ -245,7 +246,7 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
 
     ret = service->sendMessage(callback);
     if (!ret) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 }
 
@@ -254,13 +255,10 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
 
     picojson::value json_message = data.at(ADD_DRAFT_MESSAGE_ARGS_MESSAGE);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
@@ -272,7 +270,7 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
     std::shared_ptr<Message> message;
     PlatformResult ret = MessagingUtil::jsonToMessage(json_message, &message);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 
     MessageBodyCallbackData* callback = new MessageBodyCallbackData(queue_, callbackId);
@@ -283,7 +281,7 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
     ret = service->loadMessageBody(callback);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 }
 
@@ -292,13 +290,10 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value attachment = data.at(LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
@@ -312,7 +307,7 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
       auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
       picojson::object& obj = json->get<picojson::object>();
       obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-      POST_AND_RETURN(result, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(result, json, obj)
     }
 }
 
@@ -321,13 +316,10 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_id = data.at(SYNC_ARGS_ID);
     picojson::value v_limit = data.at(SYNC_ARGS_LIMIT);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
@@ -336,8 +328,8 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     try {
         id = std::stoi(v_id.get<std::string>());
     } catch(...) {
-        LoggerE("Problem with MessageService");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Problem with MessageService"));
         return;
     }
     long limit = 0;
@@ -357,7 +349,7 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     if (result) {
       ReportSuccess(picojson::value(static_cast<double>(op_id)), out);
     } else {
-      ReportError(result, &out);
+      LogAndReportError(result, &out);
     }
 }
 
@@ -366,13 +358,10 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_id = data.at(SYNC_FOLDER_ARGS_ID);
     picojson::value v_folder = data.at(SYNC_FOLDER_ARGS_FOLDER);
     picojson::value v_limit = data.at(SYNC_FOLDER_ARGS_LIMIT);
@@ -382,8 +371,8 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
     try {
         id = std::stoi(v_id.get<std::string>());
     } catch(...) {
-        LoggerE("Problem with MessageService");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Problem with MessageService"));
         return;
     }
 
@@ -404,7 +393,7 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
     if (result) {
         ReportSuccess(picojson::value(static_cast<double>(op_id)), out);
     } else {
-        ReportError(result, &out);
+        LogAndReportError(result, &out);
     }
 }
 
@@ -412,14 +401,9 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
-
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
 
     if (data.find(STOP_SYNC_ARGS_ID) != data.end()) {
         picojson::value v_id = data.at(STOP_SYNC_ARGS_ID);
@@ -429,8 +413,8 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         try {
             id = std::stoi(v_id.get<std::string>());
         } catch(...) {
-            LoggerD("Problem with MessageService");
-            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+            LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                              ("Problem with MessageService"));
             return;
         }
 
@@ -444,11 +428,11 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         if (result) {
             ReportSuccess(out);
         } else {
-            ReportError(result, &out);
+            LogAndReportError(result, &out);
         }
     } else {
-        LoggerE("Unknown error");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Unknown error"));
     }
 }
 
@@ -457,13 +441,10 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_message = data.at(ADD_DRAFT_MESSAGE_ARGS_MESSAGE);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
@@ -474,7 +455,7 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
     std::shared_ptr<Message> message;
     PlatformResult ret = MessagingUtil::jsonToMessage(v_message, &message);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 
     MessageCallbackUserData* callback = new MessageCallbackUserData(queue_, callbackId);
@@ -493,13 +474,10 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
@@ -509,7 +487,7 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
     auto sortMode = MessagingUtil::jsonToSortMode(data);
 
@@ -538,13 +516,10 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::array messages = data.at(REMOVE_MESSAGES_ARGS_MESSAGES).get<picojson::array>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
@@ -571,13 +546,10 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value pico_messages = data.at(UPDATE_MESSAGES_ARGS_MESSAGES);
     auto pico_array = pico_messages.get<picojson::array>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
@@ -603,13 +575,10 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
@@ -619,7 +588,7 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
     auto sortMode = MessagingUtil::jsonToSortMode(data);
     long limit = static_cast<long>
@@ -646,13 +615,10 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::array conversations = data.at(REMOVE_CONVERSATIONS_ARGS_CONVERSATIONS).get<picojson::array>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
@@ -668,7 +634,7 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
       ret = MessagingUtil::jsonToMessageConversation(*it, &conversation);
       if (ret.IsError()) {
         delete callback;
-        POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+        POST_AND_RETURN(ret, json, obj)
       }
       callback->addConversation(conversation);
     }
@@ -684,13 +650,10 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
+    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
@@ -700,7 +663,7 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      POST_AND_RETURN(ret, json, obj)
     }
 
     FoldersCallbackData* callback = new FoldersCallbackData(queue_, callbackId);
@@ -716,23 +679,15 @@ void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
-    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
-
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    picojson::object data = args.get<picojson::object>();
 
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      ReportError(ret, &out);
+      return;
     }
 
     int serviceId = getServiceIdFromJSON(data);
@@ -740,7 +695,7 @@ void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::
     auto service = manager_.getMessageService(serviceId);
 
     std::shared_ptr<MessagesChangeCallback> callback(new MessagesChangeCallback(
-        static_cast<long>(callbackId), serviceId, service->getMsgServiceType(),queue_));
+        kDumbCallbackId, serviceId, service->getMsgServiceType(),queue_));
 
     callback->setFilter(filter);
 
@@ -755,23 +710,15 @@ void MessagingInstance::MessageStorageAddConversationsChangeListener(const picoj
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
-    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
-
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    picojson::object data = args.get<picojson::object>();
 
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      ReportError(ret, &out);
+      return;
     }
 
     int serviceId = getServiceIdFromJSON(data);
@@ -779,7 +726,7 @@ void MessagingInstance::MessageStorageAddConversationsChangeListener(const picoj
     auto service = manager_.getMessageService(serviceId);
 
     std::shared_ptr<ConversationsChangeCallback> callback(new ConversationsChangeCallback(
-        static_cast<long>(callbackId), serviceId, service->getMsgServiceType(), queue_));
+        static_cast<long>(-1), serviceId, service->getMsgServiceType(), queue_));
 
     callback->setFilter(filter);
 
@@ -794,23 +741,15 @@ void MessagingInstance::MessageStorageAddFolderChangeListener(const picojson::va
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
-    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
-
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    picojson::object data = args.get<picojson::object>();
 
     AbstractFilterPtr filter;
     PlatformResult ret = MessagingUtil::jsonToAbstractFilter(data, &filter);
     if (ret.IsError()) {
-      POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
+      ReportError(ret, &out);
+      return;
     }
 
     int serviceId = getServiceIdFromJSON(data);
@@ -818,7 +757,7 @@ void MessagingInstance::MessageStorageAddFolderChangeListener(const picojson::va
     auto service = manager_.getMessageService(serviceId);
 
     std::shared_ptr<FoldersChangeCallback> callback(new FoldersChangeCallback(
-        static_cast<long>(callbackId), serviceId, service->getMsgServiceType(), queue_));
+        static_cast<long>(-1), serviceId, service->getMsgServiceType(), queue_));
 
     callback->setFilter(filter);
 
@@ -833,12 +772,9 @@ void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA)) {
-      LoggerE("json is incorrect - missing required member");
-      return;
-    }
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     const long watchId = static_cast<long>(
             data.at(REMOVE_CHANGE_LISTENER_ARGS_WATCHID).get<double>());
 
@@ -853,13 +789,7 @@ void MessagingInstance::MessageGetMessageStatus(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    if (!args.contains(JSON_DATA)) {
-      LoggerE("json is incorrect - missing required member");
-      ReportSuccess(picojson::value(""), out);
-      return;
-    }
-
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     const int id = stoi(data.at("id").get<std::string>());
     const std::string& type = data.at("type").get<std::string>();
 

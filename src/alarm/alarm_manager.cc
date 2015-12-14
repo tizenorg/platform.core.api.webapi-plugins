@@ -37,6 +37,7 @@ namespace alarm {
 
 namespace {
 const int kDateSize = 22; //"yyy mm dd hh mm ss dd" e.g 115 11 28 11 25 50 -1
+const std::string kPrivilegeAlarm = "http://tizen.org/privilege/alarm.get";
 
 const std::string kAlarmRelative = "AlarmRelative";
 const std::string kAlarmAbsolute = "AlarmAbsolute";
@@ -72,10 +73,10 @@ AlarmManager::~AlarmManager() {
 
 void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   if (!args.contains("alarm")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
     return;
   }
   const picojson::object& alarm = args.get("alarm").get<picojson::object>();
@@ -99,8 +100,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     PlatformResult result = util::AppControlToService(
         args.get("appControl").get<picojson::object>(), &app_control);
     if (!result) {
-      LoggerE("Failed: util::AppControlToService");
-      ReportError(result, &out);
+      LogAndReportError(result, &out, ("Failed: util::AppControlToService"));
       return;
     }
   } else {
@@ -119,8 +119,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     const auto it_period = alarm.find("period");
 
     if (alarm.end() == it_delay || alarm.end() == it_period || !it_delay->second.is<double>()) {
-      LoggerE("Invalid parameter passed.");
-      ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+      LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
       return;
     }
     int delay = static_cast<int>(it_delay->second.get<double>());
@@ -133,16 +132,17 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     std::string delay_str = std::to_string(delay);
     int ret = app_control_add_extra_data(app_control, kAlarmRelativeDelayKey, delay_str.c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Fail to add data from app_control: %d (%s)", ret, get_error_message(ret));
-      ReportError(PlatformResult(
-          ErrorCode::UNKNOWN_ERR, "Fail to add data from app_control."), &out);
+      LogAndReportError(PlatformResult(
+          ErrorCode::UNKNOWN_ERR, "Fail to add data from app_control."), &out,
+          ("Fail to add data from app_control: %d (%s)", ret, get_error_message(ret)));
       return;
     }
 
     ret = alarm_schedule_after_delay(app_control, delay, period, &alarm_id);
     if (ALARM_ERROR_NONE != ret) {
-      LoggerE("Error while add alarm to server: %d (%s)", ret, get_error_message(ret));
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while add alarm to server."), &out);
+      LogAndReportError(PlatformResult(
+          ErrorCode::UNKNOWN_ERR, "Error while add alarm to server."), &out,
+          ("Error while add alarm to server: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   } else {
@@ -163,8 +163,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
     tzset();
     if (nullptr == localtime_r(&second, &start_date)) {
-      LoggerE("Invalid date.");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid date."), &out);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid date."), &out);
       return;
     }
 
@@ -203,8 +202,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
         } else if (kSaturdayShort == day) {
           repeat_value |= ALARM_WEEK_FLAG_SATURDAY;
         } else {
-          LoggerE("Invalid days of the week value.");
-          ReportError(PlatformResult(
+          LogAndReportError(PlatformResult(
               ErrorCode::TYPE_MISMATCH_ERR, "Invalid days of the week value."), &out);
           return;
         }
@@ -216,8 +214,9 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     }
 
     if (ALARM_ERROR_NONE != ret) {
-      LoggerE("Adding alarm to server failed: %d (%s)", ret, get_error_message(ret));
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Adding alarm to server failed."), &out);
+      LogAndReportError(PlatformResult(
+                            ErrorCode::UNKNOWN_ERR, "Adding alarm to server failed."), &out,
+                            ("Adding alarm to server failed: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   }
@@ -232,6 +231,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   int id = 0;
 
@@ -240,8 +240,9 @@ void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   }
 
   if (id <= 0) {
-      LoggerE("id is wrong: %d", id);
-      ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid id."), &out);
+      LogAndReportError(PlatformResult(
+                            ErrorCode::INVALID_VALUES_ERR, "Invalid id."), &out,
+                            ("id is wrong: %d", id));
       return;
   }
 
@@ -249,21 +250,23 @@ void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   if (ALARM_ERROR_NONE == ret) {
     ReportSuccess(out);
   } else if (ALARM_ERROR_INVALID_PARAMETER == ret) {
-    LoggerE("Alarm not found.");
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alarm not found."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alarm not found."), &out);
   } else {
-    LoggerE("Platform unknown error: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+    LogAndReportError(PlatformResult(
+                          ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out,
+                          ("Platform unknown error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
 void AlarmManager::RemoveAll(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   int ret = alarm_cancel_all();
   if (ALARM_ERROR_NONE != ret) {
-    LoggerE("Platform unknown error: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+    LogAndReportError(PlatformResult(
+                          ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out,
+                          ("Platform unknown error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -274,8 +277,7 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
   LoggerD("Entered");
 
   if (id <= 0) {
-    LoggerE("id is wrong: %d", id);
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid id.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid id.", ("id is wrong: %d", id));
   }
 
   int ret = ALARM_ERROR_NONE;
@@ -293,14 +295,14 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
 
   ret = alarm_get_app_control(id, &app_control);
   if (ALARM_ERROR_NONE != ret) {
-    LoggerE("Alarm not found: %d (%s)", ret, get_error_message(ret));
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alarm not found.");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Alarm not found.",
+                              ("Alarm not found: %d (%s)", ret, get_error_message(ret)));
   }
 
   ret = app_control_get_extra_data(app_control, kAlarmKeyType, &alarm_type);
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Getting data failed: %d (%s)", ret, get_error_message(ret));
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.",
+                              ("Getting data failed: %d (%s)", ret, get_error_message(ret)));
   }
 
   obj.insert(std::make_pair("id", picojson::value(std::to_string(id))));
@@ -312,8 +314,8 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
     ret = app_control_get_extra_data(app_control, kAlarmAbsoluteDateKey, &date_string);
 
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed to get data: %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.",
+                                ("Failed to get data: %d (%s)", ret, get_error_message(ret)));
     }
 
     sscanf(date_string, "%5d %5d %5d %5d %5d %5d %5d", &date.tm_year, &date.tm_mon,
@@ -334,8 +336,8 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
     if (!strcmp(alarm_type, kAlarmAbsoluteReccurrenceTypeInterval)) {
       ret = alarm_get_scheduled_period(id, &interval);
       if (ALARM_ERROR_NONE != ret) {
-        LoggerE("Unknown error occurred: %d (%s)", ret, get_error_message(ret));
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.",
+                                  ("Unknown error occurred: %d (%s)", ret, get_error_message(ret)));
       }
 
       obj.insert(std::make_pair("second", picojson::value(std::to_string(interval))));
@@ -344,8 +346,8 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
 
       ret = alarm_get_scheduled_recurrence_week_flag(id, &byDayValue);
       if (ALARM_ERROR_NONE != ret) {
-        LoggerE("Failed to get data: %d (%s)", ret, get_error_message(ret));
-        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.");
+        return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.",
+                                  ("Failed to get data: %d (%s)", ret, get_error_message(ret)));
       }
 
       picojson::array& array =
@@ -375,22 +377,21 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
 
     ret = alarm_get_scheduled_period(id, &interval);
     if (ALARM_ERROR_NONE != ret) {
-      LoggerE("Unknown error occurred: %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.",
+                                ("Unknown error occurred: %d (%s)", ret, get_error_message(ret)));
     }
 
     ret = app_control_get_extra_data(app_control, kAlarmRelativeDelayKey, &delay_string);
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed to get data: %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.",
+                                ("Failed to get data: %d (%s)", ret, get_error_message(ret)));
     }
 
     obj.insert(std::make_pair("type", picojson::value(kAlarmRelative)));
     obj.insert(std::make_pair("delay", picojson::value(delay_string)));
     obj.insert(std::make_pair("period", picojson::value(std::to_string(interval))));
   } else {
-    LoggerE("Unknown error occurred.");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -411,7 +412,7 @@ void AlarmManager::Get(const picojson::value& args, picojson::object& out) {
   PlatformResult platform_result = GetAlarm(id, result_obj);
 
   if (!platform_result) {
-    ReportError(platform_result, &out);
+    LogAndReportError(platform_result, &out);
   } else {
     ReportSuccess(result, out);
   }
@@ -433,8 +434,9 @@ void AlarmManager::GetAll(const picojson::value& args, picojson::object& out) {
   int ret = alarm_foreach_registered_alarm(AlarmIterateCB, &alarm_ids);
 
   if (ALARM_ERROR_NONE != ret) {
-    LoggerE("Platform unknown error: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+    LogAndReportError(PlatformResult(
+                          ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out,
+                          ("Platform unknown error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -447,8 +449,7 @@ void AlarmManager::GetAll(const picojson::value& args, picojson::object& out) {
 
     PlatformResult platform_result = GetAlarm(alarm_ids.at(i), obj);
     if (!platform_result) {
-      LoggerE("Failed GetAlarm()");
-      ReportError(platform_result, &out);
+      LogAndReportError(platform_result, &out, ("Failed GetAlarm()"));
       return;
     }
     array_obj.push_back(result);
@@ -482,8 +483,7 @@ void AlarmManager::GetRemainingSeconds(const picojson::value& args, picojson::ob
       ReportSuccess(result, out);
       return;
     } else {
-      LoggerE("Platform unknown error.");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
       return;
     }
   }

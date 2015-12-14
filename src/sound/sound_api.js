@@ -18,7 +18,6 @@ var utils_ = xwalk.utils;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
 var validator_ = utils_.validator;
-var privilege_ = utils_.privilege;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
@@ -109,8 +108,6 @@ SoundManager.prototype.getSoundMode = function() {
 };
 
 SoundManager.prototype.setVolume = function(type, volume) {
-  utils_.checkPrivilegeAccess(privilege_.VOLUME_SET);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'type', type: types_.ENUM, values: Object.keys(SoundType)},
     {name: 'volume', type: types_.DOUBLE}

@@ -6,6 +6,37 @@
 #define COMMON_LOGGER_H_
 
 #include <dlog.h>
+
+// Tizen 3.0 uses different debug flag (DLOG_DEBUG_ENABLE) which is always
+// enabled, following code allows to disable logs with DLOG_DEBUG priority if
+// TIZEN_DEBUG_ENABLE is not set.
+// This code should be removed when DLOG_DEBUG_ENABLE flag is no longer set
+// by default in dlog.h file.
+#undef LOG_
+#ifdef TIZEN_DEBUG_ENABLE
+#define LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    __dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+  } while (0); })
+#else  // TIZEN_DEBUG_ENABLE
+#define LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    if ((int)prio != DLOG_DEBUG) { \
+      __dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+    } \
+  } while (0); })
+#endif  // TIZEN_DEBUG_ENABLE
+
+#undef SECURE_LOG_
+#ifdef TIZEN_DEBUG_ENABLE
+#define SECURE_LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    __dlog_print(id, prio, tag, "%s: %s(%d) > [SECURE_LOG] " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+  } while (0); })
+#else  // TIZEN_DEBUG_ENABLE
+#define SECURE_LOG_(id, prio, tag, fmt, arg...) NOP(fmt, ##arg)
+#endif  // TIZEN_DEBUG_ENABLE
+
 #include <string>
 #include <cstring>
 #include <sstream>
@@ -90,5 +121,78 @@ public:
   // higher than ?:
   void operator&(std::ostream &) {}
 };
+
+// internal macros
+#define LogAndReportError_2(error, object) \
+  do { \
+    LoggerE("Reporting error."); \
+    ReportError(error, object); \
+  } while(false)
+
+#define LogAndReportError_3(error, object, log) \
+  do { \
+    LoggerE log; \
+    ReportError(error, object); \
+  } while(false)
+
+#define LogAndReportError_X(_0, _1, _2, _3, FUNC, ...) FUNC
+
+// usage:
+// LogAndCreateResult(const common::PlatformResult& result, picojson::object* obj, [(const char* log, ...)])
+//  LogAndReportError(result, &out);
+//  LogAndReportError(result, &out, ("Failed to open archive."));
+//  LogAndReportError(result, &out, ("Failed to open archive: %d.", 11));
+
+#define LogAndReportError(...) \
+  LogAndReportError_X(, ##__VA_ARGS__, \
+     LogAndReportError_3(__VA_ARGS__), \
+     LogAndReportError_2(__VA_ARGS__) \
+  )
+
+// internal macros
+#define LogAndCreateResult_1(error_code) \
+  ( \
+    LoggerE("Creating PlatformResult with error"), \
+    common::PlatformResult(error_code) \
+  )
+
+#define LogAndCreateResult_2(error_code, msg) \
+  ( \
+    LoggerE("Creating PlatformResult with error"), \
+    common::PlatformResult(error_code, msg) \
+  )
+
+#define LogAndCreateResult_3(error_code, msg, log) \
+  ( \
+    LoggerE log, \
+    common::PlatformResult(error_code, msg) \
+  )
+
+#define LogAndCreateResult_X(_0, _1, _2, _3, FUNC, ...) FUNC
+
+// LogAndCreateResult(common::ErrorCode code, [const char* error_message, (const char* log, ...)])
+// usage:
+//  auto pr1 = LogAndCreateResult(ErrorCode::IO_ERR);
+//  PlatformResult pr2 = LogAndCreateResult(ErrorCode::IO_ERR);
+//  return LogAndCreateResult(ErrorCode::IO_ERR);
+//
+//  auto pr3 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.");
+//  PlatformResult pr4 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.");
+//  return LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.");
+//
+//  auto pr5 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error"));
+//  PlatformResult pr6 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error"));
+//  return LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error"));
+//
+//  auto pr7 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error: %d", 33));
+//  PlatformResult pr8 = LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error: %d", 33));
+//  return LogAndCreateResult(ErrorCode::IO_ERR, "Not a directory.", ("Not a directory: reporting IO error: %d", 33));
+
+#define LogAndCreateResult(...) \
+  LogAndCreateResult_X(, ##__VA_ARGS__, \
+     LogAndCreateResult_3(__VA_ARGS__), \
+     LogAndCreateResult_2(__VA_ARGS__), \
+     LogAndCreateResult_1(__VA_ARGS__) \
+  )
 
 #endif // COMMON_LOGGER_H_

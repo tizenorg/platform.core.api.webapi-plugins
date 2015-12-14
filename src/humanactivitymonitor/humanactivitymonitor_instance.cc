@@ -24,10 +24,18 @@
 #include "common/logger.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 #include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
 namespace extension {
 namespace humanactivitymonitor {
+
+namespace {
+
+const std::string kPrivilegeHealthInfo = "http://tizen.org/privilege/healthinfo";
+const std::string kPrivilegeLocation = "http://tizen.org/privilege/location";
+
+}  // namespace
 
 using common::PlatformResult;
 using common::ErrorCode;
@@ -75,7 +83,7 @@ PlatformResult HumanActivityMonitorInstance::Init() {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) { \
-      ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
+      LogAndReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
           name" is required argument"), &out); \
       return; \
     }
@@ -86,28 +94,34 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
   LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+
+  const auto type = args.get("type").get<std::string>();
+
+  if (kActivityTypeGps == type) {
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeLocation, &out);
+  }
+
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
-  auto get = [this, args]() -> void {
+  const auto callback_id = args.get("callbackId").get<double>();
+
+  auto get = [this, type, callback_id]() -> void {
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
-    response_obj["callbackId"] = args.get("callbackId");
+    response_obj["callbackId"] = picojson::value(callback_id);
 
     picojson::value data = picojson::value();
-    PlatformResult result = manager_->GetHumanActivityData(
-        args.get("type").get<std::string>(),
-        &data);
+    PlatformResult result = manager_->GetHumanActivityData(type, &data);
 
     if (result) {
       ReportSuccess(data, response_obj);
     } else {
-      LoggerE("Failed: manager_->GetHumanActivityData()");
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed: manager_->GetHumanActivityData()"));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -123,31 +137,39 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
   LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+
+  const auto type = args.get("type").get<std::string>();
+
+  if (kActivityTypeGps == type) {
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeLocation, &out);
+  }
+
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
-  JsonCallback cb = [this, args](picojson::value* data) -> void {
+  const auto listener_id = args.get("listenerId").get<std::string>();
+
+  JsonCallback cb = [this, listener_id](picojson::value* data) -> void {
     if (!data) {
       LOGGER(ERROR) << "No data passed to json callback";
       return;
     }
 
     picojson::object& data_o = data->get<picojson::object>();
-    data_o["listenerId"] = args.get("listenerId");
+    data_o["listenerId"] = picojson::value(listener_id);
 
     Instance::PostMessage(this, data->serialize().c_str());
   };
 
-  result = manager_->SetListener(args.get("type").get<std::string>(), cb);
+  result = manager_->SetListener(type, cb);
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed: manager_->SetListener()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: manager_->SetListener()"));
   }
 }
 
@@ -156,29 +178,43 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
   LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+
+  const auto type = args.get("type").get<std::string>();
+
+  if (kActivityTypeGps == type) {
+    CHECK_PRIVILEGE_ACCESS(kPrivilegeLocation, &out);
+  }
+
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
-  result = manager_->UnsetListener(args.get("type").get<std::string>());
+  result = manager_->UnsetListener(type);
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed: manager_->UnsetListener()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: manager_->UnsetListener()"));
   }
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerSetAccumulativePedometerListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+
   // TODO(r.galka) implement
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerUnsetAccumulativePedometerListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+
   // TODO(r.galka) implement
 }
 

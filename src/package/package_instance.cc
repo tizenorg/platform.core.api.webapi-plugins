@@ -23,6 +23,7 @@
 #include "common/logger.h"
 #include "common/task-queue.h"
 #include "common/picojson.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace package {
@@ -36,6 +37,12 @@ using common::SecurityException;
 
 using common::ErrorCode;
 using common::PlatformResult;
+
+namespace {
+// The privileges that required in Package API
+const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.admin";
+const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/packagemanager.info";
+}  // namespace
 
 typedef enum _PackageThreadWorkType {
   PackageThreadWorkNone = 0,
@@ -265,7 +272,7 @@ PackageInstance::~PackageInstance() {
 
 #define CHECK_EXIST(args, name, out) \
     if (  !args.contains(name) ) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -295,6 +302,8 @@ void PackageInstance::InvokeCallback(
 void PackageInstance::PackageManagerInstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
 
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "packageFileURI", out)
@@ -338,6 +347,8 @@ void PackageInstance::PackageManagerUninstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "id", out)
 
@@ -377,6 +388,8 @@ void PackageInstance::PackageManagerGetpackagesinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
@@ -390,6 +403,8 @@ void PackageInstance::PackageManagerGetpackagesinfo(
 void PackageInstance::PackageManagerGetpackageinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   if ( args.contains("id") ) {
     std::string id = args.get("id").get<std::string>();
@@ -408,7 +423,7 @@ void PackageInstance::PackageManagerGetTotalSize(const picojson::value& args,
   if (id.is<std::string>()) {
     PackageInfoProvider::GetTotalSize(id.get<std::string>(), &out);
   } else {
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
                 &out);
   }
 }
@@ -422,7 +437,7 @@ void PackageInstance::PackageManagerGetDataSize(const picojson::value& args,
   if (id.is<std::string>()) {
     PackageInfoProvider::GetDataSize(id.get<std::string>(), &out);
   } else {
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
                 &out);
   }
 }
@@ -438,6 +453,8 @@ void PackageInstance::
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   if ( is_package_info_listener_set_ ) {
@@ -447,22 +464,22 @@ void PackageInstance::
   }
 
   if ( !manager_ ) {
-    LoggerE("package_manager_h is NULL");
-    ReportError(
+    LogAndReportError(
         UnknownException("The package list change event cannot be " \
         "generated because of a platform error"),
-        out);
+        out,
+        ("package_manager_h is NULL"));
     return;
   }
 
   int ret = package_manager_set_event_cb(
                   manager_, PackageListenerCb, static_cast<void*>(this));
   if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to set event callback: %d (%s)", ret, get_error_message(ret));
-    ReportError(
+    LogAndReportError(
         UnknownException("The package list change event cannot be " \
         "generated because of a platform error"),
-        out);
+        out,
+        ("Failed to set event callback: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -475,6 +492,8 @@ void PackageInstance::
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
+
   if ( !is_package_info_listener_set_ ) {
     LoggerD("Listener is not set");
     ReportSuccess(out);
@@ -482,21 +501,21 @@ void PackageInstance::
   }
 
   if ( !manager_ ) {
-    LoggerE("package_manager_h is NULL");
-    ReportError(
+    LogAndReportError(
         UnknownException("The listener removal request fails" \
         "because of a platform error"),
-        out);
+        out,
+        ("package_manager_h is NULL"));
     return;
   }
 
   int ret = package_manager_unset_event_cb(manager_);
   if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to unset event callback: %d (%s)", ret, get_error_message(ret));
-    ReportError(
+    LogAndReportError(
         UnknownException("The listener removal request fails" \
         "because of a platform error"),
-        out);
+        out,
+        ("Failed to unset event callback: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -509,7 +528,7 @@ void PackageInstance::InvokeErrorCallbackAsync(
   LoggerD("Enter");
 
   picojson::object param;
-  ReportError(ex, param);
+  LogAndReportError(ex, param);
   PackageUserDataPtr userData(new PackageUserData(
       this, callback_id, PackageThreadWorkNone));
   userData->data_ = param;

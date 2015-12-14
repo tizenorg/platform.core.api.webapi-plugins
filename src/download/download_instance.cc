@@ -32,6 +32,12 @@ namespace download {
 std::vector<DownloadInstance*> DownloadInstance::instances_;
 std::mutex DownloadInstance::instances_mutex_;
 
+namespace {
+// The privileges that required in Download API
+const std::string kPrivilegeDownload = "http://tizen.org/privilege/download";
+
+}  // namespace
+
 DownloadInstance::DownloadInstance() {
   LoggerD("Entered");
   using std::placeholders::_1;
@@ -102,101 +108,94 @@ bool DownloadInstance::CheckInstance(DownloadInstance* instance) {
 
 common::PlatformResult DownloadInstance::convertError(int err) {
   char* error = get_error_message(err);
-  LoggerE("%s",error);
   switch (err) {
     case DOWNLOAD_ERROR_INVALID_PARAMETER:
-      return common::PlatformResult(common::ErrorCode::INVALID_VALUES_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::INVALID_VALUES_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_OUT_OF_MEMORY:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_NETWORK_UNREACHABLE:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_CONNECTION_TIMED_OUT:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_NO_SPACE:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_PERMISSION_DENIED:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_NOT_SUPPORTED:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_INVALID_STATE:
-      return common::PlatformResult(common::ErrorCode::INVALID_VALUES_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::INVALID_VALUES_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_CONNECTION_FAILED:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_INVALID_URL:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_INVALID_DESTINATION:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_TOO_MANY_DOWNLOADS:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_QUEUE_FULL:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_ALREADY_COMPLETED:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_FILE_ALREADY_EXISTS:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_CANNOT_RESUME:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_FIELD_NOT_FOUND:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_TOO_MANY_REDIRECTS:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_UNHANDLED_HTTP_CODE:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_REQUEST_TIMEOUT:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_RESPONSE_TIMEOUT:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_SYSTEM_DOWN:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_ID_NOT_FOUND:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_NO_DATA:
-      return common::PlatformResult(
-          common::ErrorCode::UNKNOWN_ERR,
-          error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     case DOWNLOAD_ERROR_IO_ERROR:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    error);
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, error,
+                                ("Error %d (%s)", err, error));
     default:
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-                                    "Unknown error.");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Unknown error.",
+                                ("Unknown error: %d", err));
   }
 }
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, name" is required argument"), &out);\
+      LogAndReportError(common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, name" is required argument"), &out);\
       return;\
     }
 
@@ -300,7 +299,8 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
 
   int ret = download_get_downloaded_file_path(downCbPtr->downloadId, &fullPath);
   if (ret != DOWNLOAD_ERROR_NONE) {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_get_downloaded_file_path error: %d (%s)", ret, get_error_message(ret)));
   } else {
     ret = download_unset_state_changed_cb(diPtr->download_id);
     if (ret != DOWNLOAD_ERROR_NONE) {
@@ -402,14 +402,13 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
     return FALSE;
   }
 
-  DownloadInstance* instance = downCbPtr->instance;
-
   LoggerD("OnFailed for callbackID %d Called", downCbPtr->callbackId);
 
   download_get_error(downCbPtr->downloadId, &error);
 
   if (DOWNLOAD_ERROR_NONE != error) {
-    common::tools::ReportError(convertError(error), &out);
+    LogAndReportError(convertError(error), &out,
+                      ("download_get_error error: %d (%s)", error, get_error_message(error)));
   }
 
   out["callbackId"] =
@@ -432,6 +431,7 @@ void DownloadInstance::progress_changed_cb
 void DownloadInstance::DownloadManagerStart
   (const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDownload, &out);
   CHECK_EXIST(args, "callbackId", out)
 
   int ret;
@@ -501,31 +501,31 @@ void DownloadInstance::DownloadManagerStart
     network_available = cell_available || wifi_available || ethernet_available;
     diPtr->network_type = DOWNLOAD_NETWORK_ALL;
   } else {
-    LoggerE("The input parameter contains an invalid network type");
-    ReportError(
+    LogAndReportError(
         common::PlatformResult(common::ErrorCode::INVALID_VALUES_ERR,
                                "The input parameter contains an invalid network type."),
-        &out);
+        &out,
+        ("The input parameter contains an invalid network type: %s", networkType.c_str()));
     return;
   }
 
   if (!network_support) {
-    LoggerE("Requested network type (%s) is not supported.", networkType.c_str());
-    ReportError(
+    LogAndReportError(
         common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                "The networkType of the given DownloadRequest "
                                "is not supported on this device."),
-        &out);
+        &out,
+        ("Requested network type (%s) is not supported.", networkType.c_str()));
     return;
   }
 
   if (!network_available) {
-    LoggerE("Requested network type (%s) is not available.", networkType.c_str());
-    ReportError(
+    LogAndReportError(
         common::PlatformResult(common::ErrorCode::NETWORK_ERR,
                                "The networkType of the given DownloadRequest "
                                "is currently not available on this device."),
-        &out);
+        &out,
+        ("Requested network type (%s) is not available.", networkType.c_str()));
     return;
   }
 
@@ -538,39 +538,39 @@ void DownloadInstance::DownloadManagerStart
 
   ret = download_create(&diPtr->download_id);
   if (ret != DOWNLOAD_ERROR_NONE) {
-    LoggerE("%s", get_error_message(ret));
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_create error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
   ret = download_set_state_changed_cb (diPtr->download_id, OnStateChanged,
                                        static_cast<void*>(downCbPtr));
   if (ret != DOWNLOAD_ERROR_NONE) {
-    LoggerE("%s", get_error_message(ret));
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_set_state_changed_cb error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
   ret = download_set_progress_cb (diPtr->download_id, progress_changed_cb,
                                   static_cast<void*>(downCbPtr));
   if (ret != DOWNLOAD_ERROR_NONE) {
-    LoggerE("%s", get_error_message(ret));
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_set_progress_cb error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
   ret = download_set_url(diPtr->download_id, diPtr->url.c_str());
   if (ret != DOWNLOAD_ERROR_NONE) {
-    LoggerE("%s", get_error_message(ret));
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_set_url error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
   if (diPtr->destination.size() != 0) {
     ret = download_set_destination(diPtr->download_id, diPtr->destination.c_str());
     if (ret != DOWNLOAD_ERROR_NONE) {
-      LoggerE("%s", get_error_message(ret));
-      common::tools::ReportError(convertError(ret), &out);
+      LogAndReportError(convertError(ret), &out,
+                        ("download_set_destination error: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   }
@@ -578,8 +578,8 @@ void DownloadInstance::DownloadManagerStart
   if (!diPtr->file_name.empty()) {
     ret = download_set_file_name(diPtr->download_id, diPtr->file_name.c_str());
     if (ret != DOWNLOAD_ERROR_NONE) {
-      LoggerE("%s", get_error_message(ret));
-      common::tools::ReportError(convertError(ret), &out);
+      LogAndReportError(convertError(ret), &out,
+                        ("download_set_file_name error: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   }
@@ -602,8 +602,8 @@ void DownloadInstance::DownloadManagerStart
   if (ret == DOWNLOAD_ERROR_NONE) {
     ReportSuccess(out);
   } else {
-    LoggerE("%s", get_error_message(ret));
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_start error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -616,10 +616,10 @@ void DownloadInstance::DownloadManagerCancel
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
-    LoggerE("The identifier does not match any download operation in progress");
-    ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-      "The identifier does not match any download operation in progress"),
-      &out);
+    LogAndReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+                          "The identifier does not match any download operation in progress"),
+                      &out,
+                      ("The identifier %d does not match any download operation in progress", downloadId));
     return;
   }
 
@@ -628,7 +628,8 @@ void DownloadInstance::DownloadManagerCancel
   if (ret == DOWNLOAD_ERROR_NONE) {
     ReportSuccess(out);
   } else {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_cancel error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -641,10 +642,10 @@ void DownloadInstance::DownloadManagerPause
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
-    LoggerE("The identifier does not match any download operation in progress");
-    ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-      "The identifier does not match any download operation in progress"),
-      &out);
+    LogAndReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+                        "The identifier does not match any download operation in progress"),
+                      &out,
+                      ("The identifier %d does not match any download operation in progress", downloadId));
     return;
   }
 
@@ -653,7 +654,8 @@ void DownloadInstance::DownloadManagerPause
   if (ret == DOWNLOAD_ERROR_NONE) {
     ReportSuccess(out);
   } else {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_pause error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -666,9 +668,10 @@ void DownloadInstance::DownloadManagerResume
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
-    ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-      "The identifier does not match any download operation in progress"),
-      &out);
+    LogAndReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+                        "The identifier does not match any download operation in progress"),
+                      &out,
+                      ("The identifier %d does not match any download operation in progress", downloadId));
     return;
   }
 
@@ -677,7 +680,8 @@ void DownloadInstance::DownloadManagerResume
   if (ret == DOWNLOAD_ERROR_NONE) {
     ReportSuccess(out);
   } else {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_start error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -692,10 +696,10 @@ void DownloadInstance::DownloadManagerGetstate
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
-    LoggerE("The identifier does not match any download operation in progress");
-    ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-      "The identifier does not match any download operation in progress"),
-      &out);
+    LogAndReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+                        "The identifier does not match any download operation in progress"),
+                      &out,
+                      ("The identifier %d does not match any download operation in progress", downloadId));
     return;
   }
 
@@ -730,7 +734,8 @@ void DownloadInstance::DownloadManagerGetstate
 
     ReportSuccess(picojson::value(stateValue), out);
   } else {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_get_state error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -745,9 +750,10 @@ void DownloadInstance::DownloadManagerGetmimetype
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
-    ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-      "The identifier does not match any download operation in progress"),
-      &out);
+    LogAndReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+                        "The identifier does not match any download operation in progress"),
+                      &out,
+                      ("The identifier %d does not match any download operation in progress", downloadId));
     return;
   }
 
@@ -756,7 +762,8 @@ void DownloadInstance::DownloadManagerGetmimetype
   if (ret == DOWNLOAD_ERROR_NONE) {
     ReportSuccess(picojson::value(mimetype), out);
   } else {
-    common::tools::ReportError(convertError(ret), &out);
+    LogAndReportError(convertError(ret), &out,
+                      ("download_get_mime_type error: %d (%s)", ret, get_error_message(ret)));
   }
   free(mimetype);
 }

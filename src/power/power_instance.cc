@@ -25,6 +25,7 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/tools.h"
 
 #include "power_manager.h"
 
@@ -32,6 +33,9 @@ namespace extension {
 namespace power {
 
 namespace {
+// The privileges that required in Power API
+const std::string kPrivilegePower = "http://tizen.org/privilege/display";
+
 const std::map<std::string, PowerResource> kPowerResourceMap = {
     {"SCREEN", POWER_RESOURCE_SCREEN},
     {"CPU", POWER_RESOURCE_CPU}
@@ -88,12 +92,14 @@ enum PowerCallbacks {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
 void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
+
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();
 
@@ -101,7 +107,7 @@ void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::o
       PowerManager::GetInstance()->Request(kPowerResourceMap.at(resource),
                                            kPowerStateMap.at(state));
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -112,7 +118,7 @@ void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::o
   PlatformResult result =
       PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -124,7 +130,7 @@ void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
   PlatformResult result =
       PowerManager::GetInstance()->GetScreenBrightness(&brightness);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(picojson::value(brightness), out);
 }
@@ -132,13 +138,15 @@ void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
 void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
                                                     picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
+
   CHECK_EXIST(args, "brightness", out)
 
   double brightness = args.get("brightness").get<double>();
   PlatformResult result =
       PowerManager::GetInstance()->SetScreenBrightness(brightness);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -148,7 +156,7 @@ void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson
   bool state = false;
   PlatformResult result = PowerManager::GetInstance()->IsScreenOn(&state);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(picojson::value(state), out);
 }
@@ -158,25 +166,29 @@ void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& a
   PlatformResult result =
       PowerManager::GetInstance()->RestoreScreenBrightness();
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
+
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
+
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }

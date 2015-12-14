@@ -123,8 +123,6 @@ var Calendar = function(accountId, name, type) {
 };
 
 Calendar.prototype.get = function(id) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
@@ -166,8 +164,6 @@ Calendar.prototype.get = function(id) {
 };
 
 Calendar.prototype.add = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'item',
@@ -211,8 +207,6 @@ Calendar.prototype.add = function() {
 };
 
 Calendar.prototype.addBatch = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'items',
@@ -267,16 +261,16 @@ Calendar.prototype.addBatch = function() {
     tmp.push(tmpItem);
   }
 
-  native_.call('Calendar_addBatch', {
+  var result = native_.call('Calendar_addBatch', {
     type: this.type,
     items: tmp
   }, callback);
-
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Calendar.prototype.update = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'item',
@@ -324,8 +318,6 @@ Calendar.prototype.update = function() {
 };
 
 Calendar.prototype.updateBatch = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'items',
@@ -376,7 +368,7 @@ Calendar.prototype.updateBatch = function() {
     tmp.push(tmpItem);
   }
 
-  native_.call('Calendar_updateBatch', {
+  var result = native_.call('Calendar_updateBatch', {
     type: this.type,
     items: tmp,
     updateAllInstances: (args.has.updateAllInstances)
@@ -384,11 +376,12 @@ Calendar.prototype.updateBatch = function() {
             : true
   }, callback);
 
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Calendar.prototype.remove = function(id) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
@@ -417,8 +410,6 @@ Calendar.prototype.remove = function(id) {
 };
 
 Calendar.prototype.removeBatch = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'ids',
@@ -448,16 +439,17 @@ Calendar.prototype.removeBatch = function() {
     }
   };
 
-  native_.call('Calendar_removeBatch', {
+  var result = native_.call('Calendar_removeBatch', {
     type: this.type,
     ids: args.ids
   }, callback);
 
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Calendar.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -506,12 +498,15 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
 
     }
   };
-  native_.call('Calendar_find', {
+  var result = native_.call('Calendar_find', {
     calendarId: this.id,
     filter: args.filter,
     sortMode: args.sortMode || null
   }, callback);
 
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 var _listeners = {};
@@ -601,8 +596,6 @@ function _CalendarChangeCallback(type, event) {
 }
 
 Calendar.prototype.addChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
   var args = validator_.validateArgs(arguments, [{
     name: 'successCallback',
     type: types_.LISTENER,
@@ -638,9 +631,10 @@ Calendar.prototype.addChangeListener = function() {
   return watchId;
 };
 
-Calendar.prototype.removeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
+var Calendar_removeChangeListener = function() {
+  if (type_.isEmptyObject(_listeners)) {
+    utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
+  }
   var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
@@ -686,6 +680,10 @@ Calendar.prototype.removeChangeListener = function() {
       throw fail;
     }
   }
+};
+
+Calendar.prototype.removeChangeListener = function() {
+  Calendar_removeChangeListener.apply(this, arguments);
 };
 
 tizen.Calendar = Calendar;

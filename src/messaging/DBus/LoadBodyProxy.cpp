@@ -62,9 +62,8 @@ PlatformResult LoadBodyProxy::create(const std::string& path,
                                      LoadBodyProxyPtr* load_body_proxy) {
     load_body_proxy->reset(new LoadBodyProxy(path, iface));
     if ((*load_body_proxy)->isNotProxyGot()) {
-        LoggerE("Could not get load body proxy");
         load_body_proxy->reset();
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get load body proxy");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get load body proxy");
     } else {
         return PlatformResult(ErrorCode::NO_ERROR);
     }
@@ -174,8 +173,7 @@ void LoadBodyProxy::handleEmailSignal(const int status,
                 callback->Post();
             }
         } else if(NOTI_DOWNLOAD_BODY_FAIL == status) {
-            LoggerD("Load message body failed!");
-            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Load message body failed!");
+            ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Load message body failed!");
         }
 
         if (ret.IsError()) {

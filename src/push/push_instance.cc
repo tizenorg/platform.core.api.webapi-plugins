@@ -18,10 +18,17 @@
 #include <string>
 #include <vector>
 #include "common/logger.h"
+#include "common/tools.h"
 #include "push/push_manager.h"
 
 namespace extension {
 namespace push {
+
+namespace {
+
+const std::string kPrivilegePush = "http://tizen.org/privilege/push";
+
+} // namespace
 
 PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
     LoggerD("Enter");
@@ -55,6 +62,8 @@ void PushInstance::registerService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     PushManager::ApplicationControl appControl;
     appControl.operation = args.get("operation").get<std::string>();
     if (args.get("uri").is<std::string>()) {
@@ -82,8 +91,7 @@ void PushInstance::registerService(const picojson::value& args,
             appControl,
             args.get("callbackId").get<double>());
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value result;
         ReportSuccess(result, out);
@@ -94,11 +102,12 @@ void PushInstance::unregisterService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     common::PlatformResult result = PushManager::getInstance()
             .unregisterService(args.get("callbackId").get<double>());
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value res;
         ReportSuccess(res, out);
@@ -109,6 +118,8 @@ void PushInstance::connectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     m_ignoreNotificationEvents = false;
     picojson::value result;
     ReportSuccess(result, out);
@@ -118,6 +129,8 @@ void PushInstance::disconnectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     m_ignoreNotificationEvents = true;
     picojson::value result;
     ReportSuccess(result, out);
@@ -126,6 +139,8 @@ void PushInstance::disconnectService(const picojson::value& args,
 void PushInstance::getRegistrationId(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
 
     std::string id;
     common::PlatformResult result = PushManager::getInstance()
@@ -144,11 +159,12 @@ void PushInstance::getUnreadNotifications(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     common::PlatformResult result = PushManager::getInstance()
             .getUnreadNotifications();
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value res;
         ReportSuccess(res, out);

@@ -75,14 +75,14 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
-    ReportError(TypeMismatchException(name" is required argument"), *out);\
+    LogAndReportError(TypeMismatchException(name" is required argument"), *out);\
       return;\
     }
 
 #define DEFAULT_REPORT_BOOL_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueBool(feature_name, &bool_value); \
   if (ret.IsError()) { \
-    ReportError(ret, out); \
+    LogAndReportError(ret, out); \
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
@@ -90,7 +90,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 #define REPORT_BOOL_CAPABILITY(str_name, method) \
   ret = method(&bool_value); \
   if (ret.IsError()) { \
-    ReportError(ret, out); \
+    LogAndReportError(ret, out); \
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
@@ -98,7 +98,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 #define DEFAULT_REPORT_INT_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueInt(feature_name, &int_value); \
   if (ret.IsError()) { \
-    ReportError(ret, out); \
+    LogAndReportError(ret, out); \
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(std::to_string(int_value))));
@@ -106,7 +106,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 #define DEFAULT_REPORT_STRING_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueString(feature_name, &str_value); \
   if (ret.IsError()) { \
-    ReportError(ret, out); \
+    LogAndReportError(ret, out); \
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
@@ -114,7 +114,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 #define REPORT_STRING_CAPABILITY(str_name, method) \
   ret = method(&str_value); \
   if (ret.IsError()) { \
-    ReportError(ret, out); \
+    LogAndReportError(ret, out); \
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
@@ -395,7 +395,7 @@ void SysteminfoManager::GetCapability(const picojson::value& args, picojson::obj
     ReportSuccess(result, *out);
     LoggerD("Success");
   } else {
-    ReportError(ret, out);
+    LogAndReportError(ret, out);
   }
 }
 
@@ -412,7 +412,7 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, false, &result);
     if (ret.IsError()) {
-      ReportError(ret,&(response->get<picojson::object>()));
+      LogAndReportError(ret,&(response->get<picojson::object>()));
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
@@ -445,8 +445,9 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
 
     PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, true, &result);
     if (ret.IsError()) {
-      LoggerE("Failed: GetPropertyValue()");
-      ReportError(ret,&(response->get<picojson::object>()));
+      LogAndReportError(
+          ret, &(response->get<picojson::object>()),
+          ("Failed: GetPropertyValue()"));
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
@@ -472,8 +473,7 @@ void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::ob
   long long return_value = 0;
   PlatformResult ret = SysteminfoUtils::GetTotalMemory(&return_value);
   if (ret.IsError()) {
-    LoggerD("Error");
-    ReportError(ret, out);
+    LogAndReportError(ret, out);
     return;
   }
   result_obj.insert(std::make_pair("totalMemory",
@@ -491,8 +491,7 @@ void SysteminfoManager::GetAvailableMemory(const picojson::value& args, picojson
   long long return_value = 0;
   PlatformResult ret = SysteminfoUtils::GetAvailableMemory(&return_value);
   if (ret.IsError()) {
-    LoggerD("Error");
-    ReportError(ret, out);
+    LogAndReportError(ret, out);
     return;
   }
   result_obj.insert(std::make_pair("availableMemory",
@@ -513,8 +512,8 @@ void SysteminfoManager::GetCount(const picojson::value& args, picojson::object* 
   unsigned long count = 0;
   PlatformResult ret = GetPropertyCount(property, &count);
   if (ret.IsError()) {
-    LoggerE("Failed: GetCount()");
-    ReportError(ret, out);
+    LogAndReportError(ret, out,
+                      ("Failed: GetPropertyCount()"));
     return;
   }
   result_obj.insert(std::make_pair("count", picojson::value(static_cast<double>(count))));
@@ -544,9 +543,8 @@ void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& ar
     } else if (property_name == kPropertyIdDeviceOrientation) {
       ret = RegisterDeviceOrientationListener();
     } else if (property_name == kPropertyIdBuild) {
-      LoggerW("BUILD property's value is a fixed value");
       //should be accepted, but no registration is needed
-      ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
+      ret = LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
     } else if (property_name == kPropertyIdLocale) {
       ret = RegisterLocaleListener();
     } else if (property_name == kPropertyIdNetwork) {
@@ -567,8 +565,7 @@ void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& ar
     } else if (property_name == kPropertyIdCameraFlash) {
       ret = RegisterCameraFlashListener();
     } else {
-      LoggerE("Not supported property");
-      ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+      ret = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
     }
     if (ret.IsSuccess()) {
       registered_listeners_.insert(property_name);
@@ -582,8 +579,7 @@ void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& ar
     LoggerD("Success");
     return;
   }
-  LoggerD("Error");
-  ReportError(ret, out);
+  LogAndReportError(ret, out);
 }
 
 void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value& args,
@@ -632,8 +628,7 @@ void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value&
     } else if (property_name == kPropertyIdCameraFlash) {
       ret = UnregisterCameraFlashListener();
     } else {
-      LoggerE("Not supported property");
-      ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+      ret = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
     }
   } else {
     LoggerD("Removing listener for property with id: %s is not needed, not registered",
@@ -644,8 +639,7 @@ void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value&
     LoggerD("Success");
     return;
   }
-  LoggerD("Error");
-  ReportError(ret, out);
+  LogAndReportError(ret, out);
 }
 
 #define CHECK_LISTENER_ERROR(method) \
@@ -670,8 +664,10 @@ PlatformResult SysteminfoManager::RegisterIpChangeCallback() {
                                                    OnNetworkValueChangedCb,
                                                    static_cast<void*>(this));
   if (CONNECTION_ERROR_NONE != error) {
-    LoggerE("Failed to register ip change callback: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot register ip change callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot register ip change callback",
+              ("connection_set_ip_address_changed_cb error: %d (%s)",
+                  error, get_error_message(error)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -683,8 +679,10 @@ PlatformResult SysteminfoManager::UnregisterIpChangeCallback() {
   CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
   int error = connection_unset_ip_address_changed_cb(handle);
   if (CONNECTION_ERROR_NONE != error) {
-    LoggerE("Failed to unregister ip change callback: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot unregister ip change callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot unregister ip change callback",
+              ("connection_unset_ip_address_changed_cb error: %d (%s)",
+                  error, get_error_message(error)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -786,9 +784,9 @@ PlatformResult SysteminfoManager::RegisterDeviceOrientationListener() {
                                            BASE_GATHERING_INTERVAL, 0,
                                            OnDeviceOrientationChangedCb, this);
   if (!sensor_ret) {
-    LoggerE("Failed to register orientation change event listener");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to register orientation change event listener");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to register orientation change event listener",
+              ("sensord_register_event error: %d (%s)", sensor_ret, get_error_message(sensor_ret)));
   }
 
   LoggerD("Added callback for DEVICE_ORIENTATION");
@@ -803,9 +801,9 @@ PlatformResult SysteminfoManager::UnregisterDeviceOrientationListener() {
                                                OnDeviceAutoRotationChangedCb))
   bool sensor_ret = sensord_unregister_event(GetSensorHandle(), AUTO_ROTATION_EVENT_CHANGE_STATE);
   if (!sensor_ret) {
-    LoggerE("Failed to unregister orientation change event listener");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister"
-                          " orientation change event listener");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to unregister orientation change event listener",
+              ("sensord_unregister_event error: %d (%s)", sensor_ret, get_error_message(sensor_ret)));
   }
 
   LoggerD("Removed callback for DEVICE_ORIENTATION");
@@ -814,17 +812,20 @@ PlatformResult SysteminfoManager::UnregisterDeviceOrientationListener() {
 
 PlatformResult SysteminfoManager::RegisterLocaleListener() {
   LoggerD("Entered");
-  if (SYSTEM_SETTINGS_ERROR_NONE !=
-      system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
-                                     OnLocaleChangedCb, static_cast<void*>(this)) ) {
-    LoggerE("Country change callback registration failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
+  int ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
+                                     OnLocaleChangedCb, static_cast<void*>(this));
+  if (SYSTEM_SETTINGS_ERROR_NONE != ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Country change callback registration failed",
+              ("system_settings_set_changed_cb error: %d (%s)", ret, get_error_message(ret)));
   }
-  if (SYSTEM_SETTINGS_ERROR_NONE !=
-      system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
-                                     OnLocaleChangedCb, static_cast<void*>(this)) ) {
-    LoggerE("Language change callback registration failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
+
+  ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
+                                     OnLocaleChangedCb, static_cast<void*>(this));
+  if (SYSTEM_SETTINGS_ERROR_NONE != ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Language change callback registration failed",
+              ("system_settings_set_changed_cb error: %d (%s)", ret, get_error_message(ret)));
   }
   LoggerD("Added callback for LOCALE");
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -849,9 +850,11 @@ PlatformResult SysteminfoManager::RegisterNetworkListener() {
   connection_h handle;
   PlatformResult ret(ErrorCode::NO_ERROR);
   CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
-  if (CONNECTION_ERROR_NONE !=
-      connection_set_type_changed_cb(handle, OnNetworkChangedCb, static_cast<void*>(this))) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Registration of listener failed");
+  int ntv_ret = connection_set_type_changed_cb(handle, OnNetworkChangedCb, static_cast<void*>(this));
+  if (CONNECTION_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Registration of listener failed",
+              ("connection_set_type_changed_cb error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
   LoggerD("Added callback for NETWORK");
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -862,8 +865,11 @@ PlatformResult SysteminfoManager::UnregisterNetworkListener() {
   connection_h handle;
   PlatformResult ret(ErrorCode::NO_ERROR);
   CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
-  if (CONNECTION_ERROR_NONE != connection_unset_type_changed_cb(handle)) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unregistration of listener failed");
+  int ntv_ret = connection_unset_type_changed_cb(handle);
+  if (CONNECTION_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Unregistration of listener failed",
+              ("connection_unset_type_changed_cb error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
   LoggerD("Removed callback for NETWORK");
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1051,9 +1057,12 @@ PlatformResult SysteminfoManager::UnregisterMemoryListener() {
 
 PlatformResult SysteminfoManager::RegisterCameraFlashListener() {
   LoggerD("Entered");
-  if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                                               OnBrightnessChangedCb, this)) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  int ret = device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                OnBrightnessChangedCb, this);
+  if (DEVICE_ERROR_NONE != ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Error occured",
+              ("device_add_callback error: %d (%s)", ret, get_error_message(ret)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1061,9 +1070,12 @@ PlatformResult SysteminfoManager::RegisterCameraFlashListener() {
 PlatformResult SysteminfoManager::UnregisterCameraFlashListener() {
   LoggerD("Entered");
   PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-  if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                                                  OnBrightnessChangedCb)) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  int ntv_ret = device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                       OnBrightnessChangedCb);
+  if (DEVICE_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Error occured",
+              ("device_remove_callback error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
   LoggerD("Removed callback for camera_flash");
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1077,8 +1089,9 @@ void SysteminfoManager::SetBrightness(const picojson::value& args, picojson::obj
   const double brightness = args.get("brightness").get<double>();
   int result = device_flash_set_brightness(brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out,
+        ("device_flash_set_brightness error: %d (%s)", result, get_error_message(result)));
     return;
   }
   ReportSuccess(*out);
@@ -1090,8 +1103,9 @@ void SysteminfoManager::GetBrightness(const picojson::value& args, picojson::obj
   int brightness = 0;
   int result = device_flash_get_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out,
+        ("device_flash_get_brightness error: %d (%s)", result, get_error_message(result)));
     return;
   }
   ReportSuccess(picojson::value(std::to_string(brightness)), *out);
@@ -1103,8 +1117,10 @@ void SysteminfoManager::GetMaxBrightness(const picojson::value& args, picojson::
   int brightness = 0;
   int result = device_flash_get_max_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), out,
+        ("device_flash_get_max_brightness error: %d (%s)",
+            result, get_error_message(result)));
     return;
   }
   ReportSuccess(picojson::value(std::to_string(brightness)), *out);
@@ -1136,8 +1152,9 @@ PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
       *count = kDefaultPropertyCount;
     }
   } else {
-    LoggerD("Property with given id is not supported");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+    return LogAndCreateResult(
+              ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported",
+              ("Property %s with given id is not supported", property.c_str()));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1170,15 +1187,13 @@ PlatformResult SysteminfoManager::ConnectSensor(int* result) {
   int handle_orientation = sensord_connect(sensor);
   if (handle_orientation < 0) {
     std::string log_msg = "Failed to connect auto rotation sensor";
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   bool ret = sensord_start(handle_orientation, 0);
   if(!ret) {
     sensord_disconnect(handle_orientation);
     std::string log_msg = "Failed to start auto rotation sensor";
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   LoggerD("Sensor starts successfully = %d", handle_orientation);
   *result = handle_orientation;
@@ -1304,8 +1319,9 @@ PlatformResult SysteminfoManager::GetConnectionHandle(connection_h& handle) {
   if (nullptr == connection_handle_) {
     int error = connection_create(&connection_handle_);
     if (CONNECTION_ERROR_NONE != error) {
-      LoggerE("Failed to create connection: %d", error);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot create connection");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Cannot create connection",
+                ("connection_create error: %d (%s)", error, get_error_message(error)));
     }
   }
   handle = connection_handle_;

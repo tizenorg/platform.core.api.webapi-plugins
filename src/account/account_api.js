@@ -77,8 +77,6 @@ function Account() {
 
 
 Account.prototype.setExtendedData = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'key', type: types_.STRING },
         { name: 'value', type: types_.STRING }
@@ -99,8 +97,6 @@ Account.prototype.setExtendedData = function() {
 
 
 Account.prototype.getExtendedData = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     if (T_.isFunction(arguments[0]) || arguments.length > 1) {
         var args = validator_.validateArgs(arguments, [
             {
@@ -115,23 +111,25 @@ Account.prototype.getExtendedData = function() {
             }
         ]);
 
-        // TODO handling exceptions
-
-        native_.call('Account_getExtendedData', { accountId: this.id },
+        var result = native_.call('Account_getExtendedData', { accountId: this.id },
             function(result) {
-                if (native_.isFailure(result)) {
-                    if(!T_.isNullOrUndefined(args.errorCallback)) {
-                        args.errorCallback(native_.getErrorObject(result));
-                    }
-                } else {
-                    var data = native_.getResultObject(result);
-                    for (var i = 0; i < data.length; ++i) {
-                        Object.freeze(data[i]);
-                    }
-                    args.successCallback(native_.getResultObject(result));
+              if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                  args.errorCallback(native_.getErrorObject(result));
                 }
+              } else {
+                var data = native_.getResultObject(result);
+                for (var i = 0; i < data.length; ++i) {
+                  Object.freeze(data[i]);
+                }
+                args.successCallback(native_.getResultObject(result));
+              }
             }
         );
+
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
     } else {
         var args = validator_.validateArgs(arguments, [
             { name: 'key', type: types_.STRING }
@@ -163,8 +161,6 @@ function AccountManager() {}
 
 
 AccountManager.prototype.add = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
@@ -186,8 +182,6 @@ AccountManager.prototype.add = function() {
 
 
 AccountManager.prototype.remove = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'accountId', type: types_.UNSIGNED_LONG}
     ]);
@@ -201,8 +195,6 @@ AccountManager.prototype.remove = function() {
 
 
 AccountManager.prototype.update = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
@@ -222,8 +214,6 @@ AccountManager.prototype.update = function() {
 
 
 AccountManager.prototype.getAccount = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'accountId', type: types_.UNSIGNED_LONG }
     ]);
@@ -248,17 +238,13 @@ AccountManager.prototype.getAccount = function() {
 
 
 AccountManager.prototype.getAccounts = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
         { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
         { name: 'applicationId', type: types_.STRING, optional: true, nullable: true }
     ]);
 
-    // TODO handling exceptions
-
-    native_.call('AccountManager_getAccounts',
+   var result = native_.call('AccountManager_getAccounts',
         {
             applicationId: args.applicationId
         },
@@ -277,12 +263,14 @@ AccountManager.prototype.getAccounts = function() {
             }
         }
     );
+
+   if (native_.isFailure(result)) {
+     throw native_.getErrorObject(result);
+   }
 }
 
 
 AccountManager.prototype.getProvider = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'applicationId', type: types_.STRING }
     ]);
@@ -307,17 +295,13 @@ AccountManager.prototype.getProvider = function() {
 
 
 AccountManager.prototype.getProviders = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
         { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
         { name: 'capability', type: types_.STRING, optional: true, nullable: true }
     ]);
 
-    // TODO handling exceptions
-
-    native_.call( 'AccountManager_getProviders',
+    var result = native_.call( 'AccountManager_getProviders',
         {
             capability: args.capability
         },
@@ -336,6 +320,10 @@ AccountManager.prototype.getProviders = function() {
             }
         }
     );
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 }
 
 
@@ -418,23 +406,21 @@ var _accountListeners = new AccountListeners();
 
 
 AccountManager.prototype.addAccountListener = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'callback', type: types_.LISTENER, values: ['onadded', 'onremoved', 'onupdated'] }
     ]);
 
+    //checking privilege is done in C++ layer through _accountListeners.addListener()
     return _accountListeners.addListener(args.callback);
 }
 
 
 AccountManager.prototype.removeAccountListener = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
-
     var args = validator_.validateArgs(arguments, [
         { name: 'accountListenerId', type: types_.UNSIGNED_LONG }
     ]);
 
+    //checking privilege is done in C++ layer through _accountListeners.removeListener()
     _accountListeners.removeListener(args.accountListenerId);
 }
 

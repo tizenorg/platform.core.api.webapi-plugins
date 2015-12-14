@@ -17,6 +17,10 @@
 #include "messaging/callback_user_data.h"
 
 #include "common/logger.h"
+#include "common/tools.h"
+
+using common::tools::ReportSuccess;
+using common::tools::ReportError;
 
 namespace extension {
 namespace messaging {
@@ -28,8 +32,10 @@ CallbackUserData::CallbackUserData(PostQueue& queue, long cid, bool keep /* = fa
       queue_(queue),
       result_(common::ErrorCode::NO_ERROR) {
   LoggerD("Entered");
-  AddJsonData(JSON_CALLBACK_ID, picojson::value(static_cast<double>(cid_)));
-  AddJsonData(JSON_CALLBACK_KEEP, picojson::value(keep));
+  if (!keep) {
+    // this is not listener, add callbackId
+    AddJsonData(JSON_CALLBACK_ID, picojson::value(static_cast<double>(cid_)));
+  }
 }
 
 CallbackUserData::~CallbackUserData() {
@@ -43,20 +49,18 @@ bool CallbackUserData::IsError() const {
 
 void CallbackUserData::SetError(const common::PlatformResult& error) {
   LoggerD("Entered");
-
   // keep only the first error
   if (!IsError()) {
+    ReportError(error, &obj_);
     result_ = error;
-    SetAction(JSON_CALLBACK_ERROR, error.ToJSON());
   }
 }
 
 void CallbackUserData::SetSuccess(const picojson::value& data /* = picojson::value()*/) {
   LoggerD("Entered");
-
   // do not allow to overwrite the error
   if (!IsError()) {
-    SetAction(JSON_CALLBACK_SUCCCESS, data);
+    ReportSuccess(data, obj_);
   }
 }
 
@@ -64,7 +68,12 @@ void CallbackUserData::SetAction(const char* action, const picojson::value& data
   LoggerD("Entered");
 
   AddJsonData(JSON_ACTION, picojson::value(action));
-  AddJsonData(JSON_DATA, data);
+  // ReportSuccess cannot be used here, update of this field is necessary (this is a special case)
+  AddJsonData(JSON_RESULT, data);
+}
+
+void CallbackUserData::SetListenerId(const char* id) {
+  AddJsonData(JSON_LISTENER_ID, picojson::value(id));
 }
 
 void CallbackUserData::AddToQueue() {

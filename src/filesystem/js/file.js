@@ -59,9 +59,13 @@ function File(data) {
   });
 }
 
-File.prototype.toURI = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function toURI() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
   return 'file://' + commonFS_.toRealPath(this.fullPath);
+}
+
+File.prototype.toURI = function() {
+  return toURI.apply(this, arguments);
 };
 
 function stringToRegex(str) {
@@ -155,8 +159,8 @@ function checkFile(file, fileFilter) {
   return true;
 }
 
-File.prototype.listFiles = function(onsuccess, onerror, filter) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function listFiles() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -216,6 +220,10 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
   native_.call('File_readDir', data, callback);
 };
 
+File.prototype.listFiles = function() {
+  listFiles.apply(this, arguments);
+};
+
 var Encoding = {
   'utf-8': 'utf-8',
   'iso-8859-1': 'iso-8859-1',
@@ -234,8 +242,8 @@ function _checkEncoding(encoding) {
   }
 }
 
-File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function openStream() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'mode', type: types_.ENUM, values: ['r', 'rw', 'w', 'a']},
@@ -283,8 +291,12 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
   }, 0);
 };
 
-File.prototype.readAsText = function(onsuccess, onerror, encoding) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+File.prototype.openStream = function() {
+  openStream.apply(this, arguments);
+};
+
+function readAsText() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -327,7 +339,7 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
       }
       encoded = native_.getResultObject(result);
       if (encoded.length) {
-        str += Base64.decode(encoded);
+        str += Base64.decodeString(encoded);
         data.offset += data.length;
       }
     } while (encoded.length);
@@ -340,8 +352,12 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
   setTimeout(readFile, 0);
 };
 
-File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.readAsText = function() {
+  readAsText.apply(this, arguments);
+};
+
+function copyTo() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
@@ -478,8 +494,12 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
   native_.call('File_copyTo', data, callback);
 };
 
-File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.copyTo = function() {
+  copyTo.apply(this, arguments);
+};
+
+function moveTo() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
@@ -579,8 +599,12 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
   native_.call('File_rename', data, callback);
 };
 
-File.prototype.createDirectory = function(dirPath) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.moveTo = function() {
+  moveTo.apply(this, arguments);
+};
+
+function createDirectory() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'dirPath', type: types_.STRING}
@@ -601,12 +625,7 @@ File.prototype.createDirectory = function(dirPath) {
           _realNewPath = commonFS_.toRealPath(_newPath);
 
   if (!_realNewPath) {
-    setTimeout(function() {
-      native_.callIfPossible(args.onerror,
-          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'Path is not valid'));
-    }, 0);
-    return;
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
   }
 
   if (this.isDirectory) {
@@ -637,8 +656,12 @@ File.prototype.createDirectory = function(dirPath) {
   }
 };
 
-File.prototype.createFile = function(relativeFilePath) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.createDirectory = function() {
+  return createDirectory.apply(this, arguments);
+}
+
+function createFile() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'relativeFilePath', type: types_.STRING}
@@ -661,13 +684,9 @@ File.prototype.createFile = function(relativeFilePath) {
   var _outputPath = this.fullPath + '/' + args.relativeFilePath;
   var _outputRealPath = commonFS_.toRealPath(_outputPath);
   if (!_outputRealPath) {
-    setTimeout(function() {
-      native_.callIfPossible(args.onerror,
-          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'Path is not valid'));
-    }, 0);
-    return;
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
   }
+
   var _resultExist = native_.callSync('File_statSync', {location: _outputRealPath});
 
   if (native_.isSuccess(_resultExist)) {
@@ -684,11 +703,14 @@ File.prototype.createFile = function(relativeFilePath) {
   var _fileInfo = commonFS_.getFileInfo(_statObj, false, this.mode);
 
   return new File(_fileInfo);
-
 };
 
-File.prototype.resolve = function(filePath) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+File.prototype.createFile = function() {
+  return createFile.apply(this, arguments);
+};
+
+function resolveFile() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING}
@@ -709,26 +731,27 @@ File.prototype.resolve = function(filePath) {
 
   var _newPath = this.fullPath + '/' + args.filePath;
   var _realPath = commonFS_.toRealPath(_newPath);
+
   if (!_realPath) {
-    setTimeout(function() {
-      native_.callIfPossible(args.onerror,
-          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'Path is not valid'));
-    }, 0);
-    return;
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
   }
+
   var _result = native_.callSync('File_statSync', {location: _realPath});
   if (native_.isFailure(_result)) {
     throw new WebAPIException(WebAPIException.NOT_FOUND_ERR, native_.getErrorObject(_result));
   }
   var _statObj = native_.getResultObject(_result);
   var _fileInfo = commonFS_.getFileInfo(_statObj, false, this.mode);
-  return new File(_fileInfo);
 
+  return new File(_fileInfo);
 };
 
-File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.resolve = function() {
+  return resolveFile.apply(this, arguments);
+};
+
+function deleteDirectory() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'directoryPath', type: types_.STRING},
@@ -813,8 +836,12 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
   }
 };
 
-File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+File.prototype.deleteDirectory = function() {
+  deleteDirectory.apply(this, arguments);
+};
+
+function deleteFile() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING},
@@ -879,4 +906,8 @@ File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
   };
 
   native_.call('File_unlinkFile', data, callback);
+};
+
+File.prototype.deleteFile = function() {
+  deleteFile.apply(this, arguments);
 };

@@ -86,8 +86,9 @@ PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool* v
     if (SYSTEM_INFO_ERROR_NONE != ret) {
       std::string log_msg = "Platform error while getting bool value: ";
       log_msg += std::string(key) + " " + std::to_string(ret);
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("system_info_get_custom_bool error: %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -104,8 +105,9 @@ PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int* val
     if (SYSTEM_INFO_ERROR_NONE != ret) {
       std::string log_msg = "Platform error while getting int value: ";
       log_msg += std::string(key) + " " + std::to_string(ret);
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("system_info_get_custom_int error: %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -123,8 +125,9 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
     if (SYSTEM_INFO_ERROR_NONE != ret) {
       std::string log_msg = "Platform error while getting string value: ";
       log_msg += std::string(key) + " " + std::to_string(ret);
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("system_info_get_custom_string error: %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -176,7 +179,8 @@ static PlatformResult CheckStringCapability(const std::string& key, std::string*
   } else {
     size_t prefix_len = strlen("http://");
     if (key.length() <= prefix_len) {
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
+      return LogAndCreateResult(
+                ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
     }
     PlatformResult ret = SystemInfoDeviceCapability::GetValueString(key.substr(prefix_len).c_str(), value);
     if (ret.IsError()){
@@ -205,7 +209,7 @@ static PlatformResult CheckBoolCapability(const std::string& key, bool* bool_val
   } else {
     size_t prefix_len = strlen("http://");
     if (key.length() <= prefix_len) {
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
     }
     PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
         key.substr(prefix_len).c_str(), bool_value);
@@ -229,7 +233,8 @@ static PlatformResult CheckIntCapability(const std::string& key, std::string* va
   } else {
     size_t prefix_len = strlen("http://");
     if (key.length() <= prefix_len) {
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
+      return LogAndCreateResult(
+                ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
     }
     PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
         key.substr(prefix_len).c_str(), &result);
@@ -282,8 +287,8 @@ PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
   } else if (type == "string" || type == "int") {
     result_obj.insert(std::make_pair("value", picojson::value(value)));
   } else {
-    LoggerD("Value for given key was not found");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
+    return LogAndCreateResult(
+              ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
   }
   result_obj.insert(std::make_pair("type", picojson::value(type)));
 
@@ -320,8 +325,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string*
   if (!bool_result) {
     // this exception is converted to "Undefined" value in JS layer
     std::string log_msg = "OpenGL-ES is not supported";
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
   }
   std::string texture_format = "";
 
@@ -391,8 +395,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string*
   if (texture_format.empty()) {
     // this exception is converted to "Undefined" value in JS layer
     std::string log_msg = "Platform error while getting OpenGL-ES texture format";
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   *result = texture_format;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -432,8 +435,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string* re
   }
 
   if (result.empty()) {
-    LoggerE("Platform error while retrieving platformCoreCpuArch: result is empty");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreCpuArch result is empty");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "platformCoreCpuArch result is empty");
   }
   *return_value = result;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -494,8 +496,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string* re
     result += kPlatformCoreVfpv3;
   }
   if (result.empty()) {
-    LoggerE("Platform error while retrieving platformCoreFpuArch: result is empty");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreFpuArch result is empty");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "platformCoreFpuArch result is empty");
   }
   *return_value = result;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -551,8 +552,9 @@ PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* retu
 
   std::ifstream cpuinfo_freq(file_name);
   if (!cpuinfo_freq.is_open()) {
-    LoggerE("Failed to get cpu frequency");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to open file");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Unable to open file",
+              ("Failed to get cpu frequency"));
   }
 
 #ifdef TIZEN_IS_EMULATOR

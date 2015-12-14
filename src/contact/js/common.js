@@ -17,11 +17,12 @@
 var _global = window || global || {};
  
 var utils_ = xwalk.utils;
+var privilege_ = xwalk.utils.privilege;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
 var validator_ = utils_.validator;
 var types_ = validator_.Types;
-var native_ = new xwalk.utils.NativeManager(extension);
+var native_ = new utils_.NativeManager(extension);
 
 var _currentWatchId = 1;
 

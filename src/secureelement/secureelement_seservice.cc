@@ -116,12 +116,12 @@ void SEService::GetReaders(double callback_id) {
 
   if (is_error_) {
     // there has been an error, report it asynchronously
-    LoggerE("Failed: is_error_");
     std::shared_ptr<picojson::value> response{new picojson::value{picojson::object{}}};
-    ReportError(
+    LogAndReportError(
         PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,
                        "Unable to connect to service."),
-        &response->get<picojson::object>());
+        &response->get<picojson::object>(),
+        ("Failed: is_error_"));
     TaskQueue::GetInstance().Async<picojson::value>(get_readers_response, response);
     return;
   }

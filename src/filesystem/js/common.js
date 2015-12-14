@@ -14,10 +14,11 @@
  *    limitations under the License.
  */
 
-var utils_ = xwalk.utils;
-var type_ = utils_.type;
-var converter_ = utils_.converter;
-var validator_ = utils_.validator;
+var privUtils_ = xwalk.utils;
+var privilege_ = privUtils_.privilege;
+var type_ = privUtils_.type;
+var converter_ = privUtils_.converter;
+var validator_ = privUtils_.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 

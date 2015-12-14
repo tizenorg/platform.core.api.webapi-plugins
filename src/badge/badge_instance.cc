@@ -17,9 +17,16 @@
 #include "badge/badge_instance.h"
 
 #include "common/converter.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace badge {
+
+namespace {
+// The privileges that required in Badge API
+const std::string kPrivilegeNotification = "http://tizen.org/privilege/notification";
+
+}  // namespace
 
 using namespace common;
 using namespace extension::badge;
@@ -47,55 +54,67 @@ BadgeInstance::~BadgeInstance() {
 void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
+
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
 
   PlatformResult status = manager_.SetBadgeCount(
       app_id, static_cast<unsigned int>(count));
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to set badge count."));
+  }
 }
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
+
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
 
   unsigned int count = 0;
   PlatformResult status =
       manager_.GetBadgeCount(app_id, &count);
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(JsonValue(std::to_string(count)), out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to get badge count."));
+  }
 }
 
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
+
   PlatformResult status =
       manager_.AddChangeListener(args.get<JsonObject>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to add change listener."));
+  }
 }
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
                                                      JsonObject& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
+
   PlatformResult status =
       manager_.RemoveChangeListener(args.get<JsonObject>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to remove change listener."));
+  }
 }
 
 }  // namespace badge

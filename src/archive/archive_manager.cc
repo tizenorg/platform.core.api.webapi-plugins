@@ -98,8 +98,7 @@ PlatformResult ArchiveManager::getPrivData(long handle, ArchiveFilePtr* archive_
         *archive_file = it->second;
         return PlatformResult(ErrorCode::NO_ERROR);
     }
-    LoggerE("Failed: Priv is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Priv is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Priv is null");
 }
 
 PlatformResult ArchiveManager::open(OpenCallbackData* callback)

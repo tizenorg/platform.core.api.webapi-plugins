@@ -125,11 +125,11 @@ class ParsedInstance : public Instance {
   void RegisterHandler(const std::string& name, const NativeHandler& func);
   void RegisterSyncHandler(const std::string& name, const NativeHandler& func);
 
-  void ReportSuccess(picojson::object& out);
-  void ReportSuccess(const picojson::value& result, picojson::object& out);
-  void ReportError(picojson::object& out);
-  void ReportError(const PlatformException& ex, picojson::object& out);
-  void ReportError(const PlatformResult& error, picojson::object* out);
+  static void ReportSuccess(picojson::object& out);
+  static void ReportSuccess(const picojson::value& result, picojson::object& out);
+  static void ReportError(picojson::object& out);
+  static void ReportError(const PlatformException& ex, picojson::object& out);
+  static void ReportError(const PlatformResult& error, picojson::object* out);
 
  private:
   void HandleMessage(const char* msg);
