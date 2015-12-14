@@ -43,7 +43,7 @@ exports.setUserAgentString = function() {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      args.successCallback();
+      native_.callIfPossible(args.successCallback);
     }
   };
 
@@ -70,7 +70,7 @@ exports.removeAllCookies = function() {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      args.successCallback();
+      native_.callIfPossible(args.successCallback);
     }
   };
 
