@@ -19,6 +19,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <bundle_internal.h>
 
 #include "common/picojson.h"
 #include "common/logger.h"
