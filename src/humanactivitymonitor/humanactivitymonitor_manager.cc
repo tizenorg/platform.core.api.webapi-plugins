@@ -283,7 +283,7 @@ PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
     if (ret != SENSOR_ERROR_NONE) {
       return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Failed to stop HRM sensor",
-                            ("Failed to stop HRM sensor, error: "%d,ret));
+                            ("Failed to stop HRM sensor, error: %d",ret));
     }
 
     ret = sensor_listener_unset_event_cb(hrm_sensor_listener_);
