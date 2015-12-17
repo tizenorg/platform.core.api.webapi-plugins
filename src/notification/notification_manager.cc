@@ -22,6 +22,7 @@
 #include <app_control_internal.h>
 #include <device/led.h>
 #include <notification_internal.h>
+#include <notification_list.h>
 
 #include "common/converter.h"
 #include "common/logger.h"
