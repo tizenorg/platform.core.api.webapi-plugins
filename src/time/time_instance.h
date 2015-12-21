@@ -30,7 +30,7 @@ class TimeInstance : public common::ParsedInstance {
   void TimeUtil_unsetDateTimeChangeListener(const picojson::value& args, picojson::object& out);
   void TimeUtil_setTimezoneChangeListener(const picojson::value& args, picojson::object& out);
   void TimeUtil_unsetTimezoneChangeListener(const picojson::value& args, picojson::object& out);
-  void TZDate_getTimezone(const picojson::value& args, picojson::object& out);
+  void TZDate_getLocalTimezone(const picojson::value& args, picojson::object& out);
   void TZDate_GetTimezoneOffset(const picojson::value& args, picojson::object& out);
   void ToStringTemplate(const picojson::value& args, bool use_locale_fmt,
                         TimeUtilTools::DateTimeFormatType type, picojson::object* out);

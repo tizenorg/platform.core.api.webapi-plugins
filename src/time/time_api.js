@@ -776,7 +776,7 @@ exports.getCurrentDateTime = function() {
 
 exports.getLocalTimezone = function() {
   console.log('Entered TimeUtil.getLocalTimezone');
-  var result = native_.callSync('TZDate_getTimezone', {});
+  var result = native_.callSync('TZDate_getLocalTimezone', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
