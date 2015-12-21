@@ -170,19 +170,23 @@ void TimeManager::OnTimeChangedCallback(keynode_t* /*node*/, void* event_ptr) {
 
 std::string TimeManager::GetDefaultTimezone() {
   LoggerD("Entered");
-  char buf[1024];
-  std::string result;
-  ssize_t len = readlink("/etc/localtime", buf, sizeof(buf)-1);
-  if (len != -1) {
-    buf[len] = '\0';
-  } else {
-    /* handle error condition */
-    return result;
-  }
-  result = std::string(buf+strlen("/usr/share/zoneinfo/"));
 
-  LoggerD("tzpath = %s", result.c_str());
-  return result;
+  std::unique_ptr<TimeZone> tz(TimeZone::createDefault());
+
+  if (tz) {
+    UnicodeString us;
+    tz->getID(us);
+
+    std::string s;
+    us.toUTF8String(s);
+
+    SLoggerD("Default time zone: %s", s.c_str());
+
+    return s;
+  } else {
+    LoggerE("Unable to obtain default time zone");
+    return "Unknown/Unknown";
+  }
 }
 
 std::string TimeManager::GetCurrentTimezone(){

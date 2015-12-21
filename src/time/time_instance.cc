@@ -31,7 +31,7 @@ TimeInstance::TimeInstance()  : manager_(this) {
   REGISTER_SYNC("TimeUtil_unsetDateTimeChangeListener", TimeUtil_unsetDateTimeChangeListener);
   REGISTER_SYNC("TimeUtil_setTimezoneChangeListener", TimeUtil_setTimezoneChangeListener);
   REGISTER_SYNC("TimeUtil_unsetTimezoneChangeListener", TimeUtil_unsetTimezoneChangeListener);
-  REGISTER_SYNC("TZDate_getTimezone", TZDate_getTimezone);
+  REGISTER_SYNC("TZDate_getLocalTimezone", TZDate_getLocalTimezone);
   REGISTER_SYNC("TZDate_getTimezoneOffset", TZDate_GetTimezoneOffset);
   REGISTER_SYNC("TZDate_toLocaleDateString", TZDate_toLocaleDateString);
   REGISTER_SYNC("TZDate_toLocaleTimeString", TZDate_toLocaleTimeString);
@@ -149,7 +149,7 @@ void TimeInstance::TimeUtil_unsetTimezoneChangeListener(const picojson::value& /
   ReportSuccess(out);
 }
 
-void TimeInstance::TZDate_getTimezone(const picojson::value& /*args*/, picojson::object& out) {
+void TimeInstance::TZDate_getLocalTimezone(const picojson::value& /*args*/, picojson::object& out) {
   LoggerD("Entered");
 
   std::string local_timezone = TimeManager::GetDefaultTimezone();
