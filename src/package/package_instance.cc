@@ -226,10 +226,12 @@ PackageInstance::PackageInstance() {
     request_ = NULL;
   }
 
-  ret = package_manager_request_set_event_cb(request_, PackageRequestCb,
-                                             static_cast<void*>(this));
-  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to set request event callback: %d (%s)", ret, get_error_message(ret));
+  if (request_) {
+    ret = package_manager_request_set_event_cb(request_, PackageRequestCb,
+                                               static_cast<void*>(this));
+    if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+      LoggerE("Failed to set request event callback: %d (%s)", ret, get_error_message(ret));
+    }
   }
 
   ret = package_manager_create(&manager_);

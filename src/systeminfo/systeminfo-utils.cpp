@@ -30,7 +30,7 @@ namespace extension {
 namespace systeminfo {
 
 namespace {
-const int MEMORY_TO_BYTE = 1024;
+const short MEMORY_TO_BYTE = 1024;
 }  // namespace
 
 using common::PlatformResult;
