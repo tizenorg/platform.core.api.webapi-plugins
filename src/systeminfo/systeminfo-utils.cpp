@@ -127,7 +127,8 @@ PlatformResult SysteminfoUtils::GetTotalMemory(long long* result) {
               ("device_memory_get_total error: %d (%s)", ret, get_error_message(ret)));
   }
 
-  *result = static_cast<long long>(value*MEMORY_TO_BYTE);
+  *result = static_cast<long long>(value) * MEMORY_TO_BYTE;
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -144,7 +145,7 @@ PlatformResult SysteminfoUtils::GetAvailableMemory(long long* result) {
               ("device_memory_get_available error: %d (%s)", ret, get_error_message(ret)));
   }
 
-  *result = static_cast<long long>(value*MEMORY_TO_BYTE);
+  *result = static_cast<long long>(value) * MEMORY_TO_BYTE;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
