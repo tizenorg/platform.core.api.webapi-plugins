@@ -29,7 +29,9 @@ function _ContentManagerChangeCallback(result) {
 function ContentManager() {
 }
 
-ContentManager.prototype.update = function(content) {
+var ContentManagerUpdate = function(content) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTENT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
@@ -43,6 +45,10 @@ ContentManager.prototype.update = function(content) {
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
+};
+
+ContentManager.prototype.update = function() {
+  ContentManagerUpdate.apply(this, arguments);
 };
 
 ContentManager.prototype.updateBatch = function(contents, successCallback, errorCallback) {

@@ -212,7 +212,8 @@ PowerManager.prototype.getScreenBrightness = function() {
  * Sets the screen brightness level for an application, from 0 to 1.
  * @param {!number} brightness The screen brightness value to set.
  */
-PowerManager.prototype.setScreenBrightness = function(brightness) {
+var PowerManagerSetScreenBrightness = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.POWER);
     var args = validator_.validateArgs(arguments, [
         {'name' : 'brightness', 'type': types_.DOUBLE}
     ]);
@@ -229,6 +230,10 @@ PowerManager.prototype.setScreenBrightness = function(brightness) {
     } catch(e) {
         throw e;
     }
+};
+
+PowerManager.prototype.setScreenBrightness = function(brightness) {
+    PowerManagerSetScreenBrightness.apply(this, arguments);
 }
 
 /**

@@ -92,7 +92,8 @@ var SEChangeListener = new ListenerManager(native_, SE_CHANGE_LISTENER);
 function SEService() {
 }
 
-SEService.prototype.getReaders = function() {
+var SEServiceGetReaders = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.SECUREELEMENT);
     var args = validator_.validateArgs(arguments, [
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
@@ -119,7 +120,12 @@ SEService.prototype.getReaders = function() {
     }
 };
 
-SEService.prototype.registerSEListener = function() {
+SEService.prototype.getReaders = function() {
+    SEServiceGetReaders.apply(this, arguments);
+};
+
+var SEServiceRegisterSEListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.SECUREELEMENT);
     var args = validator_.validateArgs(arguments, [
         {
             name : 'eventCallback',
@@ -131,7 +137,12 @@ SEService.prototype.registerSEListener = function() {
     return SEChangeListener.addListener(args.eventCallback);
 };
 
-SEService.prototype.unregisterSEListener = function() {
+SEService.prototype.registerSEListener = function() {
+    return SEServiceRegisterSEListener.apply(this, arguments);
+};
+
+var SEServiceUnregisterSEListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.SECUREELEMENT);
     var args = validator_.validateArgs(arguments, [
         {
             name : 'id',
@@ -140,14 +151,23 @@ SEService.prototype.unregisterSEListener = function() {
     ]);
 
     SEChangeListener.removeListener(args.id);
+};
+
+SEService.prototype.unregisterSEListener = function() {
+    SEServiceUnregisterSEListener.apply(this, arguments);
 }
 
-SEService.prototype.shutdown = function() {
+var SEServiceShutdown = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.SECUREELEMENT);
     var result = native_.callSync('SEService_shutdown', {});
 
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
     }
+};
+
+SEService.prototype.shutdown = function() {
+    SEServiceShutdown.apply(this, arguments);
 };
 
 //////////////////Reader/////////////////
