@@ -97,8 +97,8 @@ CalendarManager.prototype.getDefaultCalendar = function() {
   return CalendarManager_getDefaultCalendar.apply(this, arguments);
 };
 
-CalendarManager.prototype.getCalendar = function() {
-
+var CalendarManagerGetCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -127,6 +127,10 @@ CalendarManager.prototype.getCalendar = function() {
   }
 
   return new Calendar(new InternalCalendar(native_.getResultObject(result)));
+};
+
+CalendarManager.prototype.getCalendar = function() {
+  return CalendarManagerGetCalendar.apply(this, arguments);
 };
 
 CalendarManager.prototype.addCalendar = function() {

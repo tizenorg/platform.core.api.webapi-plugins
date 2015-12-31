@@ -225,7 +225,8 @@ ContactManager.prototype.get = function() {
 };
 
 // Updates a person in the address book synchronously.
-ContactManager.prototype.update = function() {
+var ContactManagerUpdate = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'person',
@@ -243,6 +244,10 @@ ContactManager.prototype.update = function() {
       args.person[prop] = result[prop];
     }
   }
+};
+
+ContactManager.prototype.update = function() {
+  ContactManagerUpdate.apply(this, arguments);
 };
 
 // Updates several existing persons in the contact DB asynchronously.

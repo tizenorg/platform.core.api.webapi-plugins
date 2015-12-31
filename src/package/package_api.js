@@ -141,8 +141,8 @@ function PackageManager() {
   // constructor of PackageManager
 }
 
-
-PackageManager.prototype.install = function(packageFileURI, progressCallback) {
+var PackageManagerInstall = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.PACKAGEMANAGER_INSTALL);
   var args = validator_.validateArgs(arguments, [
     {'name' : 'packageFileURI', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -181,7 +181,12 @@ PackageManager.prototype.install = function(packageFileURI, progressCallback) {
   }
 };
 
-PackageManager.prototype.uninstall = function(id, progressCallback) {
+PackageManager.prototype.install = function(packageFileURI, progressCallback) {
+  PackageManagerInstall.apply(this, arguments);
+};
+
+var PackageManagerUninstall = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.PACKAGEMANAGER_INSTALL);
   var args = validator_.validateArgs(arguments, [
     {'name' : 'id', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -218,7 +223,11 @@ PackageManager.prototype.uninstall = function(id, progressCallback) {
   } catch (e) {
     throw e;
   }
+};
 
+
+PackageManager.prototype.uninstall = function(id, progressCallback) {
+  PackageManagerUninstall.apply(this, arguments);
 };
 
 PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallback) {
