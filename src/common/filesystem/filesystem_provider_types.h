@@ -11,10 +11,9 @@ namespace common {
 typedef std::function<
     void(common::Storage, common::StorageState,
          common::StorageState)> DeviceChangeStateFun;
-typedef std::vector<common::Storage> Storages;
+typedef std::vector<std::shared_ptr<common::Storage> > Storages;
 typedef std::vector<common::VirtualRoot> VirtualRoots;
 typedef std::vector<std::shared_ptr<common::VirtualStorage> > VirtualStorages;
-
 }  // namespace common
 
 #endif  // COMMON_FILESYSTEM_FILESYSTEM_PROVIDER_TYPES_H_

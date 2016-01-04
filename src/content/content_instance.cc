@@ -29,7 +29,7 @@
 #include "common/tools.h"
 
 #include "content/content_manager.h"
-#include "common/filesystem/filesystem_provider_storage.h"
+#include "common/filesystem/filesystem_provider.h"
 
 namespace extension {
 namespace content {
@@ -137,7 +137,7 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     }
     case ContentManagerScanfileCallback: {
       std::string contentURI = user_data->args.get("contentURI").get<std::string>();
-      std::string real_path = common::FilesystemProviderStorage::Create().GetRealPath(contentURI);
+      std::string real_path = common::FilesystemProvider::Create().GetRealPath(contentURI);
       ret = ContentManager::getInstance()->scanFile(real_path);
       if (ret != MEDIA_CONTENT_ERROR_NONE) {
         PlatformResult err = LogAndCreateResult(

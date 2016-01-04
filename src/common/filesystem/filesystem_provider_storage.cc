@@ -33,6 +33,7 @@ const std::string kVirtualRootVideos = "videos";
 const std::string kVirtualRootWgtPackage = "wgt-package";
 const std::string kVirtualRootWgtPrivate = "wgt-private";
 const std::string kVirtualRootWgtPrivateTmp = "wgt-private-tmp";
+const std::string kVirtualRootMedia = "internal0";
 
 const std::map<storage_directory_e, const std::string*> kStorageDirectories = {
     { STORAGE_DIRECTORY_CAMERA, &kVirtualRootCamera }, {
@@ -51,6 +52,7 @@ namespace common {
 
 StorageState TranslateCoreStorageState(
     storage_state_e coreStorageState) {
+  LoggerD("Entered");
   StorageState state = StorageState::kUnknown;
   if (coreStorageState == STORAGE_STATE_REMOVED) {
     state = StorageState::kUnmounted;
@@ -70,11 +72,11 @@ void OnStorageChange(int storage_id, storage_state_e state, void* user_data) {
   FilesystemProviderStorage* provider =
       static_cast<FilesystemProviderStorage*>(user_data);
   for (auto &storage : provider->GetStorages()) {
-    if (storage.id_ == storage_id) {
-      StorageState previous_state = storage.state_;
-      storage.state_ = TranslateCoreStorageState(state);
+    if (storage->id_ == storage_id) {
+      StorageState previous_state = storage->state_;
+      storage->state_ = TranslateCoreStorageState(state);
       if (provider->GetListener()) {
-        provider->GetListener()(storage, previous_state, storage.state_);
+        provider->GetListener()(*storage, previous_state, storage->state_);
       }
       break;
     }
@@ -98,8 +100,10 @@ bool OnForeachStorage(int storage_id, storage_type_e type,
           StorageType::kInternal : StorageType::kExternal;
 
   provider->GetStorages().push_back(
-      Storage(storage_id, type_, TranslateCoreStorageState(state), path));
+      std::make_shared<Storage>(storage_id, type_, TranslateCoreStorageState(state), path));
   if (type_ == StorageType::kInternal) {
+    // TODO check internal storage
+    //provider->internal_storage_ = std::make_shared<Storage>(Storage(storage_id, type_, state_, path, kVirtualRootMedia));
     // if internal storage is supported, we can add also virtual paths:
     // downloads, documents etc
     provider->FillVirtualPaths(storage_id);
@@ -111,7 +115,8 @@ DeviceChangeStateFun FilesystemProviderStorage::GetListener() {
   return listener_;
 }
 
-FilesystemProviderStorage::FilesystemProviderStorage() {
+FilesystemProviderStorage::FilesystemProviderStorage() :
+    internal_storage_(nullptr) {
   LoggerD("Entered");
   int err = storage_foreach_device_supported(OnForeachStorage, this);
   if (err != STORAGE_ERROR_NONE) {
@@ -120,11 +125,13 @@ FilesystemProviderStorage::FilesystemProviderStorage() {
 }
 
 FilesystemProviderStorage& FilesystemProviderStorage::Create() {
+  LoggerD("Entered");
   static FilesystemProviderStorage fs;
   return fs;
 }
 
 FilesystemProviderStorage::~FilesystemProviderStorage() {
+  LoggerD("Entered");
 }
 
 void FilesystemProviderStorage::FillVirtualPaths(int storage_id) {
@@ -163,10 +170,12 @@ void FilesystemProviderStorage::UnregisterDeviceChangeState() {
 }
 
 Storages FilesystemProviderStorage::GetStorages() {
+  LoggerD("Entered");
   return storages_;
 }
 
 VirtualRoots FilesystemProviderStorage::GetVirtualPaths() {
+  LoggerD("Entered");
   return virtual_paths_;
 }
 
@@ -196,6 +205,11 @@ std::string FilesystemProviderStorage::GetRealPath(
   return realpath;
 }
 
+std::shared_ptr< Storage > FilesystemProviderStorage::GetInternalStorage(){
+  LoggerD("Entered");
+  return internal_storage_;
+}
+
 std::string FilesystemProviderStorage::GetVirtualPath(
     const std::string& real_path) const {
   LoggerD("Enter");
@@ -208,9 +222,10 @@ std::string FilesystemProviderStorage::GetVirtualPath(
 }
 
 VirtualStorages FilesystemProviderStorage::GetAllStorages() {
+  LoggerD("Entered");
   VirtualStorages vs;
   for (auto storage : storages_) {
-    vs.push_back(std::make_shared < Storage > (storage));
+    vs.push_back(storage);
   }
 
   for (auto virtualRoot : virtual_paths_) {

@@ -49,6 +49,8 @@
         'filesystem/filesystem_storage_types.h',
         'filesystem/filesystem_storage.h',
         'filesystem/filesystem_storage.cc',
+        'filesystem/filesystem_provider.h',
+        'filesystem/filesystem_provider.cc',
         'filesystem/filesystem_provider_storage.h',
         'filesystem/filesystem_provider_storage.cc',
       ],
@@ -56,6 +58,12 @@
         '-fvisibility=default',
       ],
       'conditions': [
+        ['extension_host_os == "tv"', {
+          'sources': [
+            'filesystem/filesystem_provider_deviced.h',
+            'filesystem/filesystem_provider_deviced.cc',
+          ]
+        }],
         ['tizen == 1', {
           'variables': {
             'packages': [

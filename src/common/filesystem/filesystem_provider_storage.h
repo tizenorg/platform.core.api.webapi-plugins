@@ -20,10 +20,11 @@
 #include <string>
 #include <memory>
 #include "common/filesystem/filesystem_provider_types.h"
+#include "common/filesystem/filesystem_provider.h"
 
 namespace common {
 
-class FilesystemProviderStorage {
+class FilesystemProviderStorage : public IFilesystemProvider {
  public:
   static FilesystemProviderStorage& Create();
   virtual ~FilesystemProviderStorage();
@@ -34,6 +35,7 @@ class FilesystemProviderStorage {
   virtual Storages GetStorages();
   virtual VirtualRoots GetVirtualPaths();
   virtual VirtualStorages GetAllStorages();
+  virtual std::shared_ptr< Storage > GetInternalStorage();
 
   std::string GetRealPath(const std::string& path_or_uri);
   std::string GetVirtualPath(const std::string& real_path) const;
@@ -51,6 +53,7 @@ class FilesystemProviderStorage {
   DeviceChangeStateFun listener_;
   Storages storages_;
   VirtualRoots virtual_paths_;
+  std::shared_ptr<Storage> internal_storage_;
 };
 
 }  // namespace common

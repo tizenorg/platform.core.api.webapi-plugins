@@ -23,13 +23,11 @@
 #include <set>
 #include <memory>
 
-#include "common/filesystem/filesystem_provider_storage.h"
-
 #include "filesystem/filesystem_stat.h"
 #include "filesystem/filesystem_utils.h"
 
 #include "common/filesystem/filesystem_storage.h"
-#include "common/filesystem/filesystem_provider_storage.h"
+#include "common/filesystem/filesystem_provider.h"
 
 namespace extension {
 namespace filesystem {
@@ -47,7 +45,7 @@ class FilesystemManager {
   FilesystemManager();
   FilesystemStateChangeListener* listener_;
 
-  common::FilesystemProviderStorage& fs_provider_;
+  common::FilesystemProvider& fs_provider_;
 
  public:
 
