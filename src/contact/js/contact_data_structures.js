@@ -699,6 +699,87 @@ var ContactRelationship = function(relativeName, type) {
   });
 };
 
+var ContactExtension = function(data) {
+  validator_.isConstructorCall(this, ContactExtension);
+
+  var _data1 = 0;
+
+  Object.defineProperties(this, {
+    data1: {
+      get: function () {
+        return _data1;
+      },
+      set: function (v) {
+        _data1 = converter_.toLong(v, false);
+      },
+      enumerable: true
+    },
+    data2: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data3: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data4: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data5: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data6: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data7: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data8: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data9: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data10: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data11: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    data12: {
+      value: null,
+      writable: true,
+      enumerable: true
+    }
+  });
+
+  if (type_.isObject(data)) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
+};
+
 var ContactInstantMessenger = function(imAddress, type) {
   validator_.isConstructorCall(this, ContactInstantMessenger);
 
@@ -752,4 +833,5 @@ tizen.ContactPhoneNumber = ContactPhoneNumber;
 tizen.ContactEmailAddress = ContactEmailAddress;
 tizen.ContactGroup = ContactGroup;
 tizen.ContactRelationship = ContactRelationship;
+tizen.ContactExtension = ContactExtension;
 tizen.ContactInstantMessenger = ContactInstantMessenger;
