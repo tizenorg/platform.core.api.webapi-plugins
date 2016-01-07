@@ -30,8 +30,11 @@ enum class StorageState {
 };
 
 enum class StorageType {
+  kUnknown,
   kInternal,
-  kExternal
+  kUsbDevice,
+  kUsbHost,
+  kMmc
 };
 
 class VirtualStorage {
