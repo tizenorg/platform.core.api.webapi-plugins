@@ -28,8 +28,14 @@
 #include "common/logger.h"
 
 namespace {
+static const char* kDeviceDName = "org.tizen.system.deviced";
+#ifdef USBHOST
+static const char* kIface = "org.tizen.system.deviced.Usbhost";
+static const char* kPath = "/Org/Tizen/System/DeviceD/Usbhost";
+#else
 static const char* kIface = "org.tizen.system.deviced.BlockManager";
 static const char* kPath = "/Org/Tizen/System/DeviceD/Block/Manager";
+#endif
 }  // namespace
 
 namespace common {
@@ -61,6 +67,29 @@ struct DeviceListElem {
     bool primary;
 };
 
+struct UsbListElem {
+  UsbListElem()
+  : usb_devpath(nullptr),
+    usb_class(0),
+    usb_subclass(0),
+    usb_protocol(0),
+    usb_vendor_id(0),
+    usb_product_id(0),
+    usb_manufacturer(nullptr),
+    usb_product_name(nullptr),
+    usb_serial(nullptr) {}
+
+  char* usb_devpath;
+  int usb_class;
+  int usb_subclass;
+  int usb_protocol;
+  int usb_vendor_id;
+  int usb_product_id;
+  char* usb_manufacturer;
+  char* usb_product_name;
+  char* usb_serial;
+};
+
 FilesystemProviderDeviced::~FilesystemProviderDeviced() {
   LoggerD("Entered");
   UnregisterDeviceChangeState();
@@ -85,9 +114,8 @@ FilesystemProviderDeviced::FilesystemProviderDeviced() :
       LoggerE("Dbus handle is null");
     } else {
       LoggerE("Dbus connection set");
-      const gchar* unique_name = g_dbus_connection_get_unique_name(dbus_);
       proxy_ = g_dbus_proxy_new_sync(dbus_, G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-                                     nullptr, unique_name, kPath, kIface, nullptr,
+                                     nullptr, kDeviceDName, kPath, kIface, nullptr,
                                      &error);
       if (!proxy_ || error) {
         LoggerE("Could not get dbus proxy. %s", error->message);
@@ -183,6 +211,22 @@ std::shared_ptr<Storage> FilesystemProviderDeviced::GetStorage(const DeviceListE
                  elem.syspath, GetNameFromPath(elem.devnode)));
 }
 
+std::shared_ptr<Storage> FilesystemProviderDeviced::GetStorageUsb(const UsbListElem& elem) {
+  LoggerD("Entered");
+  SLoggerD("usb_devpath %s", elem.usb_devpath);
+  SLoggerD("usb_class %d", elem.usb_class);
+  SLoggerD("usb_subclass %d", elem.usb_subclass);
+  SLoggerD("usb_protocol %d", elem.usb_protocol);
+  SLoggerD("usb_vendor_id %d", elem.usb_vendor_id);
+  SLoggerD("usb_product_id %d", elem.usb_product_id);
+  SLoggerD("usb_manufacturer %s", elem.usb_manufacturer);
+  SLoggerD("usb_product_name %s", elem.usb_product_name);
+  SLoggerD("usb_serial %s", elem.usb_serial);
+  return std::make_shared<Storage>(Storage(elem.usb_product_id, StorageType::kExternal,
+                 StorageState::kMounted, // TODO: check if found storage is always mounted
+                 elem.usb_devpath, GetNameFromPath(elem.usb_devpath)));
+}
+
 std::string FilesystemProviderDeviced::GetNameFromPath(
     const char* const char_path) {
   LoggerD("Entered");
@@ -215,9 +259,15 @@ Storages FilesystemProviderDeviced::GetStorages() {
   }
 
   GError* error = nullptr;
+#ifdef USBHOST
+  GVariant* variant = g_dbus_proxy_call_sync(
+      proxy_, "GetDeviceList", g_variant_new("(i)", "0xffffffff"),
+      G_DBUS_CALL_FLAGS_NONE, -1, nullptr, &error);
+#else
   GVariant* variant = g_dbus_proxy_call_sync(
       proxy_, "GetDeviceList", g_variant_new("(s)", "all"),
       G_DBUS_CALL_FLAGS_NONE, -1, nullptr, &error);
+#endif
   if (!variant || error) {
     LoggerE("Failed to call GetDeviceList method - %s", error->message);
     return Storages();
@@ -228,18 +278,36 @@ Storages FilesystemProviderDeviced::GetStorages() {
 
 Storages FilesystemProviderDeviced::GetStoragesFromGVariant(GVariant* variant) {
   LoggerD("Entered");
+  SLoggerD("Imput variant looks like:\ng_variant_print(variant): %s", g_variant_print (variant, TRUE));
   Storages storages;
-  GVariantIter iter;
-  GVariant* tuple = nullptr;
-  g_variant_iter_init(&iter, variant);
-  while ((tuple = g_variant_iter_next_value(&iter))) {
-    DeviceListElem elem;
-    g_variant_get(tuple, "(issssssisib)", &elem.block_type, &elem.devnode,
-                  &elem.syspath, &elem.fs_usage, &elem.fs_type,
-                  &elem.fs_version, &elem.fs_uuid_enc, &elem.readonly,
-                  &elem.mount_point, &elem.state, &elem.primary);
-    storages.push_back(GetStorage(elem));
-    g_variant_unref(tuple);
+  GVariantIter iter_variant;
+  GVariant* array = nullptr;
+  g_variant_iter_init(&iter_variant, variant);
+  while ((array = g_variant_iter_next_value(&iter_variant))) {
+    GVariantIter iter_array;
+    g_variant_iter_init (&iter_array, array);
+    GVariant* array_elem = nullptr;
+
+    while ((array_elem = g_variant_iter_next_value (&iter_array))) {
+      SLoggerD("Adding storage: g_variant_print(array_elem): %s", g_variant_print (array_elem, TRUE));
+#ifdef USBHOST
+      UsbListElem elem;
+      g_variant_get(array_elem, "(siiiiisss)", &elem.usb_devpath, &elem.usb_class,
+                        &elem.usb_subclass, &elem.usb_protocol, &elem.usb_vendor_id,
+                        &elem.usb_product_id, &elem.usb_manufacturer, &elem.usb_product_name,
+                        &elem.usb_serial);
+      storages.push_back(GetStorageUsb(elem));
+#else
+      DeviceListElem elem;
+      g_variant_get(array_elem, "(issssssisib)", &elem.block_type, &elem.devnode,
+                    &elem.syspath, &elem.fs_usage, &elem.fs_type,
+                    &elem.fs_version, &elem.fs_uuid_enc, &elem.readonly,
+                    &elem.mount_point, &elem.state, &elem.primary);
+      storages.push_back(GetStorage(elem));
+#endif
+      g_variant_unref(array_elem);
+    }
+    g_variant_unref(array);
   }
   return storages;
 }
