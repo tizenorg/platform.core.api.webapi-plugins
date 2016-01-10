@@ -67,12 +67,52 @@ enum MessageportCallbacks {
   LocalMessagePortAddmessageportlistenerCallback
 };
 
-static void BundleJsonIterator(const char *k, const char *v, void *d) {
+static void BundleJsonIterator(const char *key, const int type, const bundle_keyval_t *kv, void *d) {
   LoggerD("Enter");
+
+  void *basic_val = nullptr;
+  size_t basic_size = 0;
+
   picojson::value::array *array = static_cast<picojson::value::array *>(d);
   picojson::value::object o;
-  o["key"] = picojson::value(k);
-  o["value"] = picojson::value(v);
+
+  switch (bundle_keyval_get_type(const_cast<bundle_keyval_t*>(kv))) {
+    case BUNDLE_TYPE_STR:
+      bundle_keyval_get_basic_val(const_cast<bundle_keyval_t*>(kv), &basic_val, &basic_size);
+      o["key"] = picojson::value(key);
+      o["value"] = picojson::value(static_cast<char*>(basic_val));
+      break;
+
+    case BUNDLE_TYPE_STR_ARRAY: {
+      picojson::value::array tab;
+      void **array_val = nullptr;
+      unsigned int array_len = 0;
+      size_t *array_elem_size = nullptr;
+
+      bundle_keyval_get_array_val(const_cast<bundle_keyval_t*>(kv),
+                                  &array_val,
+                                  &array_len,
+                                  &array_elem_size);
+
+      for (unsigned int i = 0; i < array_len; i++) {
+        tab.push_back(picojson::value(((char**) array_val)[i]));
+      }
+
+      o["key"] = picojson::value(key);
+      o["value"] = picojson::value(picojson::value(tab).serialize());
+
+      break;
+    }
+
+    case BUNDLE_TYPE_BYTE:
+    case BUNDLE_TYPE_BYTE_ARRAY:
+    default:
+      // For now sending only string data is supported by messageport
+      // We ignore rest of them and we send an empty value instead
+      o["key"] = picojson::value(key);
+      o["value"] = picojson::value();
+      break;
+  }
   array->push_back(picojson::value(o));
 }
 
@@ -102,7 +142,7 @@ static void OnReceiveLocalMessage(int local_port_id,
 
   LoggerD("Msg received");
 
-  bundle_iterate(message, BundleJsonIterator, &data);
+  bundle_foreach(message, BundleJsonIterator, &data);
 
   o["message"] = picojson::value(data);
 
