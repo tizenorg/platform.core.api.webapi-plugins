@@ -1133,7 +1133,7 @@ PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
       "BUILD" == property || "LOCALE" == property || "WIFI_NETWORK" == property ||
-      "PERIPHERAL" == property || "MEMORY" == property) {
+      "PERIPHERAL" == property || "MEMORY" == property || "NET_PROXY_NETWORK" == property) {
     *count = kDefaultPropertyCount;
   } else if ("CELLULAR_NETWORK" == property || "SIM" == property || "NETWORK" == property) {
     PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();

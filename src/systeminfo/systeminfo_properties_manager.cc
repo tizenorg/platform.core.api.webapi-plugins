@@ -73,6 +73,7 @@ enum NetworkType {
   kType4G,
   kWifi,
   kEthernet,
+  kProxy,
   kUnknown
 };
 
@@ -83,6 +84,7 @@ const char* kNetworkType3G = "3G";
 const char* kNetworkType4G = "4G";
 const char* kNetworkTypeWifi = "WIFI";
 const char* kNetworkTypeEthernet = "ETHERNET";
+const char* kNetworkTypeProxy = "NET_PROXY";
 const char* kNetworkTypeUnknown = "UNKNOWN";
 //Wifi Network
 const std::string kWifiStatusOn = "ON";
@@ -170,6 +172,8 @@ PlatformResult SysteminfoPropertiesManager::ReportProperty(const std::string& pr
     return ReportEthernetNetwork(res_obj);
   } else if ("CELLULAR_NETWORK" == property) {
     return ReportCellularNetwork(res_obj, index);
+  } else if ("NET_PROXY_NETWORK" == property) {
+    return ReportNetProxyNetwork(res_obj);
   } else if ("SIM" == property) {
     return ReportSim(res_obj, index);
   } else if ("PERIPHERAL" == property) {
@@ -496,6 +500,9 @@ static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_s
     case kEthernet:
       type_string = kNetworkTypeEthernet;
       break;
+    case kProxy:
+      type_string = kNetworkTypeProxy;
+      break;
     case kUnknown:
       type_string = kNetworkTypeUnknown;
       break;
@@ -563,6 +570,9 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
       break;
     case CONNECTION_TYPE_ETHERNET :
       type =  kEthernet;
+      break;
+    case CONNECTION_TYPE_PROXY :
+      type =  kProxy;
       break;
     default:
       return LogAndCreateResult(
@@ -1103,6 +1113,44 @@ PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::obje
   out->insert(std::make_pair("isRoaming", picojson::value(result_is_roaming)));
   out->insert(std::make_pair("isFligthMode", picojson::value(result_is_flight_mode)));
   out->insert(std::make_pair("imei", picojson::value(result_imei)));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+/// NET_PROXY_NETWORK
+PlatformResult SysteminfoPropertiesManager::ReportNetProxyNetwork(picojson::object* out) {
+  LoggerD("Entered");
+  connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
+  connection_profile_h profile_handle = nullptr;
+  connection_h connection_handle = nullptr;
+  std::string result_status;
+
+  //connection must be created in every call, in other case error occurs
+  int error = connection_create(&connection_handle);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot create connection: " + std::to_string(error);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_create error: %d (%s)", error, get_error_message(error)));
+  }
+  std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
+  connection_handle_ptr(connection_handle, &connection_destroy);
+  // automatically release the memory
+
+  error = connection_get_type(connection_handle, &connection_type);
+  if (CONNECTION_ERROR_NONE != error) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get connection type",
+              ("Failed to get connection type: %d (%s)", error, get_error_message(error)));
+  }
+
+  if (CONNECTION_TYPE_PROXY == connection_type) {
+    result_status = kConnectionOn;
+  } else {
+    result_status = kConnectionOff;
+  }
+
+  out->insert(std::make_pair("status", picojson::value(result_status)));
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

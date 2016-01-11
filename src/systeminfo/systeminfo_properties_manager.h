@@ -48,6 +48,7 @@ class SysteminfoPropertiesManager {
   common::PlatformResult ReportWifiNetwork(picojson::object* out);
   common::PlatformResult ReportEthernetNetwork(picojson::object* out);
   common::PlatformResult ReportCellularNetwork(picojson::object* out, unsigned long count);
+  common::PlatformResult ReportNetProxyNetwork(picojson::object* out);
   common::PlatformResult ReportSim(picojson::object* out, unsigned long count);
   common::PlatformResult ReportPeripheral(picojson::object* out);
   common::PlatformResult ReportCameraFlash(picojson::object* out, unsigned long count);
