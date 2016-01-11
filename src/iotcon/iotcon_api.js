@@ -19,6 +19,97 @@ var validator = xwalk.utils.validator;
 var types = validator.Types;
 var T = xwalk.utils.type;
 
+function createListener(name, c) {
+  var listenerName = name;
+  var callback = c || function(response) {
+    return response;
+  };
+  var listeners = {};
+  var jsListenerRegistered = false;
+
+  function internalCallback(response) {
+    if (listeners[response.id]) {
+      listeners[response.id](callback(response));
+    }
+  }
+
+  function addListener(id, func) {
+    if (!jsListenerRegistered) {
+      native.addListener(listenerName, internalCallback);
+      jsListenerRegistered = true;
+    }
+
+    listeners[id] = func;
+  }
+
+  function removeListener(id) {
+    if (listeners[id]) {
+      delete listeners[id];
+    }
+
+    if (jsListenerRegistered && T.isEmptyObject(listeners)) {
+      native.removeListener(listenerName, internalCallback);
+      jsListenerRegistered = false;
+    }
+  }
+
+  return {
+    addListener: addListener,
+    removeListener: removeListener
+  };
+}
+
+function InternalData(d) {
+  for (var prop in d) {
+    if (d.hasOwnProperty(prop)) {
+      this[prop] = d[prop];
+    }
+  }
+}
+
+InternalData.prototype.update = function(dst) {
+  for (var prop in this) {
+    if (this.hasOwnProperty(prop) && dst.hasOwnProperty(prop)) {
+      dst[prop] = this;
+    }
+  }
+};
+
+InternalData.prototype.decorate = function(dst) {
+  var that = this;
+  function getBuilder(prop) {
+    if (T.isArray(that[prop])) {
+      return function() {
+        return that[prop].slice();
+      };
+    } else {
+      return function() {
+        return that[prop];
+      };
+    }
+  }
+  function setBuilder(prop) {
+    return function(d) {
+      if (d instanceof InternalData) {
+        that[prop] = d[prop];
+      }
+    };
+  }
+  for (var prop in this) {
+    if (this.hasOwnProperty(prop)) {
+      Object.defineProperty(dst, prop, {
+        get: getBuilder(prop),
+        set: setBuilder(prop),
+        enumerable: true
+      });
+    }
+  }
+};
+
+function updateWithInternalData(src, dst) {
+  new InternalData(src).update(dst);
+}
+
 var ResponseResult = {
   SUCCESS: 'SUCCESS',
   ERROR: 'ERROR',
@@ -65,6 +156,308 @@ var PresenceTriggerType = {
   DEREGISTER: 'DEREGISTER'
 };
 
+function Query() {
+}
+
+function Representation() {
+}
+
+function RemoteResource(data) {
+  Object.defineProperties(this, {
+    _id: {
+      value: data.id,
+      writable: false,
+      enumerable: false
+    },
+    cachedRepresentation: {
+      get: function() {
+        var callArgs = {};
+        callArgs.id = data.id;
+        var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
+        // TODO: implement
+      },
+      set: function() {},
+      enumerable: true
+    }
+  });
+
+  delete data.id;
+
+  var internal = new InternalData(data);
+  internal.decorate(this);
+}
+
+RemoteResource.prototype.methodGet = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'query',
+    type: types.PLATFORM_OBJECT,
+    values: Query
+  }, {
+    name: 'responseCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.query = args.query;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      // TODO: implement
+      args.responseCallback();
+    }
+  };
+
+  var result = native.call('IotconRemoteResource_methodGet', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+RemoteResource.prototype.methodPut = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'representation',
+    type: types.PLATFORM_OBJECT,
+    values: Representation
+  }, {
+    name: 'query',
+    type: types.PLATFORM_OBJECT,
+    values: Query
+  }, {
+    name: 'responseCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.representation = args.representation;
+  callArgs.query = args.query;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      // TODO: implement
+      args.responseCallback();
+    }
+  };
+
+  var result = native.call('IotconRemoteResource_methodPut', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+RemoteResource.prototype.methodPost = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'representation',
+    type: types.PLATFORM_OBJECT,
+    values: Representation
+  }, {
+    name: 'query',
+    type: types.PLATFORM_OBJECT,
+    values: Query
+  }, {
+    name: 'responseCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.representation = args.representation;
+  callArgs.query = args.query;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      // TODO: implement
+      args.responseCallback();
+    }
+  };
+
+  var result = native.call('IotconRemoteResource_methodPost', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+RemoteResource.prototype.methodDelete = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'responseCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      // TODO: implement
+      args.responseCallback();
+    }
+  };
+
+  var result = native.call('IotconRemoteResource_methodDelete', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+var stateChangeListener = createListener('RemoteResourceStateChangeListener');
+
+RemoteResource.prototype.setStateChangeListener = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'query',
+    type: types.PLATFORM_OBJECT,
+    values: Query
+  }, {
+    name: 'observePolicy',
+    type: types.ENUM,
+    values: T.getValues(ObservePolicy)
+  }, {
+    name: 'successCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.query = args.query;
+  callArgs.observePolicy = args.observePolicy;
+  var that = this;
+
+  var listener = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      updateWithInternalData(native.getResultObject(result), that);
+      args.successCallback(that);
+    }
+  };
+
+  var result = native.callSync('IotconRemoteResource_setStateChangeListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    stateChangeListener.addListener(this._id, listener);
+  }
+};
+
+RemoteResource.prototype.unsetStateChangeListener = function() {
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var result = native.callSync('IotconRemoteResource_unsetStateChangeListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    stateChangeListener.removeListener(this._id);
+  }
+};
+
+RemoteResource.prototype.startCaching = function() {
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var result = native.callSync('IotconRemoteResource_startCaching', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+RemoteResource.prototype.stopCaching = function() {
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var result = native.callSync('IotconRemoteResource_stopCaching', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+var connectionChangeListener = createListener('RemoteResourceConnectionChangeListener');
+
+RemoteResource.prototype.setConnectionChangeListener = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'successCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var listener = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      args.successCallback(native.getResultObject(result));
+    }
+  };
+
+  var result = native.callSync('IotconRemoteResource_setConnectionChangeListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    connectionChangeListener.addListener(this._id, listener);
+  }
+};
+
+RemoteResource.prototype.unsetConnectionChangeListener = function() {
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var result = native.callSync('IotconRemoteResource_unsetConnectionChangeListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    connectionChangeListener.removeListener(this._id);
+  }
+};
+
 function Client() {
 }
 
@@ -100,8 +493,8 @@ Client.prototype.findResource = function() {
     if (native.isFailure(result)) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.successCallback();
+      var rr = new RemoteResource(native.getResultObject(result));
+      args.successCallback(rr);
     }
   };
 
@@ -112,43 +505,9 @@ Client.prototype.findResource = function() {
   }
 };
 
-var presenceEventListener = (function() {
-  var listenerName = 'PresenceEventListener';
-  var listeners = {};
-  var jsListenerRegistered = false;
-
-  function callback(response) {
-    if (listeners[response.id]) {
-      // TODO: implement
-      listeners[response.id]();
-    }
-  }
-
-  function addListener(id, func) {
-    if (!jsListenerRegistered) {
-      native.addListener(listenerName, callback);
-      jsListenerRegistered = true;
-    }
-
-    listeners[id] = func;
-  }
-
-  function removeListener(id) {
-    if (listeners[id]) {
-      delete listeners[id];
-    }
-
-    if (jsListenerRegistered && T.isEmptyObject(listeners)) {
-      native.removeListener(listenerName, callback);
-      jsListenerRegistered = false;
-    }
-  }
-
-  return {
-    addListener: addListener,
-    removeListener: removeListener
-  };
-})();
+var presenceEventListener = createListener('PresenceEventListener', function(response) {
+  // TODO: implement
+});
 
 Client.prototype.addPresenceEventListener = function() {
   var args = validator.validateMethod(arguments, [{
