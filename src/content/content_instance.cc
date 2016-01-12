@@ -27,9 +27,9 @@
 #include "common/platform_result.h"
 #include "common/task-queue.h"
 #include "common/tools.h"
-#include "common/virtual_fs.h"
 
 #include "content/content_manager.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
 namespace extension {
 namespace content {
@@ -137,7 +137,7 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     }
     case ContentManagerScanfileCallback: {
       std::string contentURI = user_data->args.get("contentURI").get<std::string>();
-      std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentURI);
+      std::string real_path = common::FilesystemProviderStorage::Create().GetRealPath(contentURI);
       ret = ContentManager::getInstance()->scanFile(real_path);
       if (ret != MEDIA_CONTENT_ERROR_NONE) {
         PlatformResult err = LogAndCreateResult(

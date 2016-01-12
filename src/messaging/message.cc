@@ -23,7 +23,6 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/scope_exit.h"
-#include "common/virtual_fs.h"
 
 #include "Ecore_File.h"
 #include "message_email.h"
@@ -31,6 +30,7 @@
 #include "message_mms.h"
 #include "short_message_manager.h"
 #include "messaging_util.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
 using common::ErrorCode;
 using common::PlatformResult;
@@ -423,7 +423,7 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
     std::string dirPath = "/tmp/" + std::string(buf);
 
     if ( sourcePath[0] != '/' ) {
-        attPath = common::VirtualFs::GetInstance().GetRealPath(sourcePath);
+        attPath = common::FilesystemProviderStorage::Create().GetRealPath(sourcePath);
     } else { // Assuming that the path is a real path
         attPath = sourcePath;
     }
@@ -786,7 +786,7 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
             if (attach.at(i)->isFilePathSet()) {
                 std::string filepath = attach.at(i)->getFilePath();
                 LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
-                filepath = common::VirtualFs::GetInstance().GetRealPath(filepath);
+                filepath = common::FilesystemProviderStorage::Create().GetRealPath(filepath);
                 LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
 
                 msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,

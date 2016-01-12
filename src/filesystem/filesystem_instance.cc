@@ -344,7 +344,7 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
     picojson::object& out) {
   LoggerD("enter");
 
-  auto onSuccess = [&](const std::vector<common::VirtualStorage>& result) {
+  auto onSuccess = [&](const std::vector<common::Storage>& result) {
     LoggerD("enter");
     picojson::array storages;
     storages.reserve(result.size());
@@ -377,14 +377,14 @@ void FilesystemInstance::StopListening(
   ReportSuccess(out);
 }
 
-void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const common::VirtualStorage& storage) {
+void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const common::Storage& storage) {
   LoggerD("entered");
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   obj["label"] = picojson::value(storage.name_);
-  obj["type"] = picojson::value(common::to_string(storage.type_));
-  obj["state"] = picojson::value(common::to_string(storage.state_));
+  obj["type"] = picojson::value(common::Storage::ToString(storage.type()));
+  obj["state"] = picojson::value(common::Storage::ToString(storage.state()));
   obj["listenerId"] = picojson::value("StorageStateChangeListener");
   Instance::PostMessage(this, event.serialize().c_str());
 }

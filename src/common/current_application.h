@@ -30,16 +30,19 @@ class CurrentApplication {
   pid_t GetProcessId() const;
   std::string GetApplicationId() const;
   std::string GetPackageId() const;
+  std::string GetRoot() const;
 
  private:
   CurrentApplication();
   std::string FetchApplicationId() const;
   std::string FetchPackageId() const;
+  std::string FetchRoot() const;
 
  private:
   pid_t pid_;
   std::string app_id_;
   std::string package_id_;
+  std::string root_;
 };
 
 }  // namespace common

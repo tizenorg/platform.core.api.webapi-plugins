@@ -21,11 +21,15 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <memory>
 
-#include "common/virtual_fs.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
-#include "filesystem_stat.h"
-#include "filesystem_utils.h"
+#include "filesystem/filesystem_stat.h"
+#include "filesystem/filesystem_utils.h"
+
+#include "common/filesystem/filesystem_storage.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
 namespace extension {
 namespace filesystem {
@@ -34,20 +38,21 @@ class FilesystemStateChangeListener {
  public:
   virtual ~FilesystemStateChangeListener() {}
   virtual void onFilesystemStateChangeSuccessCallback(
-      const common::VirtualStorage& storage) = 0;
+      const common::Storage& storage) = 0;
   virtual void onFilesystemStateChangeErrorCallback() = 0;
 };
 
 class FilesystemManager {
  private:
   FilesystemManager();
-  ~FilesystemManager();
   FilesystemStateChangeListener* listener_;
 
-  bool is_listener_registered_;
-  std::set<int> ids_;
+  common::FilesystemProviderStorage& fs_provider_;
 
  public:
+
+  virtual ~FilesystemManager();
+
   static FilesystemManager& GetInstance();
 
   void UnlinkFile(
@@ -59,13 +64,12 @@ class FilesystemManager {
                 const std::function<void(const FilesystemStat&)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
 
-  std::vector<common::VirtualStorage> FillStorages();
   void FetchStorages(
-      const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
+      const std::function<void(const common::Storages&)>& success_cb,
       const std::function<void(FilesystemError)>& error_cb);
 
   void GetVirtualRoots(
-      const std::function<void(const std::vector<common::VirtualRoot>&)>& success_cb,
+      const std::function<void(const common::VirtualRoots&)>& success_cb,
       const std::function<void(FilesystemError)>& error_cb);
 
   void CreateFile(const std::string& path,
@@ -110,6 +114,8 @@ void CopyTo(const std::string& originFilePath,
 
   void StartListening();
   void StopListening();
+  void OnStorageDeviceChanged(common::Storage const& _virtualStorage,
+                          common::StorageState _old, common::StorageState _new);
   void AddListener(FilesystemStateChangeListener* listener);
   void RemoveListener();
 };

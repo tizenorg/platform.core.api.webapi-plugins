@@ -24,7 +24,7 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/typeutil.h"
-#include "common/virtual_fs.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
 namespace extension {
 namespace download {
@@ -318,7 +318,8 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   }
 
   out["callbackId"] = picojson::value(static_cast<double>(callback_id));
-  out["fullPath"] = picojson::value(common::VirtualFs::GetInstance().GetVirtualPath(fullPath));
+
+  out["fullPath"] = picojson::value(common::FilesystemProviderStorage::Create().GetVirtualPath(fullPath));
 
   Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   downCbPtr->instance->download_callbacks.erase(callback_id);
@@ -445,7 +446,7 @@ void DownloadInstance::DownloadManagerStart
   if (!args.get("destination").is<picojson::null>()) {
     if (args.get("destination").get<std::string>() != "") {
       diPtr->destination = args.get("destination").get<std::string>();
-      diPtr->destination = common::VirtualFs::GetInstance().GetRealPath(diPtr->destination);
+      diPtr->destination = common::FilesystemProviderStorage::Create().GetRealPath(diPtr->destination);
     }
   }
 
