@@ -110,6 +110,18 @@ function updateWithInternalData(src, dst) {
   new InternalData(src).update(dst);
 }
 
+function decorateWithData(data, dst) {
+  for (var prop in data) {
+    if (data.hasOwnProperty(prop)) {
+      Object.defineProperty(dst, prop, {
+        value: data[prop],
+        writable: false,
+        enumerable: true
+      });
+    }
+  }
+}
+
 var ResponseResult = {
   SUCCESS: 'SUCCESS',
   ERROR: 'ERROR',
@@ -156,10 +168,194 @@ var PresenceTriggerType = {
   DEREGISTER: 'DEREGISTER'
 };
 
-function Query() {
+function DeviceInfo(data) {
+  decorateWithData(data, this);
 }
 
-function Representation() {
+function IotconOption(id, data) {
+  validator.isConstructorCall(this, tizen.IotconOption);
+
+  Object.defineProperties(this, {
+    id: {
+      value: id,
+      writable: false,
+      enumerable: true
+    },
+    data: {
+      value: data,
+      writable: false,
+      enumerable: true
+    }
+  });
+}
+
+function PlatformInfo(data) {
+  decorateWithData(data, this);
+}
+
+function PresenceResponse(data) {
+  decorateWithData(data, this);
+}
+
+function Query(resourceTypes, resourceInterface, filters) {
+  validator.isConstructorCall(this, tizen.Query);
+
+  Object.defineProperties(this, {
+    resourceTypes: {
+      value: resourceTypes || null,
+      writable: true,
+      enumerable: true
+    },
+    resourceInterface: {
+      value: resourceInterface || null,
+      writable: true,
+      enumerable: true
+    },
+    filters: {
+      value: filters || null,
+      writable: true,
+      enumerable: true
+    }
+  });
+}
+
+function QueryFilter(key, value) {
+  validator.isConstructorCall(this, tizen.QueryFilter);
+
+  Object.defineProperties(this, {
+    key: {
+      value: key,
+      writable: true,
+      enumerable: true
+    },
+    value: {
+      value: value,
+      writable: true,
+      enumerable: true
+    }
+  });
+}
+
+function Representation(uriPath) {
+  validator.isConstructorCall(this, tizen.Representation);
+
+  Object.defineProperties(this, {
+    uriPath: {
+      value: uriPath,
+      writable: true,
+      enumerable: true
+    },
+    resourceTypes: {
+      value: [],
+      writable: true,
+      enumerable: true
+    },
+    resourceInterfaces: {
+      value: [],
+      writable: true,
+      enumerable: true
+    },
+    states: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    representations: {
+      value: null,
+      writable: true,
+      enumerable: true
+    }
+  });
+}
+
+function createRepresentation(data) {
+  var r = new tizen.Representation(data.uriPath);
+  var props = ['resourceTypes', 'resourceInterfaces', 'states'];
+
+  for (var p = 0; p < props.length; ++p) {
+    if (data[props[p]]) {
+      r[props[p]] = data[props[p]];
+    }
+  }
+
+  if (data.representations) {
+    r.representations = [];
+    for (var i = 0; i < data.representations.length; ++i) {
+      r.representations.push(createRepresentation(data.representations[i]));
+    }
+  }
+
+  return r;
+}
+
+function Request(data) {
+  Object.defineProperty(this, '_id', {
+    value: data.id,
+    writable: false,
+    enumerable: false
+  });
+
+  delete data.id;
+
+  decorateWithData(data, this);
+}
+
+function Response(request) {
+  validator.isConstructorCall(this, tizen.Response);
+
+  Object.defineProperties(this, {
+    request: {
+      value: request,
+      writable: false,
+      enumerable: true
+    },
+    result: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    representation: {
+      value: null,
+      writable: true,
+      enumerable: true
+    },
+    options: {
+      value: null,
+      writable: true,
+      enumerable: true
+    }
+  });
+}
+
+Response.prototype.send = function() {
+  var callArgs = {};
+  callArgs.id = this.request._id;
+  callArgs.result = this.result;
+  callArgs.representation = this.representation;
+  callArgs.options = this.options;
+
+  var result = native.callSync('IotconResponse_send', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+function State(key, state) {
+  validator.isConstructorCall(this, tizen.State);
+
+  Object.defineProperties(this, {
+    key: {
+      value: key,
+      writable: false,
+      enumerable: true
+    },
+    state: {
+      value: state,
+      writable: false,
+      enumerable: true
+    }
+  });
 }
 
 function RemoteResource(data) {
@@ -174,7 +370,7 @@ function RemoteResource(data) {
         var callArgs = {};
         callArgs.id = data.id;
         var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
-        // TODO: implement
+        return createRepresentation(native.getResultObject(result));
       },
       set: function() {},
       enumerable: true
@@ -506,7 +702,7 @@ Client.prototype.findResource = function() {
 };
 
 var presenceEventListener = createListener('PresenceEventListener', function(response) {
-  // TODO: implement
+  return new PresenceResponse(native.getResultObject(response));
 });
 
 Client.prototype.addPresenceEventListener = function() {
@@ -586,8 +782,7 @@ Client.prototype.getDeviceInfo = function() {
     if (native.isFailure(result)) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.successCallback();
+      args.successCallback(new DeviceInfo(native.getResultObject(result)));
     }
   };
 
@@ -624,8 +819,7 @@ Client.prototype.getPlatformInfo = function() {
     if (native.isFailure(result)) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.successCallback();
+      args.successCallback(new PlatformInfo(native.getResultObject(result)));
     }
   };
 
@@ -781,4 +975,10 @@ Iotcon.prototype.setTimeout = function() {
 };
 
 // Exports
+tizen.IotconOption = IotconOption;
+tizen.Query = Query;
+tizen.QueryFilter = QueryFilter;
+tizen.Representation = Representation;
+tizen.Response = Response;
+tizen.State = State;
 exports = new Iotcon();

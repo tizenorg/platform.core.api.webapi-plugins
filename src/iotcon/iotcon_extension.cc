@@ -27,6 +27,17 @@ namespace iotcon {
 IotconExtension::IotconExtension() {
   SetExtensionName("tizen.iotcon");
   SetJavaScriptAPI(kSource_iotcon_api);
+
+  const char* entry_points[] = {
+    "tizen.IotconOption",
+    "tizen.Query",
+    "tizen.QueryFilter",
+    "tizen.Representation",
+    "tizen.Response",
+    "tizen.State",
+    nullptr
+  };
+  SetExtraJSEntryPoints(entry_points);
 }
 
 IotconExtension::~IotconExtension() {
