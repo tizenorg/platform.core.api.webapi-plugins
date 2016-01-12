@@ -138,7 +138,11 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
       return;
     }
 
-    ret = alarm_schedule_after_delay(app_control, delay, period, &alarm_id);
+    if(period == 0){
+      ret = alarm_schedule_once_after_delay(app_control, delay, &alarm_id);
+    }else{
+      ret = alarm_schedule_after_delay(app_control, delay, period, &alarm_id);
+    }
     if (ALARM_ERROR_NONE != ret) {
       LogAndReportError(PlatformResult(
           ErrorCode::UNKNOWN_ERR, "Error while add alarm to server."), &out,
