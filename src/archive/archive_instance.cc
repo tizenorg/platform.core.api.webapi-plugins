@@ -24,7 +24,7 @@
 #include "common/current_application.h"
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/filesystem/filesystem_provider_storage.h"
+#include "common/filesystem/filesystem_provider.h"
 #include "common/tools.h"
 #include "archive_callback_data.h"
 #include "archive_manager.h"
@@ -620,7 +620,7 @@ void ArchiveInstance::FetchVirtualRoots(const picojson::value& args, picojson::o
     LoggerD("Entered");
 
     picojson::array roots;
-    for (const auto& root : common::FilesystemProviderStorage::Create().GetVirtualPaths() ) {
+    for (const auto& root : common::FilesystemProvider::Create().GetVirtualPaths() ) {
       roots.push_back(root.ToJson());
     }
     ReportSuccess(picojson::value(roots), out);

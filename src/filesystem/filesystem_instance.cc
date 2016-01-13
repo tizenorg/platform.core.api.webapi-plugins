@@ -344,12 +344,12 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
     picojson::object& out) {
   LoggerD("enter");
 
-  auto onSuccess = [&](const std::vector<common::Storage>& result) {
+  auto onSuccess = [&](const common::Storages& result) {
     LoggerD("enter");
     picojson::array storages;
     storages.reserve(result.size());
-    for (const auto& storage : result) {
-      storages.push_back(storage.ToJson());
+    for (const auto storage : result) {
+      storages.push_back(storage->ToJson());
     }
     ReportSuccess(picojson::value(storages), out);
   };

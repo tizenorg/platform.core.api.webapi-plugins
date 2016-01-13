@@ -26,6 +26,7 @@ VirtualRoot::VirtualRoot(std::string const& name, std::string const& path,
       path_(path),
       type_(type),
       state_(state) {
+  LoggerD("Entered");
 }
 
 Storage::Storage(int id, StorageType type, StorageState state,
@@ -53,6 +54,7 @@ Storage::Storage(int id, StorageType type, StorageState state,
 }
 
 picojson::value VirtualRoot::ToJson() const {
+  LoggerD("Entered");
   picojson::value v { picojson::object { } };
   picojson::object& obj = v.get<picojson::object>();
 
@@ -65,6 +67,7 @@ picojson::value VirtualRoot::ToJson() const {
 }
 
 picojson::value Storage::ToJson() const {
+  LoggerD("Entered");
   picojson::value value = VirtualRoot::ToJson();
   picojson::object& obj = value.get<picojson::object>();
   obj["storage_id"] = picojson::value(static_cast<double>(id_));
@@ -73,10 +76,12 @@ picojson::value Storage::ToJson() const {
 
 Storage::Storage(Storage const& other)
     : VirtualRoot(other) {
+  LoggerD("Entered");
   this->id_ = other.id_;
 }
 
 VirtualRoot::VirtualRoot(VirtualRoot const& other) {
+  LoggerD("Entered");
   this->path_ = other.path_;
   this->name_ = other.name_;
   this->state_ = other.state_;
@@ -84,6 +89,7 @@ VirtualRoot::VirtualRoot(VirtualRoot const& other) {
 }
 
 std::string VirtualRoot::ToString(StorageType type) {
+  LoggerD("Entered");
   switch (type) {
     case StorageType::kInternal:
       return "INTERNAL";
@@ -98,6 +104,7 @@ std::string VirtualRoot::ToString(StorageType type) {
 }
 
 std::string VirtualRoot::ToString(StorageState state) {
+  LoggerD("Entered");
   switch (state) {
     case StorageState::kUnmounted:
       return "REMOVED";

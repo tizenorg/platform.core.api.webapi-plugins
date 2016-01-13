@@ -20,7 +20,7 @@
 #include "message_attachment.h"
 
 #include "common/logger.h"
-#include "common/filesystem/filesystem_provider_storage.h"
+#include "common/filesystem/filesystem_provider.h"
 
 namespace extension {
 namespace messaging {
@@ -143,7 +143,7 @@ void MessageAttachment::setFilePath(const std::string &value)
 {
     LoggerD("Entered");
 
-    m_filePath = common::FilesystemProviderStorage::Create().GetRealPath(value);
+    m_filePath = common::FilesystemProvider::Create().GetRealPath(value);
     m_isFilePathSet = true;
 }
 

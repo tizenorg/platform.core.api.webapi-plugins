@@ -235,7 +235,8 @@ void FilesystemManager::FetchStorages(
 
 FilesystemManager::FilesystemManager()
     : listener_(nullptr),
-      fs_provider_(common::FilesystemProviderStorage::Create()) {
+      fs_provider_(common::FilesystemProvider::Create()) {
+  LoggerD("enter");
 }
 
 FilesystemManager::~FilesystemManager() {
