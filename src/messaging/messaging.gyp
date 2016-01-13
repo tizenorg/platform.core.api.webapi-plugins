@@ -22,7 +22,6 @@
             'tapi',
             'vconf',
             'db-util',
-            'libtzplatform-config',
         ],
       },
       'sources': [
