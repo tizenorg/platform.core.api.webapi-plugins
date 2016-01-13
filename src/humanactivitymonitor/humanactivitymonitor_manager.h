@@ -46,7 +46,7 @@ class HumanActivityMonitorManager {
   common::PlatformResult Init();
 
   common::PlatformResult SetListener(const std::string& type,
-                                     JsonCallback callback);
+      JsonCallback callback, const picojson::value& args);
   common::PlatformResult UnsetListener(const std::string& type);
 
   common::PlatformResult GetHumanActivityData(const std::string& type,
@@ -64,14 +64,14 @@ class HumanActivityMonitorManager {
                              gesture_error_e error,
                              void* user_data);
   // HRM
-  common::PlatformResult SetHrmListener(JsonCallback callback);
+  common::PlatformResult SetHrmListener(JsonCallback callback, const picojson::value& args);
   common::PlatformResult UnsetHrmListener();
   static void OnHrmSensorEvent(sensor_h sensor,
                                sensor_event_s *event,
                                void *user_data);
   common::PlatformResult GetHrmData(picojson::value* data);
   // GPS
-  common::PlatformResult SetGpsListener(JsonCallback callback);
+  common::PlatformResult SetGpsListener(JsonCallback callback, const picojson::value& args);
   common::PlatformResult UnsetGpsListener();
   static void OnGpsEvent(int num_of_location, void *user_data);
   common::PlatformResult GetGpsData(picojson::value* data);
