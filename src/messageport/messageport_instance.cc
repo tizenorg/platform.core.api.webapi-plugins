@@ -99,7 +99,7 @@ static void BundleJsonIterator(const char *key, const int type, const bundle_key
       }
 
       o["key"] = picojson::value(key);
-      o["value"] = picojson::value(picojson::value(tab).serialize());
+      o["value"] = picojson::value(picojson::value(tab));
 
       break;
     }
@@ -362,8 +362,29 @@ void MessageportInstance::RemoteMessagePortSendmessage
 
   for (picojson::value::array::iterator it = data.begin();
        it != data.end(); ++it) {
+    if ((*it).get("value").is<std::string>()) {
+      LoggerD("value is string");
       bundle_add(bundle, (*it).get("key").to_str().c_str(),
         (*it).get("value").to_str().c_str());
+    }
+    else if ((*it).get("value").is<picojson::array>()) {
+      LoggerD("value is array");
+      std::vector<picojson::value> value_array = (*it).get("value").get<picojson::array>();
+      const size_t size = value_array.size();
+      const char** arr = new const char*[size];
+      size_t i = 0;
+
+      for (auto iter = value_array.begin(); iter != value_array.end(); ++iter, ++i) {
+        arr[i] = iter->to_str().c_str();
+      }
+
+      bundle_add_str_array(bundle, (*it).get("key").to_str().c_str(), arr, size);
+      delete[] arr;
+    } else {
+      LogAndReportError(
+          TypeMismatchException("Type mismatch Error"), out,
+          ("data value should be string or string array"));
+    }
   }
 
   LoggerD("%s to %s", trusted ?

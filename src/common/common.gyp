@@ -38,8 +38,6 @@
         'platform_result.cc',
         'platform_result.h',
         'assert.h',
-        'virtual_fs.cc',
-        'virtual_fs.h',
         'GDBus/connection.cpp',
         'GDBus/connection.h',
         'GDBus/proxy.cpp',
@@ -47,13 +45,25 @@
         'GDBus/gdbus_powerwrapper.cc',
         'GDBus/gdbus_powerwrapper.h',
         'GDBus/auto_gen_interface.c',
-        'GDBus/auto_gen_interface.h'
-
+        'GDBus/auto_gen_interface.h',
+        'filesystem/filesystem_storage_types.h',
+        'filesystem/filesystem_storage.h',
+        'filesystem/filesystem_storage.cc',
+        'filesystem/filesystem_provider.h',
+        'filesystem/filesystem_provider.cc',
+        'filesystem/filesystem_provider_storage.h',
+        'filesystem/filesystem_provider_storage.cc',
       ],
       'cflags': [
         '-fvisibility=default',
       ],
       'conditions': [
+        ['extension_host_os == "tv"', {
+          'sources': [
+            'filesystem/filesystem_provider_deviced.h',
+            'filesystem/filesystem_provider_deviced.cc',
+          ]
+        }],
         ['tizen == 1', {
           'variables': {
             'packages': [

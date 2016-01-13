@@ -37,7 +37,7 @@
         'sources/': [['exclude', '_tizen\\.cc$|tizen/']],
         'includes/': [['exclude', '_tizen\\.gypi$|tizen/']],
       }],
-      ['extension_host_os == "tv"', { 'defines': ['TIZEN_TV'] } ],
+      ['extension_host_os == "tv"', { 'defines': ['TIZEN_TV', 'USBHOST'] } ],
       ['extension_host_os == "wearable"', { 'defines': ['TIZEN_WEARABLE'] } ],
       ['extension_host_os == "mobile"', { 'defines': ['TIZEN_MOBILE'] } ],
       ['extension_host_os == "ivi"', { 'defines': ['TIZEN_IVI'] } ],

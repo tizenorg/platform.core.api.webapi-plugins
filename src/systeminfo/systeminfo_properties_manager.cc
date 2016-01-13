@@ -31,6 +31,7 @@
 #include "systeminfo/systeminfo_device_capability.h"
 #include "common/scope_exit.h"
 #include "systeminfo/systeminfo-utils.h"
+#include "common/filesystem/filesystem_provider.h"
 
 namespace extension {
 namespace systeminfo {
@@ -60,6 +61,7 @@ const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_STOR
 const std::string kPropertyIdStorage = "STORAGE";
 const std::string kTypeUnknown = "UNKNOWN";
 const std::string kTypeInternal = "INTERNAL";
+const std::string kTypeUsbDevice = "USB_DEVICE";
 const std::string kTypeUsbHost = "USB_HOST";
 const std::string kTypeMmc = "MMC";
 //Network
@@ -1174,6 +1176,47 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
   out->insert(std::make_pair("isRemovable", picojson::value(isRemovable)));
 }
 
+#ifdef TIZEN_TV
+PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out) {
+  LoggerD("Enter");
+
+  picojson::value result = picojson::value(picojson::array());
+  picojson::array& array = result.get<picojson::array>();
+
+  struct statfs fs;
+
+  // handling internal storage
+  array.push_back(picojson::value(picojson::object()));
+  picojson::object& internal_obj = array.back().get<picojson::object>();
+  if (statfs(kStorageInternalPath.c_str(), &fs) < 0) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
+  }
+  CreateStorageInfo(kTypeInternal, fs, &internal_obj);
+  manager_.SetAvailableCapacityInternal(fs.f_bavail);
+
+  // handling external storages
+  common::FilesystemProvider& provider(common::FilesystemProvider::Create());
+  auto storages = provider.GetStorages();
+  LoggerD("Storages found %d", storages.size());
+  for (auto storage : storages) {
+    if (storage->state() == common::StorageState::kMounted) {
+      if (statfs(storage->path().c_str(), &fs) < 0) {
+        LoggerE("Storage unit %s not detected", storage->name().c_str());
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Storage unit not detected");
+      }
+      array.push_back(picojson::value(picojson::object()));
+      internal_obj = array.back().get<picojson::object>();
+      CreateStorageInfo(kTypeUsbDevice, fs, &internal_obj);
+      // TODO some tracking of available capacity of usb storages should be applied
+    }
+  }
+
+  out->insert(std::make_pair("storages", picojson::value(result)));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+#else
+
 PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out) {
   LoggerD("Entered");
   int sdcardState = 0;
@@ -1209,6 +1252,7 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
   out->insert(std::make_pair("storages", picojson::value(result)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
+#endif
 
 PlatformResult SysteminfoPropertiesManager::ReportCameraFlash(picojson::object* out,
                                                               unsigned long index) {

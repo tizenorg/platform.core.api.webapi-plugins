@@ -21,7 +21,7 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/task-queue.h"
-#include "common/virtual_fs.h"
+#include "common/filesystem/filesystem_provider.h"
 #include "common/tools.h"
 
 #include <system_settings.h>
@@ -152,7 +152,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
 
   auto get = [this, type, value, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Setting platform value");
-    std::string real_path = VirtualFs::GetInstance().GetRealPath(value);
+    std::string real_path = common::FilesystemProvider::Create().GetRealPath(value);
     PlatformResult status = setPlatformPropertyValue(type, real_path);
     picojson::object& obj = response->get<picojson::object>();
     if (status.IsSuccess()) {

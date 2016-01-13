@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include "filesystem_manager.h"
+#include "filesystem/filesystem_manager.h"
 
 #include <app_manager.h>
 #include <package_manager.h>
@@ -36,7 +36,7 @@
 #include "common/tools.h"
 #include "common/scope_exit.h"
 #include "common/extension.h"
-#include "filesystem_file.h"
+#include "filesystem/filesystem_file.h"
 
 namespace extension {
 namespace filesystem {
@@ -44,20 +44,8 @@ namespace filesystem {
 using common::tools::GetErrorString;
 
 namespace {
-void storage_cb(int storage_id, storage_state_e state, void* user_data) {
-  LoggerD("entered");
-  if (user_data) {
-    FilesystemStateChangeListener* listener =
-        static_cast<FilesystemStateChangeListener*>(user_data);
-    storage_type_e type;
-    storage_get_type(storage_id, &type);
-    listener->onFilesystemStateChangeSuccessCallback(common::VirtualStorage(storage_id, type, state));
-  }
-}
 
-int unlink_cb(const char* fpath,
-              const struct stat* sb,
-              int typeflag,
+int unlink_cb(const char* fpath, const struct stat* sb, int typeflag,
               struct FTW* ftwbuf) {
   if (ftwbuf->level == 0)
     return 0;
@@ -68,10 +56,8 @@ int unlink_cb(const char* fpath,
   return result;
 }
 
-int unlink_with_base_dir_cb(const char* fpath,
-              const struct stat* sb,
-              int typeflag,
-              struct FTW* ftwbuf) {
+int unlink_with_base_dir_cb(const char* fpath, const struct stat* sb,
+                            int typeflag, struct FTW* ftwbuf) {
   int result = remove(fpath);
   if (result)
     LoggerE("error occured");
@@ -125,10 +111,10 @@ FilesystemError copyDirectory(const std::string& originPath,
     if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0)
       continue;
 
-    std::string oldLocation =
-        originPath + std::string("/") + std::string(result->d_name);
-    std::string newLocation =
-        destPath + std::string("/") + std::string(result->d_name);
+    std::string oldLocation = originPath + std::string("/")
+        + std::string(result->d_name);
+    std::string newLocation = destPath + std::string("/")
+        + std::string(result->d_name);
     FilesystemError fstatus = FilesystemError::None;
     if (result->d_type == DT_DIR) {
       fstatus = copyDirectory(oldLocation, newLocation);
@@ -148,8 +134,7 @@ FilesystemError copyDirectory(const std::string& originPath,
 }
 
 FilesystemError perform_deep_copy(const std::string& originPath,
-                                  const std::string& destPath,
-                                  bool overwrite) {
+                                  const std::string& destPath, bool overwrite) {
   LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
   FilesystemStat originStat = FilesystemStat::getStat(originPath);
   FilesystemStat destStat = FilesystemStat::getStat(destPath);
@@ -172,22 +157,22 @@ FilesystemError perform_deep_copy(const std::string& originPath,
     if (destStat.isDirectory) {
       path.append("/");
       if (originStat.isFile) {
-        std::string dstPathWithFilename = originPath.substr(originPath.find_last_of("/") +1 );
+        std::string dstPathWithFilename = originPath.substr(
+            originPath.find_last_of("/") + 1);
         path.append(dstPathWithFilename);
         FilesystemStat destStatWithFilename = FilesystemStat::getStat(path);
         if (destStatWithFilename.valid) {
           status = remove(path.c_str());
           if (status) {
-            LoggerE("Cannot remove old file: %s", GetErrorString(errno).c_str());
+            LoggerE("Cannot remove old file: %s",
+                    GetErrorString(errno).c_str());
             return FilesystemError::Other;
           }
         }
       } else {
         const int maxDirOpened = 64;
-        if (nftw(path.c_str(),
-                 unlink_cb,
-                 maxDirOpened,
-                 FTW_DEPTH | FTW_PHYS) != 0) {
+        if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS)
+            != 0) {
           LoggerE("Error occured");
           return FilesystemError::Other;
         }
@@ -195,7 +180,8 @@ FilesystemError perform_deep_copy(const std::string& originPath,
     } else {
       status = remove(path.c_str());
       if (status) {
-        LoggerE("Cannot remove old directory: %s", GetErrorString(errno).c_str());
+        LoggerE("Cannot remove old directory: %s",
+                GetErrorString(errno).c_str());
         return FilesystemError::Other;
       }
     }
@@ -239,36 +225,22 @@ FilesystemError make_directory_worker(const std::string& path) {
 }
 }  // namespace
 
-std::vector<common::VirtualStorage> FilesystemManager::FillStorages() {
-    LoggerD("entered");
-    auto virtualStorages = common::VirtualFs::GetInstance().GetStorages();
-    if (ids_.empty()) {
-        for (auto storage : virtualStorages) {
-          if (storage.id_ >= 0) {
-            ids_.insert(storage.id_);
-          }
-        }
-    }
-    return virtualStorages;
-}
-
 void FilesystemManager::FetchStorages(
-    const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
+    const std::function<void(const common::Storages&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
-  LoggerD("enter");
-  auto result = FillStorages();
-  success_cb(result);
+  LoggerD("Entered");
+
+  success_cb(fs_provider_.GetStorages());
 }
 
 FilesystemManager::FilesystemManager()
-    : listener_(nullptr), is_listener_registered_(false) {}
+    : listener_(nullptr),
+      fs_provider_(common::FilesystemProvider::Create()) {
+  LoggerD("enter");
+}
+
 FilesystemManager::~FilesystemManager() {
   LoggerD("enter");
-  if (is_listener_registered_) {
-    for (auto id : ids_) {
-      storage_unset_state_changed_cb(id, storage_cb);
-    }
-  }
 }
 
 FilesystemManager& FilesystemManager::GetInstance() {
@@ -293,10 +265,10 @@ void FilesystemManager::StatPath(
 }
 
 void FilesystemManager::GetVirtualRoots(
-    const std::function<void(const std::vector<common::VirtualRoot>&)>& success_cb,
+    const std::function<void(const common::VirtualRoots&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
-  success_cb(common::VirtualFs::GetInstance().GetVirtualRoots());
+  success_cb(fs_provider_.GetVirtualPaths());
 }
 
 void FilesystemManager::CreateFile(
@@ -306,16 +278,18 @@ void FilesystemManager::CreateFile(
   LoggerD("enter");
   const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
   int status;
-  status =
-      TEMP_FAILURE_RETRY(open(path.c_str(), O_RDWR | O_CREAT, create_mode));
+  status = TEMP_FAILURE_RETRY(
+      open(path.c_str(), O_RDWR | O_CREAT, create_mode));
   if (-1 == status) {
-    LoggerE("Cannot create or open file %s: %s", path.c_str(), GetErrorString(errno).c_str());
+    LoggerE("Cannot create or open file %s: %s", path.c_str(),
+            GetErrorString(errno).c_str());
     error_cb(FilesystemError::Other);
     return;
   }
   status = close(status);
   if (0 != status) {
-    LoggerE("Cannot close file %s: %s", path.c_str(), GetErrorString(errno).c_str());
+    LoggerE("Cannot close file %s: %s", path.c_str(),
+            GetErrorString(errno).c_str());
     error_cb(FilesystemError::Other);
     return;
   }
@@ -336,8 +310,7 @@ void FilesystemManager::MakeDirectory(
 }
 
 void FilesystemManager::Rename(
-    const std::string& oldPath,
-    const std::string& newPath,
+    const std::string& oldPath, const std::string& newPath,
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
@@ -363,7 +336,7 @@ void FilesystemManager::ReadDir(
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("entered");
 
-  std::vector<std::string> fileList;
+  std::vector < std::string > fileList;
   DIR* dp = nullptr;
   struct dirent entry;
   struct dirent* result = nullptr;
@@ -371,12 +344,11 @@ void FilesystemManager::ReadDir(
 
   dp = opendir(path.c_str());
   if (dp != NULL) {
-    while ((status = readdir_r(dp, &entry, &result)) == 0 &&
-           result != nullptr) {
+    while ((status = readdir_r(dp, &entry, &result)) == 0 && result != nullptr) {
       if (strcmp(result->d_name, ".") != 0 && strcmp(result->d_name, "..") != 0)
         fileList.push_back(path + "/" + std::string(result->d_name));
     }
-    (void)closedir(dp);
+    (void) closedir(dp);
     if (status == 0) {
       success_cb(fileList);
     } else {
@@ -391,8 +363,7 @@ void FilesystemManager::ReadDir(
 }
 
 void FilesystemManager::UnlinkFile(
-    const std::string& path,
-    const std::function<void()>& success_cb,
+    const std::string& path, const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
   if (unlink(path.c_str()) != 0) {
@@ -404,12 +375,12 @@ void FilesystemManager::UnlinkFile(
 }
 
 void FilesystemManager::RemoveDirectory(
-    const std::string& path,
-    const std::function<void()>& success_cb,
+    const std::string& path, const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
   const int maxDirOpened = 64;
-  if (nftw(path.c_str(), unlink_with_base_dir_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
+  if (nftw(path.c_str(), unlink_with_base_dir_cb, maxDirOpened,
+           FTW_DEPTH | FTW_PHYS) != 0) {
     LoggerE("Error occured");
     error_cb(FilesystemError::Other);
   }
@@ -463,50 +434,36 @@ void FilesystemManager::FileWrite(
 }
 
 void FilesystemManager::StartListening() {
-  LoggerD("enter");
-  FillStorages();
+  LoggerD("Entered");
+  auto set = std::bind(&FilesystemManager::OnStorageDeviceChanged, this,
+                       std::placeholders::_1, std::placeholders::_2,
+                       std::placeholders::_3);
 
-  if (!is_listener_registered_ && !ids_.empty()) {
-    int result = STORAGE_ERROR_NONE;
-    std::set<int> registeredSuccessfully;
-    for (auto id : ids_) {
-      result = storage_set_state_changed_cb(id, storage_cb, (void*)listener_);
-      LoggerD("registered id %d", id);
-      if (result != STORAGE_ERROR_NONE) {
-        for (auto registeredId : registeredSuccessfully) {
-          storage_unset_state_changed_cb(registeredId, storage_cb);
-          LoggerD("unregistering id %d", registeredId);
-        }
-        listener_->onFilesystemStateChangeErrorCallback();
-        break;
-      } else {
-        registeredSuccessfully.insert(id);
-      }
-    }
-    if (ids_.size() == registeredSuccessfully.size())
-      is_listener_registered_ = true;
-  }
+  fs_provider_.RegisterDeviceChangeState(set);
 }
 
 void FilesystemManager::StopListening() {
-  LoggerD("enter");
-  if (is_listener_registered_) {
-    for (auto id : ids_) {
-      storage_unset_state_changed_cb(id, storage_cb);
-    }
+  LoggerD("Entered");
+
+  fs_provider_.UnregisterDeviceChangeState();
+}
+
+void FilesystemManager::OnStorageDeviceChanged(common::Storage const& _storage,
+                                               common::StorageState _old,
+                                               common::StorageState _new) {
+  LoggerD("Entered");
+  if (listener_) {
+    listener_->onFilesystemStateChangeSuccessCallback(_storage);
   }
-  is_listener_registered_ = false;
 }
 
 void FilesystemManager::CopyTo(
-    const std::string& originFilePath,
-    const std::string& destinationFilePath,
-    const bool overwrite,
-    const std::function<void()>& success_cb,
+    const std::string& originFilePath, const std::string& destinationFilePath,
+    const bool overwrite, const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
-  FilesystemError retval =
-      perform_deep_copy(originFilePath, destinationFilePath, overwrite);
+  FilesystemError retval = perform_deep_copy(originFilePath,
+                                             destinationFilePath, overwrite);
   if (FilesystemError::None == retval) {
     success_cb();
   } else {
@@ -514,7 +471,6 @@ void FilesystemManager::CopyTo(
     error_cb(retval);
   }
 }
-
 
 void FilesystemManager::AddListener(FilesystemStateChangeListener* listener) {
   LoggerD("enter");

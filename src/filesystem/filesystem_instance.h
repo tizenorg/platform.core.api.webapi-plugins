@@ -19,7 +19,8 @@
 
 #include "common/extension.h"
 #include "filesystem_utils.h"
-#include "filesystem_manager.h"
+#include "filesystem/filesystem_manager.h"
+#include "common/filesystem/filesystem_storage.h"
 
 namespace extension {
 namespace filesystem {
@@ -54,7 +55,7 @@ class FilesystemInstance : public common::ParsedInstance,
   void StopListening(const picojson::value& args, picojson::object& out);
   void CopyTo(const picojson::value& args, picojson::object& out);
   void onFilesystemStateChangeErrorCallback();
-  void onFilesystemStateChangeSuccessCallback(const common::VirtualStorage& storage);
+  void onFilesystemStateChangeSuccessCallback(const common::Storage& storage);
   void PrepareError(const FilesystemError& error, picojson::object& out);
 };
 
