@@ -33,6 +33,7 @@
 namespace common {
 
 struct DeviceListElem;
+struct UsbListElem;
 
 class FilesystemProviderDeviced : public IFilesystemProvider {
  public:
@@ -59,6 +60,7 @@ class FilesystemProviderDeviced : public IFilesystemProvider {
   static std::string GetNameFromPath(const char* const char_path);
   static int GetIdFromUUID(const char* const char_uuid);
   static std::shared_ptr<Storage> GetStorage(const DeviceListElem& elem);
+  static std::shared_ptr<Storage> GetStorageUsb(const UsbListElem& elem);
   static Storages GetStoragesFromGVariant(GVariant* variant);
   GDBusConnection* dbus_;
   GDBusProxy* proxy_;
