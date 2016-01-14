@@ -39,11 +39,11 @@ Storage::Storage(int id, StorageType type, StorageState state,
       case StorageType::kInternal:
         name_ = "internal";
         break;
-
-      case StorageType::kExternal:
+      case StorageType::kUsbDevice:
+      case StorageType::kUsbHost:
+      case StorageType::kMmc:
         name_ = "removable";
         break;
-
       default:
         name_ = "unknown";
         LoggerE("Unknown storage type: %d", type);
@@ -93,10 +93,10 @@ std::string VirtualRoot::ToString(StorageType type) {
   switch (type) {
     case StorageType::kInternal:
       return "INTERNAL";
-
-    case StorageType::kExternal:
+    case StorageType::kUsbDevice:
+    case StorageType::kUsbHost:
+    case StorageType::kMmc:
       return "EXTERNAL";
-
     default:
       LoggerE("Unknown storage type: %d", type);
       return "UNKNOWN";

@@ -36,13 +36,13 @@ const std::string kVirtualRootWgtPrivateTmp = "wgt-private-tmp";
 const std::string kVirtualRootMedia = "internal0";
 
 const std::map<storage_directory_e, const std::string*> kStorageDirectories = {
-    { STORAGE_DIRECTORY_CAMERA, &kVirtualRootCamera }, {
-        STORAGE_DIRECTORY_DOCUMENTS, &kVirtualRootDocuments }, {
-        STORAGE_DIRECTORY_DOWNLOADS, &kVirtualRootDownloads }, {
-        STORAGE_DIRECTORY_IMAGES, &kVirtualRootImages }, {
-        STORAGE_DIRECTORY_MUSIC, &kVirtualRootMusic }, {
-        STORAGE_DIRECTORY_SYSTEM_RINGTONES, &kVirtualRootRingtones }, {
-        STORAGE_DIRECTORY_VIDEOS, &kVirtualRootVideos } };
+    { STORAGE_DIRECTORY_CAMERA, &kVirtualRootCamera },
+    { STORAGE_DIRECTORY_DOCUMENTS, &kVirtualRootDocuments },
+    { STORAGE_DIRECTORY_DOWNLOADS, &kVirtualRootDownloads },
+    { STORAGE_DIRECTORY_IMAGES, &kVirtualRootImages },
+    { STORAGE_DIRECTORY_MUSIC, &kVirtualRootMusic },
+    { STORAGE_DIRECTORY_SYSTEM_RINGTONES, &kVirtualRootRingtones },
+    { STORAGE_DIRECTORY_VIDEOS, &kVirtualRootVideos } };
 
 const std::string kFileUriPrefix = "file://";
 
@@ -97,7 +97,7 @@ bool OnForeachStorage(int storage_id, storage_type_e type,
 
   StorageType type_ =
       type == STORAGE_TYPE_INTERNAL ?
-          StorageType::kInternal : StorageType::kExternal;
+          StorageType::kInternal : StorageType::kUnknown;
 
   provider->GetStorages().push_back(
       std::make_shared<Storage>(storage_id, type_, TranslateCoreStorageState(state), path));
