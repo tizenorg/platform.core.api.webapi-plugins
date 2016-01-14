@@ -743,8 +743,13 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
         static_cast<int>(args.get("maxNumberPerPage").get<double>());
   }
 
+  char* order = nullptr;
+  if (args.contains("order")) {
+    order = const_cast<char*>(args.get("order").get<std::string>().c_str());
+  }
+
   int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId,
-                                    [&columns, &where, page, maxNumberPerPage](
+                                    [&columns, &where, order, page, maxNumberPerPage](
                                         data_control_h& handle,
                                         int *requestId) -> int {
     LoggerD("Enter");
@@ -756,11 +761,11 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
     if (page > 0 && maxNumberPerPage > 0) {
       return ::data_control_sql_select_with_page(handle, cColumns,
                                                  columnCount, where.c_str(),
-                                                 "1 ASC", page,
+                                                 order, page,
                                                  maxNumberPerPage, requestId);
     } else {
       return ::data_control_sql_select(handle, cColumns, columnCount,
-                                       where.c_str(), "1 ASC", requestId);
+                                       where.c_str(), order, requestId);
     }
   });
 

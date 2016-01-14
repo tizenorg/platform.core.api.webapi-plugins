@@ -243,7 +243,8 @@ SQLDataControlConsumer.prototype.select = function(reqId, columns, where, succes
     {'name': 'successCallback', 'type': types_.FUNCTION},
     {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
     {'name': 'page', 'type': types_.LONG, optional: true},
-    {'name': 'maxNumberPerPage', 'type': types_.LONG, optional: true}
+    {'name': 'maxNumberPerPage', 'type': types_.LONG, optional: true},
+    {'name': 'order', 'type': types_.STRING, optional: true, nullable: true}
   ]);
 
   var nativeParam = {
@@ -259,6 +260,10 @@ SQLDataControlConsumer.prototype.select = function(reqId, columns, where, succes
   if (args['maxNumberPerPage']) {
     nativeParam['maxNumberPerPage'] = args.maxNumberPerPage;
   }
+  if (args['order']) {
+    nativeParam['order'] = args.order;
+  }
+
   try {
     var syncResult =
         callNativeWithCallback('SQLDataControlConsumer_select', nativeParam, function(result) {
