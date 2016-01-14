@@ -34,7 +34,8 @@
 namespace extension {
 namespace archive {
 
-using namespace common;
+using common::tools::ReportSuccess;
+using common::tools::ReportError;
 
 namespace {
 const std::string kPrivilegeFilesystemRead  = "http://tizen.org/privilege/systemsettings.admin";
@@ -60,7 +61,7 @@ ArchiveInstance::ArchiveInstance() {
     #define REGISTER_SYNC(c,x) \
         RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
     #define REGISTER_ASYNC(c,x) \
-        RegisterHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
+        RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
 
     REGISTER_ASYNC("ArchiveManager_open", Open);
     REGISTER_SYNC("ArchiveManager_abort", Abort);
@@ -91,13 +92,8 @@ void ArchiveInstance::PostError(const PlatformResult& e, double callback_id) {
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
-    obj[JSON_DATA] = picojson::value(picojson::object());
 
-    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-
-    args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(e.error_code()));
-    args[ERROR_CALLBACK_MESSAGE] = picojson::value(e.message());
+    ReportError(e, &obj);
 
     Instance::PostMessage(this, val.serialize().c_str());
 }
@@ -108,7 +104,7 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_file = data.at(PARAM_FILE);
     picojson::value v_mode = data.at(PARAM_MODE);
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
@@ -240,7 +236,7 @@ void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
     LoggerD("Entered");
     LoggerD("%s", args.serialize().c_str());
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
 
     const long op_id = static_cast<long>(v_op_id.get<double>());
@@ -271,7 +267,7 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_source = data.at(PARAM_SOURCE_FILE);
     picojson::value v_options = data.at(PARAM_OPTIONS);
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
@@ -360,7 +356,7 @@ void ArchiveInstance::ExtractAll(const picojson::value& args, picojson::object& 
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_dest_dir = data.at(PARAM_DESTINATION_DIR);
     picojson::value v_overwrite = data.at(PARAM_OVERWRITE);
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
@@ -424,7 +420,7 @@ void ArchiveInstance::GetEntries(const picojson::value& args, picojson::object& 
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
     picojson::value v_handle = data.at(ARCHIVE_FILE_HANDLE);
 
@@ -470,7 +466,7 @@ void ArchiveInstance::GetEntryByName(const picojson::value& args, picojson::obje
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
     picojson::value v_handle = data.at(ARCHIVE_FILE_HANDLE);
     picojson::value v_name = data.at(PARAM_NAME);
@@ -516,7 +512,7 @@ void ArchiveInstance::Close(const picojson::value& args, picojson::object& out)
     LoggerD("Entered");
     LoggerD("%s", args.serialize().c_str());
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_handle = data.at(ARCHIVE_FILE_HANDLE);
 
     const long handle = static_cast<long>(v_handle.get<double>());
@@ -541,7 +537,7 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
 
-    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::object data = args.get<picojson::object>();
     picojson::value v_dest_dir = data.at(PARAM_DESTINATION_DIR);
     picojson::value v_strip_name = data.at(PARAM_STRIP_NAME);
     picojson::value v_overwrite = data.at(PARAM_OVERWRITE);

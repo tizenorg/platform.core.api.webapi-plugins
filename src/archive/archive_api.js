@@ -16,7 +16,7 @@
  
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
-var bridge = xwalk.utils.NativeBridge(extension, true);
+var native_ = new xwalk.utils.NativeManager(extension);
 
 function CommonFS() {};
 
@@ -24,13 +24,17 @@ CommonFS.cacheVirtualToReal = {};
 
 function _initializeCache() {
     try {
-        var result = bridge.sync({
-            cmd: 'Archive_fetchVirtualRoots'
-        });
+        var result = native_.callSync('Archive_fetchVirtualRoots', {});
+
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+
+        result = native_.getResultObject(result);
         for (var i = 0; i < result.length; ++i) {
-          CommonFS.cacheVirtualToReal[result[i].name] = {
-            path: result[i].path
-          };
+            CommonFS.cacheVirtualToReal[result[i].name] = {
+                path: result[i].path
+            };
         }
     } catch(e) {
         console.log("Exception while getting widget paths was thrown: " + e);
@@ -143,6 +147,22 @@ var ArchiveCompressionLevel = {
     BEST: "BEST"
 };
 
+var onprogressCallbacks = {};
+var ARCHIVE_ONPROGRESS_CALLBACK = 'ArchiveOnprogressCallback';
+
+var ArchiveFileProgressCallback = function(msg) {
+    if (native_.isFailure(msg)) {
+        return;
+    }
+
+    var result = native_.getResultObject(msg);
+    if ('onprogress' === result.action && onprogressCallbacks.hasOwnProperty(result.opId)) {
+        onprogressCallbacks[result.opId](result.opId, result.value, result.filename);
+    }
+};
+
+native_.addListener(ARCHIVE_ONPROGRESS_CALLBACK, ArchiveFileProgressCallback);
+
 /**
  * The ArchiveFileEntry interface provides access to ArchiveFile member information and file data.
  * This constructor is for internal use only.
@@ -182,44 +202,38 @@ function ArchiveFileEntry(data, priv) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.destinationDirectory))
+        if (!CommonFS.isVirtualPath(args.destinationDirectory)) {
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "Destination directory should be virtual path or file.");
-        bridge.async({
-            cmd: 'ArchiveFileEntry_extract',
-            args: {
-                destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
-                stripName: args.stripName || null,
-                overwrite: args.overwrite || null,
-                opId: opId,
-                handle: getHandle(),
-                name: this.name
+        }
+
+        var callArgs = {
+            destinationDirectory : CommonFS.toRealPath(args.destinationDirectory),
+            stripName : args.stripName || null,
+            overwrite : args.overwrite || null,
+            opId : opId,
+            handle : getHandle(),
+            name : this.name
+        };
+
+        var callback = function(result) {
+            if (native_.isFailure(result)) {
+                native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            } else {
+                var ret = native_.getResultObject(result);
+                delete onprogressCallbacks[opId];
+                native_.callIfPossible(args.onsuccess);
             }
-        }).then({
-            success: function () {
-                if (args.onsuccess) {
-                    args.onsuccess.call(null);
-                }
-            },
-            error: function (e) {
-                if (args.onerror) {
-                    args.onerror.call(
-                        null,
-                        new WebAPIException(e)
-                    );
-                }
-            },
-            progress: function (data) {
-                if (args.onprogress) {
-                    args.onprogress.call(
-                        null,
-                        opId,
-                        data.value,
-                        data.filename
-                    );
-                }
-            }
-        });
+        };
+
+        if (args.onprogress) {
+            onprogressCallbacks[opId] = args.onprogress;
+        }
+
+        var result = native_.call('ArchiveFileEntry_extract', callArgs, callback);
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
 
         return opId;
     };
@@ -268,9 +282,10 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.sourceFile))
+        if (!CommonFS.isVirtualPath(args.sourceFile)) {
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "sourceFile should be virtual path or file.");
+        }
 
         var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
             options = args.options || {};
@@ -282,39 +297,31 @@ function ArchiveFile(data) {
         }
 
         checkMode(this.mode, ["w","rw", "a"]);
-        bridge.async({
-            cmd: 'ArchiveFile_add',
-            args: {
-                sourceFile: CommonFS.toRealPath(args.sourceFile),
-                options: options,
-                opId: opId,
-                handle: getHandle()
+
+        var callArgs = {
+            sourceFile : CommonFS.toRealPath(args.sourceFile),
+            options : options,
+            opId : opId,
+            handle : getHandle()
+        };
+
+        var callback = function(result) {
+            if (native_.isFailure(result)) {
+                native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            } else {
+                delete onprogressCallbacks[opId];
+                native_.callIfPossible(args.onsuccess);
             }
-        }).then({
-            success: function () {
-                if (args.onsuccess) {
-                    args.onsuccess.call(null);
-                }
-            },
-            error: function (e) {
-                if (args.onerror) {
-                    args.onerror.call(
-                        null,
-                        new WebAPIException(e)
-                    );
-                }
-            },
-            progress: function (data) {
-                if (args.onprogress) {
-                    args.onprogress.call(
-                        null,
-                        opId,
-                        data.value,
-                        data.filename
-                    );
-                }
-            }
-        });
+        };
+
+        if (args.onprogress) {
+            onprogressCallbacks[opId] = args.onprogress;
+        }
+
+        var result = native_.call('ArchiveFile_add', callArgs, callback);
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
 
         return opId;
     };
@@ -332,44 +339,37 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.destinationDirectory))
+        if (!CommonFS.isVirtualPath(args.destinationDirectory)) {
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "destinationDirectory should be virtual path or file.");
+        }
 
         checkMode(this.mode, ["r","rw"]);
-        bridge.async({
-            cmd: 'ArchiveFile_extractAll',
-            args: {
-                destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
-                overwrite: args.overwrite || null,
-                opId: opId,
-                handle: getHandle()
+
+        var callArgs = {
+            destinationDirectory : CommonFS.toRealPath(args.destinationDirectory),
+            overwrite : args.overwrite || null,
+            opId : opId,
+            handle : getHandle()
+        };
+
+        var callback = function(result) {
+            if (native_.isFailure(result)) {
+                native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            } else {
+                delete onprogressCallbacks[opId];
+                native_.callIfPossible(args.onsuccess);
             }
-        }).then({
-            success: function () {
-                if (args.onsuccess) {
-                    args.onsuccess.call(null);
-                }
-            },
-            error: function (e) {
-                if (args.onerror) {
-                    args.onerror.call(
-                        null,
-                        new WebAPIException(e)
-                    );
-                }
-            },
-            progress: function (data) {
-                if (args.onprogress) {
-                    args.onprogress.call(
-                        null,
-                        opId,
-                        data.value,
-                        data.filename
-                    );
-                }
-            }
-        });
+        };
+
+        if (args.onprogress) {
+            onprogressCallbacks[opId] = args.onprogress;
+        }
+
+        var result = native_.call('ArchiveFile_extractAll', callArgs, callback);
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
 
         return opId;
     };
@@ -385,29 +385,29 @@ function ArchiveFile(data) {
         opId = getNextOpId();
 
         checkMode(this.mode, ["r","rw"]);
-        bridge.async({
-            cmd: 'ArchiveFile_getEntries',
-            args: {
-                opId: opId,
-                handle: getHandle()
-            }
-        }).then({
-            success: function (data) {
+
+        var callArgs = {
+            opId : opId,
+            handle : getHandle()
+        };
+
+        var callback = function(result) {
+            if (native_.isFailure(result)) {
+                native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            } else {
                 var entries = [];
-                data.forEach(function (e) {
+                var ret = native_.getResultObject(result);
+                ret.forEach(function (e) {
                     entries.push(new ArchiveFileEntry(e, priv));
                 });
-                args.onsuccess.call(null, entries);
-            },
-            error: function (e) {
-                if (args.onerror) {
-                    args.onerror.call(
-                        null,
-                        new WebAPIException(e)
-                    );
-                }
-            }
-        });
+                args.onsuccess(entries);
+          }
+        };
+
+        var result = native_.call('ArchiveFile_getEntries', callArgs, callback);
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
 
         return opId;
     };
@@ -424,26 +424,25 @@ function ArchiveFile(data) {
         opId = getNextOpId();
 
         checkMode(this.mode, ["r","rw"]);
-        bridge.async({
-            cmd: 'ArchiveFile_getEntryByName',
-            args: {
-                name: args.name,
-                opId: opId,
-                handle: getHandle()
+
+        var callArgs = {
+            name : args.name,
+            opId : opId,
+            handle : getHandle()
+        };
+
+        var callback = function(result) {
+            if (native_.isFailure(result)) {
+                native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            } else {
+                args.onsuccess(new ArchiveFileEntry(native_.getResultObject(result), priv));
             }
-        }).then({
-            success: function (data) {
-                args.onsuccess.call(null, new ArchiveFileEntry(data, priv));
-            },
-            error: function (e) {
-                if (args.onerror) {
-                    args.onerror.call(
-                        null,
-                        new WebAPIException(e)
-                    );
-                }
-            }
-        });
+        };
+
+        var result = native_.call('ArchiveFile_getEntryByName', callArgs, callback);
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
 
         return opId;
     };
@@ -455,12 +454,11 @@ function ArchiveFile(data) {
         var handle = priv.handle;
         if(priv.handle) {
             delete priv.handle;
-            bridge.sync({
-                cmd: 'ArchiveFile_close',
-                args: {
-                    handle: handle
-                }
-            });
+            var result = native_.callSync('ArchiveFile_close', {'handle': handle});
+
+            if (native_.isFailure(result)) {
+                throw native_.getErrorObject(result);
+            }
         }
     };
 }
@@ -491,31 +489,31 @@ ArchiveManager.prototype.open = function () {
         }
     }
 
-    if (!CommonFS.isVirtualPath(args.file))
+    if (!CommonFS.isVirtualPath(args.file)) {
         throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                 "file should be virtual path or file.");
+    }
 
-    bridge.async({
-        cmd: 'ArchiveManager_open',
-        args: {
-            file: CommonFS.toRealPath(args.file),
-            mode: args.mode,
-            options: options,
-            opId: opId
+    var callArgs = {
+        file : CommonFS.toRealPath(args.file),
+        mode : args.mode,
+        options : options,
+        opId : opId,
+    };
+
+
+    var callback = function(result) {
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+        } else {
+            args.onsuccess(new ArchiveFile(native_.getResultObject(result)));
         }
-    }).then({
-        success: function (data) {
-            args.onsuccess.call(null, new ArchiveFile(data));
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new WebAPIException(e)
-                );
-            }
-        }
-    });
+    };
+
+    var result = native_.call('ArchiveManager_open', callArgs, callback);
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
 
     return opId;
 };
@@ -528,12 +526,11 @@ ArchiveManager.prototype.abort = function () {
         { name: "opId", type: types_.LONG }
     ]);
 
-    bridge.sync({
-        cmd: 'ArchiveManager_abort',
-        args: {
-            opId: args.opId
-        }
-    });
+    var result = native_.callSync('ArchiveManager_abort', {opId: args.opId});
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
 };
 
 //Exports

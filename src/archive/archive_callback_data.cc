@@ -17,6 +17,7 @@
 #include "archive_callback_data.h"
 
 #include "common/logger.h"
+#include "common/tools.h"
 
 #include "archive_file.h"
 #include "archive_utils.h"
@@ -29,7 +30,7 @@
 namespace extension {
 namespace archive {
 
-using namespace common;
+using common::tools::ReportSuccess;
 
 //----------------------------------------------------------------------------------------
 //OperationCallbackData
@@ -406,8 +407,7 @@ gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
     obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
 
     if (!callback->isError()) {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
+        ReportSuccess(obj);
         LoggerD("%s", val.serialize().c_str());
 
         Instance::PostMessage(&callback->instance_, val.serialize().c_str());
@@ -430,17 +430,16 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    obj[JSON_DATA] = picojson::value(picojson::object());
-    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_PROGRESS);
-    obj[JSON_CALLBACK_KEEP] = picojson::value(true);
+    obj[JSON_LISTENER_ID] = picojson::value(JSON_ONPROGRESS_CALLBACK);
 
-    args[PARAM_OPERATION_ID] = picojson::value(static_cast<double>(operationId));
-    args[PARAM_VALUE] = picojson::value(value);
-    args[PARAM_FILENAME] = picojson::value(filename);
+    picojson::object result;
+    result[JSON_ACTION] = picojson::value(JSON_CALLBACK_PROGRESS);
+    result[PARAM_OPERATION_ID] = picojson::value(static_cast<double>(operationId));
+    result[PARAM_VALUE] = picojson::value(value);
+    result[PARAM_FILENAME] = picojson::value(filename);
 
+    ReportSuccess(picojson::value(result), obj);
     LoggerD("%s", val.serialize().c_str());
 
     Instance::PostMessage(&instance_, val.serialize().c_str());

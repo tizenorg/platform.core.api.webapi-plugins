@@ -74,7 +74,8 @@ std::string External::cutVirtualRoot(const std::string& path)
 {
     LoggerD("Enter path %s", path.c_str());
     std::string tmp_path = path.substr(kVirtualRootsDirectory.length());
-    return tmp_path.substr(tmp_path.find(kSlash));
+    return tmp_path.find(kSlash) == std::string::npos ?
+        tmp_path : tmp_path.substr(tmp_path.find(kSlash));
 }
 
 } // filesystem
