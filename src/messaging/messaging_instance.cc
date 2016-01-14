@@ -120,8 +120,8 @@ auto getServiceIdFromJSON = [](picojson::object& data) -> int {
     }
 };
 
-const std::string kPrivilegeMessagingRead  = "http://tizen.org/privilege/messaging.read";
-const std::string kPrivilegeMessagingWrite = "http://tizen.org/privilege/messaging.write";
+const std::string kPrivilegeMessagingRead  = "http://tizen.org/privilege/message.read";
+const std::string kPrivilegeMessagingWrite = "http://tizen.org/privilege/message.write";
 
 const long kDumbCallbackId= -1;
 }

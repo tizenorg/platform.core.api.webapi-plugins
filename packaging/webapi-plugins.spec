@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.33
+Version:    0.34
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -290,7 +290,6 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
-BuildRequires: pkgconfig(libtzplatform-config)
 
 %if %{with wayland}
 %define display_type wayland

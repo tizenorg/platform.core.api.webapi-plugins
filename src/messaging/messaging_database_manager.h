@@ -32,7 +32,7 @@ namespace extension {
 namespace messaging {
 
 // =================================================================
-#define MSG_DB_NAME                     ".msg_service.db"
+#define MSG_DB_NAME                     "/usr/dbspace/.msg_service.db"
 #define MSG_MESSAGE_TABLE_NAME          "MSG_MESSAGE_TABLE"
 #define MSG_FOLDER_TABLE_NAME           "MSG_FOLDER_TABLE"
 #define MSG_ADDRESS_TABLE_NAME          "MSG_ADDRESS_TABLE"

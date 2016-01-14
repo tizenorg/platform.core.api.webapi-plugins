@@ -30,14 +30,11 @@
 
 #define ARCHIVE_FUNCTION_API_ARCHIVE_FILE_ENTRY_EXTRACT         "extract"
 
-#define JSON_CMD                                                "cmd"
 #define JSON_ACTION                                             "action"
-#define JSON_CALLBACK_ID                                        "cid"
-#define JSON_CALLBACK_SUCCCESS                                  "success"
-#define JSON_CALLBACK_ERROR                                     "error"
-#define JSON_CALLBACK_PROGRESS                                  "progress"
-#define JSON_CALLBACK_KEEP                                      "keep"
-#define JSON_DATA                                               "args"
+#define JSON_CALLBACK_ID                                        "callbackId"
+#define JSON_LISTENER_ID                                        "listenerId"
+#define JSON_CALLBACK_PROGRESS                                  "onprogress"
+#define JSON_ONPROGRESS_CALLBACK                                "ArchiveOnprogressCallback"
 
 #define PARAM_FILE                                              "file"
 #define PARAM_MODE                                              "mode"
@@ -59,8 +56,5 @@
 #define ARCHIVE_FILE_ENTRY_ATTR_SIZE                            "size"
 #define ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE                 "compressedSize"
 #define ARCHIVE_FILE_ENTRY_ATTR_MODIFIED                        "modified"
-
-#define ERROR_CALLBACK_CODE                                     "code"
-#define ERROR_CALLBACK_MESSAGE                                  "message"
 
 #endif // _ARCHIVE_PLUGIN_DEFS_H_
