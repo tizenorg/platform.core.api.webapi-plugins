@@ -49,10 +49,10 @@ GDBusPowerWrapper::GDBusPowerWrapper(const std::string &bus_name,
                                      const std::string &object_path,
                                      GBusType bus_type,
                                      GDBusProxyFlags bus_proxy_flags)
-    : bus_name_(bus_name),
-      object_path_(object_path),
-      bus_type_(bus_type),
+    : bus_type_(bus_type),
       bus_proxy_flags_(bus_proxy_flags),
+      bus_name_(bus_name),
+      object_path_(object_path),
       proxy_(nullptr),
       err_(new GDBusWrapperError()) {}
 

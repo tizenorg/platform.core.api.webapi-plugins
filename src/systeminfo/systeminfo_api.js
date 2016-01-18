@@ -38,6 +38,7 @@ var SystemInfoPropertyId = {
         WIFI_NETWORK : 'WIFI_NETWORK',
         ETHERNET_NETWORK : 'ETHERNET_NETWORK',
         CELLULAR_NETWORK : 'CELLULAR_NETWORK',
+        NET_PROXY_NETWORK : 'NET_PROXY_NETWORK',
         SIM : 'SIM',
         PERIPHERAL : 'PERIPHERAL',
         MEMORY : 'MEMORY',
@@ -592,6 +593,13 @@ function SystemInfoCellularNetwork(data) {
     });
 }
 
+//class SystemInfoNetProxyNetwork ////////////////////////////////////////////////////
+function SystemInfoNetProxyNetwork(data) {
+    Object.defineProperties(this, {
+        status : {value: data.status, writable: false, enumerable: true},
+    });
+}
+
 //class SystemInfoSIM ////////////////////////////////////////////////////
 function SystemInfoSIM(data) {
     Object.defineProperties(this, {
@@ -834,6 +842,7 @@ var _networkStr = SystemInfoPropertyId.NETWORK;
 var _wifiNetworkStr = SystemInfoPropertyId.WIFI_NETWORK;
 var _ethernetNetworkStr = SystemInfoPropertyId.ETHERNET_NETWORK;
 var _cellularNetworkStr = SystemInfoPropertyId.CELLULAR_NETWORK;
+var _netProxyNetworkStr = SystemInfoPropertyId.NET_PROXY_NETWORK;
 var _simStr = SystemInfoPropertyId.SIM;
 var _peripheralStr = SystemInfoPropertyId.PERIPHERAL;
 var _memoryStr = SystemInfoPropertyId.MEMORY;
@@ -1015,6 +1024,21 @@ function _systeminfoCellularNetworkListenerCallback(eventObj) {
     }
 }
 
+function _systeminfoNetProxyNetworkListenerCallback(eventObj) {
+    var property = _netProxyNetworkStr;
+    var callbacks = _propertyContainer[property].callbacks;
+
+    for (var watchId in callbacks) {
+        if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
+            callbacks[watchId].callback(propObj);
+        }
+    }
+}
+
 function _systeminfoSimListenerCallback(eventObj) {
     var property = _simStr;
     var callbacks = _propertyContainer[property].callbacks;
@@ -1137,11 +1161,17 @@ var _propertyContainer = {
             signalLabel : 'SystemInfoEthernetNetworkChangeBroadcast'
         },
         'CELLULAR_NETWORK' : {
-            callbacks : {},
-            constructor : SystemInfoCellularNetwork,
-            broadcastFunction : _systeminfoCellularNetworkListenerCallback,
-            signalLabel : 'SystemInfoCellularNetworkChangeBroadcast'
-        },
+          callbacks : {},
+          constructor : SystemInfoCellularNetwork,
+          broadcastFunction : _systeminfoCellularNetworkListenerCallback,
+          signalLabel : 'SystemInfoCellularNetworkChangeBroadcast'
+      },
+        'NET_PROXY_NETWORK' : {
+          callbacks : {},
+          constructor : SystemInfoNetProxyNetwork,
+          broadcastFunction : _systeminfoNetProxyNetworkListenerCallback,
+          signalLabel : 'SystemInfoNetProxyNetworkChangeBroadcast'
+      },
         'SIM' : {
             callbacks : {},
             constructor : SystemInfoSIM,
