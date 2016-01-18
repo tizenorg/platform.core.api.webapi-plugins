@@ -92,7 +92,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_telephony_support               0
 %else
-%define tizen_feature_telephony_support               0
+%define tizen_feature_telephony_support               1
 %endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
