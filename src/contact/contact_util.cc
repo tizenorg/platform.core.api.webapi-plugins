@@ -1635,6 +1635,227 @@ PlatformResult ExportContactRelationshipToContactsRecord(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ImportContactExtensionFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index,
+    JsonObject* out_ptr) {
+  LoggerD("Enter");
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
+  if (!contacts_record) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+  }
+
+  contacts_record_h child_record = nullptr;
+  int err = contacts_record_get_child_record_at_p(
+      contacts_record, _contacts_contact.extension, index, &child_record);
+  if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  int data1 = 0;
+  PlatformResult status = ContactUtil::GetIntFromRecord(child_record,
+                                                        _contacts_extension.data1, &data1);
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+  out_ptr->insert(std::make_pair(std::string("data1"),
+             picojson::value(data1 ? JsonValue{static_cast<double>(data1)} : JsonValue{})));
+
+  auto insert_data = [&](unsigned int id, const std::string& label) {
+    char* data = nullptr;
+    status = ContactUtil::GetStrFromRecord(child_record, id, &data);
+    if (status && data) {
+      out_ptr->insert(std::make_pair(std::string(label),
+                              picojson::value(JsonString{data})));
+    }
+  };
+
+  insert_data(_contacts_extension.data2, "data2");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data3, "data3");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data4, "data4");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data5, "data5");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data6, "data6");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data7, "data7");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data8, "data8");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data9, "data9");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data10, "data10");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data11, "data11");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  insert_data(_contacts_extension.data12, "data12");
+  if (!status) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ExportContactExtensionToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject& in) {
+  LoggerD("Enter");
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
+
+  if (!contacts_record) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+  }
+
+  contacts_record_h child_record = nullptr;
+  int err = contacts_record_create(_contacts_extension._uri, &child_record);
+  PlatformResult status =
+      ContactUtil::ErrorChecker(err, "Fail to create child_record in database");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  ContactsRecordHPtr record(&child_record, ContactsDeleter);
+
+  status = ContactUtil::SetIntInRecord(
+      child_record, _contacts_extension.data1, static_cast<int>(FromJson<double>(in, "data1")));
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  auto set_data = [&](int id, const char* label) {
+    if (!IsNull(in, label)) {
+      status = ContactUtil::SetStrInRecord(
+          child_record, id,
+          FromJson<JsonString>(in, label).c_str());
+    }
+  };
+
+  set_data(_contacts_extension.data2, "data2");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data3, "data3");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data4, "data4");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data5, "data5");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data6, "data6");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data7, "data7");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data8, "data8");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data9, "data9");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data10, "data10");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data11, "data11");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  set_data(_contacts_extension.data12, "data12");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  err = contacts_record_add_child_record(
+      contacts_record, _contacts_contact.extension, child_record);
+  status = ContactUtil::ErrorChecker(
+      err, "Fail to set number value to child_record");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  record.release();
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult ImportContactInstantMessengerFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
     JsonObject* out_ptr) {
@@ -2242,6 +2463,8 @@ PlatformResult ImportContactFromContactsRecord(
           ImportContactInstantMessengerFromContactsRecord},
       {"relationships", _contacts_contact.relationship,
           ImportContactRelationshipFromContactsRecord},
+      {"extensions", _contacts_contact.extension,
+          ImportContactExtensionFromContactsRecord}
   };
 
   for (auto& data : imports) {
@@ -2415,6 +2638,8 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
           ExportContactInstantMessengerToContactsRecord},
       {_contacts_contact.relationship, "relationships",
           ExportContactRelationshipToContactsRecord},
+      {_contacts_contact.extension, "extensions",
+          ExportContactExtensionToContactsRecord},
   };
 
   for (auto& data : exports) {

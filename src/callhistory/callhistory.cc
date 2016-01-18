@@ -365,7 +365,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
       if (CONTACTS_ERROR_NONE != ret) {
         LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                    "Remove record failed."),
-                    &response->get<picojson::object>()
+                    &response->get<picojson::object>(),
                     ("Failed to delete log [%d] with code %d", uid, ret));
         return;
       }

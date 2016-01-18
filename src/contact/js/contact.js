@@ -53,6 +53,7 @@ var Contact = function(data) {
   var _emails = [];
   var _messengers = [];
   var _relationships = [];
+  var _extensions = [];
   var _birthday = null;
   var _anniversaries = [];
   var _organizations = [];
@@ -207,6 +208,15 @@ var Contact = function(data) {
       },
       set: function(v) {
         _relationships = _sanitizeArray(v, ContactRelationship, _relationships);
+      },
+      enumerable: true
+    },
+    extensions: {
+      get: function() {
+        return _extensions;
+      },
+      set: function(v) {
+        _extensions = _sanitizeArray(v, ContactExtension, _extensions);
       },
       enumerable: true
     },
@@ -479,6 +489,41 @@ var _contactRelationshipsToString = function(obj) {
   return str;
 };
 
+// Convert extension to string
+// Format:
+// X-EXTENSION:<data1>;<data2>;...;<data12>
+var _contactExtensionsToString = function(obj) {
+  var str = '';
+  var label = null;
+
+  if (obj.extensions === null || !type_.isArray(obj.extensions)) {
+    return '';
+  }
+  for (var i = 0; i < obj.extensions.length; i++) {
+    if (!obj.extensions[i] instanceof ContactExtension) {
+      return '';
+    }
+    str += 'X-EXTENSION:';
+
+    if (obj.extensions[i].data1 === null) {
+      str += '0';
+    } else {
+      str += String(obj.extensions[i].data1);
+    }
+
+    for (var j = 2; j <= 12; j++) {
+      str += ';';
+      label = 'data' + j;
+      if (obj.extensions[i][label] && obj.extensions[i][label].length > 0) {
+        str += obj.extensions[i][label];
+      }
+    }
+
+    str += '\n';
+  }
+  return str;
+};
+
 // Convert messengers to string
 var _contactInstantMessengeToString = function(obj) {
   if (obj.messengers.length === 0 || !obj.messengers[0] instanceof ContactInstantMessenger) {
@@ -554,6 +599,9 @@ Contact.prototype.convertToString = function(format) {
   // set relationship
   str += _contactRelationshipsToString(this);
 
+  // set extension
+  str += _contactExtensionsToString(this);
+
   // set emails
   str += _contactEmailToString(this);
 
@@ -579,9 +627,11 @@ Contact.prototype.convertToString = function(format) {
   str += _contactInstantMessengeToString(this);
 
   // set last revision
-  str += 'REV:' + this.lastUpdated.getYear() + '-' + this.lastUpdated.getMonth() +
-  '-' + this.lastUpdated.getDay() + 'T' + this.lastUpdated.getHours() + ':' +
-  this.lastUpdated.getMinutes() + ':' + this.lastUpdated.getSeconds() + 'Z\n';
+  if (this.lastUpdated) {
+    str += 'REV:' + this.lastUpdated.getYear() + '-' + this.lastUpdated.getMonth() +
+    '-' + this.lastUpdated.getDay() + 'T' + this.lastUpdated.getHours() + ':' +
+    this.lastUpdated.getMinutes() + ':' + this.lastUpdated.getSeconds() + 'Z\n';
+  }
 
   str += 'END:VCARD\n';
 
