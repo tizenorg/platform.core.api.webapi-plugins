@@ -28,6 +28,7 @@
 #include <contacts_db_extension.h>
 #include "contact/contact_instance.h"
 #include "contact/person.h"
+#include "contact/contact_search_engine.h"
 
 namespace extension {
 namespace contact {
@@ -180,27 +181,21 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
   PlatformResult status =
       ContactUtil::ImportPersonFromContactsRecord(contacts_record, out);
 
-  if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
-    LoggerE("failed to destroy contacts_record_h");
+  if (status.IsError()) {
+    if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
+      LoggerE("failed to destroy contacts_record_h");
+    }
+    return status;
   }
-
-  if (status.IsError()) return status;
 
   //get information from view _contacts_person_usage
-  error_code = contacts_db_get_record(_contacts_person_usage._uri, person_id,
-                                          &contacts_record);
-  if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Person with id: %d, not found, error: %d", person_id, error_code);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
-  }
-
-  status = ContactUtil::ImportPersonFromContactsUsageRecord(contacts_record, out);
-
+  status = ContactSearchEngine::GetPersonUsage(person_id, out);
   if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
     LoggerE("failed to destroy contacts_record_h");
   }
-
-  if (status.IsError()) return status;
+  if (!status) {
+    return status;
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 }
