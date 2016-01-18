@@ -83,7 +83,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_se_support                      0
 %else
-%define tizen_feature_se_support                      0
+%define tizen_feature_se_support                      1
 %endif
 %define tizen_feature_sensor_support                  1
 %define tizen_feature_sound_support                   1
