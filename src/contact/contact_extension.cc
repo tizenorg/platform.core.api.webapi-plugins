@@ -32,7 +32,8 @@ ContactExtension::ContactExtension() {
       "tizen.ContactPhoneNumber",      "tizen.ContactEmailAddress",
       "tizen.ContactGroup",            "tizen.ContactRelationship",
       "tizen.ContactInstantMessenger", "tizen.Contact",
-      "tizen.AddressBook",             NULL};
+      "tizen.AddressBook",             "tizen.ContactExtension",
+      NULL};
   SetExtraJSEntryPoints(entry_points);
 }
 

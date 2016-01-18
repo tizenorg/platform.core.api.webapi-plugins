@@ -119,6 +119,10 @@ common::PlatformResult ImportContactRelationshipFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
 common::PlatformResult ExportContactRelationshipToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactExtensionFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonObject *out);
+common::PlatformResult ExportContactExtensionToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
 common::PlatformResult ImportContactInstantMessengerFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
 common::PlatformResult ExportContactInstantMessengerToContactsRecord(
