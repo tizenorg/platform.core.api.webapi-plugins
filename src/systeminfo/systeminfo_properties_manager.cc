@@ -1176,6 +1176,7 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
   out->insert(std::make_pair("isRemovable", picojson::value(isRemovable)));
 }
 
+#ifdef TIZEN_TV
 static std::string FromStorageTypeToStringType(common::StorageType type) {
   switch(type) {
     case common::StorageType::kUsbDevice:
@@ -1188,10 +1189,10 @@ static std::string FromStorageTypeToStringType(common::StorageType type) {
       return kTypeUnknown;
   }
 }
+#endif
 
 PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out) {
   LoggerD("Entered");
-  int sdcardState = 0;
   struct statfs fs;
 
   picojson::value result = picojson::value(picojson::array());
@@ -1226,6 +1227,7 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
     }
   }
 #else
+  int sdcardState = 0;
   if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
       if (statfs(kStorageSdcardPath.c_str(), &fs) < 0) {

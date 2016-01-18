@@ -174,7 +174,6 @@ int main(int argc, char* argv[]) {
           !fname.compare(fname.size() - postfix_.size(), postfix_.size(),
                         postfix_)) {
         std::string so_path = tec_path + "/" + fname;
-        char* error;
         void *handle = dlopen(so_path.c_str(), RTLD_LAZY);
         if (handle == NULL) {
           std::cerr << "cannot open " << so_path << std::endl;
