@@ -784,28 +784,38 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
             //-------------------------------------------------------------------------
             // set file path, file name, file size
             if (attach.at(i)->isFilePathSet()) {
+                // get the file path
                 std::string filepath = attach.at(i)->getFilePath();
-                LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
+                SLoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
                 filepath = common::FilesystemProvider::Create().GetRealPath(filepath);
-                LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
+                SLoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
 
+                // check if file exists
+                struct stat st = {0};
+                if (stat(const_cast<char*>(filepath.c_str()), &st)) {
+                    LoggerE("Stat error: %d (%s)", errno, strerror(errno));
+                    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                    "Attachment file not found",
+                                    ("att[%d]: attachment file not found", i));
+                }
+                // set the attachment size
+                const int fsize = st.st_size;
+                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_FILESIZE_INT, fsize);
+                LoggerD("att[%d]: filesize: %d", i, fsize);
+
+                // set the attachment file path
                 msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,
                         const_cast<char*>(filepath.c_str()), filepath.size());
+
+                // get the file name, update the attachment structure
                 const size_t last_slash_idx = filepath.find_last_of("\\/");
                 if (std::string::npos != last_slash_idx) {
                     filepath.erase(0, last_slash_idx + 1);
                 }
 
-                LoggerD("att[%d] filename: %s", i, filepath.c_str());
+                SLoggerD("att[%d] filename: %s", i, filepath.c_str());
                 msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILENAME_STR,
                         const_cast<char*>(filepath.c_str()), filepath.size());
-                struct stat st;
-                if (stat(const_cast<char*>(filepath.c_str()), &st)) {
-                    LoggerE("Stat error");
-                }
-                const int fsize = st.st_size;
-                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_FILESIZE_INT, fsize);
-                LoggerD("att[%d]: filesize: %d", i,fsize);
             }
 
             //-------------------------------------------------------------------------
@@ -824,7 +834,7 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
         } else {
             return LogAndCreateResult(
                       ErrorCode::UNKNOWN_ERR, "failed to add attachment",
-                      ("att[%d]: failed to add attachment"));
+                      ("att[%d]: failed to add attachment", i));
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
