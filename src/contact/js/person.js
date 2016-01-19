@@ -24,6 +24,7 @@ var Person = function(data) {
   var _hasEmail = false;
   var _isFavorite = false;
   var _displayContactId = '';
+  var _timesUsed = 0;
 
   if (data.hasOwnProperty('id') && type_.isString(data.id)) {
     _id = data.id;
@@ -45,6 +46,9 @@ var Person = function(data) {
   }
   if (data.hasOwnProperty('isFavorite') && type_.isBoolean(data.isFavorite)) {
     _isFavorite = data.isFavorite;
+  }
+  if (data.hasOwnProperty('timesUsed') && type_.isNumber(data.timesUsed)) {
+    _timesUsed = data.timesUsed;
   }
 
   Object.defineProperties(this, {
@@ -129,6 +133,17 @@ var Person = function(data) {
       },
       set: function(v) {
         _displayContactId = converter_.toString(v, false);
+      },
+      enumerable: true
+    },
+    timesUsed: {
+      get: function() {
+        return _timesUsed;
+      },
+      set: function(v) {
+        if (_editGuard.isEditEnabled()) {
+          _timesUsed = converter_.toLong(v, false);
+        }
       },
       enumerable: true
     }

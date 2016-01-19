@@ -177,13 +177,30 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
                               ("Person with id: %d, not found, error: %d", person_id, error_code));
   }
 
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
-      &contacts_record, ContactUtil::ContactsDeleter);
-
   PlatformResult status =
       ContactUtil::ImportPersonFromContactsRecord(contacts_record, out);
+
+  if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
+    LoggerE("failed to destroy contacts_record_h");
+  }
+
   if (status.IsError()) return status;
 
+  //get information from view _contacts_person_usage
+  error_code = contacts_db_get_record(_contacts_person_usage._uri, person_id,
+                                          &contacts_record);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LoggerE("Person with id: %d, not found, error: %d", person_id, error_code);
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
+  }
+
+  status = ContactUtil::ImportPersonFromContactsUsageRecord(contacts_record, out);
+
+  if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
+    LoggerE("failed to destroy contacts_record_h");
+  }
+
+  if (status.IsError()) return status;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 }
@@ -419,14 +436,46 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
   if (status.IsError()) return status;
 
   contacts_query_h contacts_query = nullptr;
-  int error_code =
-      contacts_query_create(_contacts_person._uri, &contacts_query);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
-  if (status.IsError()) return status;
-
   ContactUtil::ContactsQueryHPtr contacts_query_ptr(
       &contacts_query, ContactUtil::ContactsQueryDeleter);
+
+  int error_code = CONTACTS_ERROR_NONE;
+
+  const auto sort_mode_it = args.find("sortMode");
+  if (args.end() != sort_mode_it && !IsNull(args, "sortMode")) {
+    if (!sort_mode_it->second.is<picojson::object>()) {
+      LoggerD("Failed to set sort mode.");
+      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
+    }
+    const auto sort_mode = sort_mode_it->second;
+    std::string attribute = sort_mode.get("attributeName").to_str();
+
+    Person::PersonProperty property;
+    status = Person::PersonPropertyFromString(attribute, &property);
+    if (status.IsError()) return status;
+
+    //As neither _contacts_person_usage nor _contacts_person cover all filter attributes
+    //which result can be sorted it has to be checked which view can be used here.
+    if ("timesUsed" == attribute) {
+      error_code = contacts_query_create(_contacts_person_usage._uri, &contacts_query);
+    } else {
+      error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
+    }
+
+    status = ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
+    if (status.IsError()) return status;
+
+    bool is_asc = sort_mode.get("order").to_str() == "ASC";
+    error_code = contacts_query_set_sort(contacts_query, property.propertyId, is_asc);
+    status = ContactUtil::ErrorChecker(error_code,
+                                       "Failed contacts_query_set_sort");
+    if (status.IsError()) return status;
+  } else {
+    error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
+
+    status = ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
+    if (status.IsError()) return status;
+  }
 
   // Add filter to query
   std::vector<std::vector<ContactUtil::ContactsFilterPtr>> intermediate_filters(
@@ -442,8 +491,13 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       if (status.IsError()) return status;
 
       contacts_filter_h contacts_filter = nullptr;
-      int error_code =
-          contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      int error_code = CONTACTS_ERROR_NONE;
+
+      if ("timesUsed" != name) {
+        error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      } else {
+        error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
+      }
       status = ContactUtil::ErrorChecker(error_code,
                                          "Failed contacts_query_set_filter");
       if (status.IsError()) return status;
@@ -532,8 +586,13 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       if (status.IsError()) return status;
 
       contacts_filter_h contacts_filter = nullptr;
-      int error_code =
-          contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      int error_code = CONTACTS_ERROR_NONE;
+
+      if ("timesUsed" != name) {
+        error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      } else {
+        error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
+      }
       status = ContactUtil::ErrorChecker(error_code,
                                          "Failed contacts_query_set_filter");
       if (status.IsError()) return status;
@@ -595,8 +654,11 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          error_code =
-              contacts_filter_create(_contacts_person._uri, &sub_filter);
+          if ("timesUsed" != name) {
+            error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
+          } else {
+            error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
+          }
           status = ContactUtil::ErrorChecker(error_code,
                                              "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
@@ -669,8 +731,11 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          error_code =
-              contacts_filter_create(_contacts_person._uri, &sub_filter);
+          if ("timesUsed" != name) {
+            error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
+          } else {
+            error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
+          }
           status = ContactUtil::ErrorChecker(error_code,
                                              "Failed contacts_filter_add_bool");
           if (status.IsError()) return status;
@@ -794,25 +859,6 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
                                            intermediate_filters[0][0].get());
     status = ContactUtil::ErrorChecker(error_code,
                                        "Failed contacts_query_set_filter");
-    if (status.IsError()) return status;
-  }
-
-  const auto sort_mode_it = args.find("sortMode");
-  if (args.end() != sort_mode_it) {
-    if (!sort_mode_it->second.is<picojson::object>()) {
-      return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
-    }
-    const auto sort_mode = sort_mode_it->second;
-    std::string attribute = sort_mode.get("attributeName").to_str();
-
-    Person::PersonProperty property;
-    status = Person::PersonPropertyFromString(attribute, &property);
-    if (status.IsError()) return status;
-
-    bool is_asc = sort_mode.get("order").to_str() == "ASC";
-    error_code = contacts_query_set_sort(contacts_query, property.propertyId, is_asc);
-    status = ContactUtil::ErrorChecker(error_code,
-                                       "Failed contacts_query_set_sort");
     if (status.IsError()) return status;
   }
 
