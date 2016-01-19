@@ -633,6 +633,81 @@ PlatformResult ContactSearchEngine::GetContacts(Iterator begin, Iterator end,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ContactSearchEngine::GetPersonUsage(int person_id, JsonObject* out_ptr) {
+  LoggerD("Entered");
+
+  contacts_query_h query = nullptr;
+  contacts_filter_h filter = nullptr;
+  contacts_list_h list = nullptr;
+  PlatformResult status(ErrorCode::NO_ERROR);
+
+  int error_code = contacts_query_create(_contacts_person_usage._uri, &query);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
+  if (!status) {
+    return status;
+  }
+  ContactUtil::ContactsQueryHPtr query_ptr(&query, ContactUtil::ContactsQueryDeleter);
+
+  error_code = contacts_filter_create(_contacts_person_usage._uri, &filter);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
+  if (!status) {
+    return status;
+  }
+  ContactUtil::ContactsFilterPtr filter_ptr(filter, ContactUtil::ContactsFilterDeleter);
+
+  error_code = contacts_filter_add_int(filter,
+                                       _contacts_person_usage.person_id,
+                                       CONTACTS_MATCH_EQUAL,
+                                       person_id);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+  if (!status) {
+    return status;
+  }
+
+  error_code = contacts_query_set_filter(query, filter);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+  if (!status) {
+    return status;
+  }
+
+  error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_records_with_query");
+  if (!status) {
+    return status;
+  }
+  ContactUtil::ContactsListHPtr list_ptr(&list, ContactUtil::ContactsListDeleter);
+
+  int record_count = 0;
+  error_code = contacts_list_get_count(list, &record_count);
+  status = ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_count");
+  if (!status) {
+    return status;
+  }
+
+  if (record_count == 1) {
+    contacts_record_h record = nullptr;
+
+    contacts_list_first(list);
+    error_code = contacts_list_get_current_record_p(list, &record);
+    status = ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_current_record_p");
+    if (!status) {
+      return status;
+    }
+
+    int times_used = 0;
+    error_code = contacts_record_get_int(record, _contacts_person_usage.times_used, &times_used);
+    status = ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
+    if (!status) {
+      return status;
+    }
+    out_ptr->insert(std::make_pair("usageCount", JsonValue(static_cast<double>(times_used))));
+  } else {
+    out_ptr->insert(std::make_pair("usageCount", JsonValue(static_cast<double>(0))));
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 common::PlatformResult ContactSearchEngine::GetQueryResults(
     contacts_query_h query, contacts_filter_h filter, unsigned int property_id,
     LongSetPtr result) {

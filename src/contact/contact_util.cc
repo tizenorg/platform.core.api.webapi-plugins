@@ -3027,6 +3027,31 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ImportPersonFromContactsUsageRecord(contacts_record_h record,
+                                                   JsonObject* out_ptr) {
+  if (nullptr == record) {
+    LoggerW("Platform person record did not set");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Platform person record did not set");
+  }
+
+  JsonObject& arguments_obj = *out_ptr;
+
+  int int_value = 0;
+  // usageCount
+  PlatformResult status = ContactUtil::GetIntFromRecord(
+      record, _contacts_person_usage.times_used, &int_value);
+
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  arguments_obj.insert(
+      std::make_pair("usageCount", JsonValue(static_cast<double>(int_value))));
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 /**
  * @brief   Updates contacts_record_h with values from Person object
  * @param[out]   contacts_record_h  Record which is updated

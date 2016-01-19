@@ -27,6 +27,7 @@
 #include "common/filter-utils.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "contact/contact_util.h"
 
 namespace extension {
 namespace contact {
@@ -40,6 +41,8 @@ class ContactSearchEngine {
   common::PlatformResult SetSortMode(const picojson::value& sort_mode);
 
   common::PlatformResult Find(picojson::array* out);
+
+  static common::PlatformResult GetPersonUsage(int person_id, JsonObject* out_ptr);
 
  private:
   typedef std::vector<long> LongVector;
@@ -85,7 +88,6 @@ class ContactSearchEngine {
   template<typename Iterator>
   common::PlatformResult GetContacts(Iterator begin, Iterator end,
                                      picojson::array* out);
-
   common::PlatformResult QueryAttributeBool(
       const FilterPropertyStruct& attribute_properties, LongSetPtr result,
       bool match_value);
