@@ -700,9 +700,9 @@ PlatformResult ContactSearchEngine::GetPersonUsage(int person_id, JsonObject* ou
     if (!status) {
       return status;
     }
-    out_ptr->insert(std::make_pair("timesUsed", JsonValue(static_cast<double>(times_used))));
+    out_ptr->insert(std::make_pair("usageCount", JsonValue(static_cast<double>(times_used))));
   } else {
-    out_ptr->insert(std::make_pair("timesUsed", JsonValue(static_cast<double>(0))));
+    out_ptr->insert(std::make_pair("usageCount", JsonValue(static_cast<double>(0))));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -3037,7 +3037,7 @@ PlatformResult ImportPersonFromContactsUsageRecord(contacts_record_h record,
   JsonObject& arguments_obj = *out_ptr;
 
   int int_value = 0;
-  // timesUsed
+  // usageCount
   PlatformResult status = ContactUtil::GetIntFromRecord(
       record, _contacts_person_usage.times_used, &int_value);
 
@@ -3047,7 +3047,7 @@ PlatformResult ImportPersonFromContactsUsageRecord(contacts_record_h record,
   }
 
   arguments_obj.insert(
-      std::make_pair("timesUsed", JsonValue(static_cast<double>(int_value))));
+      std::make_pair("usageCount", JsonValue(static_cast<double>(int_value))));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

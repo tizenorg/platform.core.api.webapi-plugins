@@ -451,7 +451,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
     //As neither _contacts_person_usage nor _contacts_person cover all filter attributes
     //which result can be sorted it has to be checked which view can be used here.
-    if ("timesUsed" == attribute) {
+    if ("usageCount" == attribute) {
       error_code = contacts_query_create(_contacts_person_usage._uri, &contacts_query);
     } else {
       error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
@@ -488,7 +488,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       contacts_filter_h contacts_filter = nullptr;
       int error_code = CONTACTS_ERROR_NONE;
 
-      if ("timesUsed" != name) {
+      if ("usageCount" != name) {
         error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
       } else {
         error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
@@ -583,7 +583,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       contacts_filter_h contacts_filter = nullptr;
       int error_code = CONTACTS_ERROR_NONE;
 
-      if ("timesUsed" != name) {
+      if ("usageCount" != name) {
         error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
       } else {
         error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
@@ -649,7 +649,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          if ("timesUsed" != name) {
+          if ("usageCount" != name) {
             error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
           } else {
             error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
@@ -726,7 +726,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          if ("timesUsed" != name) {
+          if ("usageCount" != name) {
             error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
           } else {
             error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
