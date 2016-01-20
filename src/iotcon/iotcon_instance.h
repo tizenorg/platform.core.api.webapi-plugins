@@ -27,6 +27,69 @@ class IotconInstance : public common::ParsedInstance {
  public:
   IotconInstance();
   virtual ~IotconInstance();
+ private:
+  static void ConnectionChangedCallback(bool is_connected, void* user_data);
+
+  void IotconResourceGetObserverIds(const picojson::value& args,
+                                    picojson::object& out);
+  void IotconResourceNotify(const picojson::value& args,
+                            picojson::object& out);
+  void IotconResourceAddResourceTypes(const picojson::value& args,
+                                      picojson::object& out);
+  void IotconResourceAddResourceInterfaces(const picojson::value& args,
+                                           picojson::object& out);
+  void IotconResourceAddChildResource(const picojson::value& args,
+                                      picojson::object& out);
+  void IotconResourceRemoveChildResource(const picojson::value& args,
+                                         picojson::object& out);
+  void IotconResourceSetRequestListener(const picojson::value& args,
+                                        picojson::object& out);
+  void IotconRemoteResourceUnsetRequestListener(const picojson::value& args,
+                                                picojson::object& out);
+  void IotconResponseSend(const picojson::value& args,
+                          picojson::object& out);
+  void IotconRemoteResourceGetCachedRepresentation(const picojson::value& args,
+                                                   picojson::object& out);
+  void IotconRemoteResourceMethodGet(const picojson::value& args,
+                                     picojson::object& out);
+  void IotconRemoteResourceMethodPut(const picojson::value& args,
+                                     picojson::object& out);
+  void IotconRemoteResourceMethodPost(const picojson::value& args,
+                                      picojson::object& out);
+  void IotconRemoteResourceMethodDelete(const picojson::value& args,
+                                        picojson::object& out);
+  void IotconRemoteResourceSetStateChangeListener(const picojson::value& args,
+                                                  picojson::object& out);
+  void IotconRemoteResourceUnsetStateChangeListener(const picojson::value& args,
+                                                    picojson::object& out);
+  void IotconRemoteResourceStartCaching(const picojson::value& args,
+                                        picojson::object& out);
+  void IotconRemoteResourceStopCaching(const picojson::value& args,
+                                       picojson::object& out);
+  void IotconRemoteResourceSetConnectionChangeListener(const picojson::value& args,
+                                                       picojson::object& out);
+  void IotconRemoteResourceUnsetConnectionChangeListener(const picojson::value& args,
+                                                         picojson::object& out);
+  void IotconClientFindResource(const picojson::value& args,
+                                picojson::object& out);
+  void IotconClientAddPresenceEventListener(const picojson::value& args,
+                                            picojson::object& out);
+  void IotconClientRemovePresenceEventListener(const picojson::value& args,
+                                               picojson::object& out);
+  void IotconClientGetDeviceInfo(const picojson::value& args,
+                                 picojson::object& out);
+  void IotconClientGetPlatformInfo(const picojson::value& args,
+                                   picojson::object& out);
+  void IotconServerCreateResource(const picojson::value& args,
+                                  picojson::object& out);
+  void IotconServerRemoveResource(const picojson::value& args,
+                                  picojson::object& out);
+  void IotconServerUpdateResource(const picojson::value& args,
+                                  picojson::object& out);
+  void IotconGetTimeout(const picojson::value& args,
+                        picojson::object& out);
+  void IotconSetTimeout(const picojson::value& args,
+                        picojson::object& out);
 };
 
 }  // namespace iotcon
