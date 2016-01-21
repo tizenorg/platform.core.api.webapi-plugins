@@ -703,6 +703,17 @@ var ContactExtension = function(data) {
   validator_.isConstructorCall(this, ContactExtension);
 
   var _data1 = 0;
+  var _data2 = null;
+  var _data3 = null;
+  var _data4 = null;
+  var _data5 = null;
+  var _data6 = null;
+  var _data7 = null;
+  var _data8 = null;
+  var _data9 = null;
+  var _data10 = null;
+  var _data11 = null;
+  var _data12 = null;
 
   Object.defineProperties(this, {
     data1: {
@@ -715,58 +726,102 @@ var ContactExtension = function(data) {
       enumerable: true
     },
     data2: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data2;
+      },
+      set: function (v) {
+        _data2 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data3: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data3;
+      },
+      set: function (v) {
+        _data3 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data4: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data4;
+      },
+      set: function (v) {
+        _data4 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data5: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data5;
+      },
+      set: function (v) {
+        _data5 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data6: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data6;
+      },
+      set: function (v) {
+        _data6 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data7: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data7;
+      },
+      set: function (v) {
+        _data7 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data8: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data8;
+      },
+      set: function (v) {
+        _data8 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data9: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data9;
+      },
+      set: function (v) {
+        _data9 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data10: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data10;
+      },
+      set: function (v) {
+        _data10 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data11: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data11;
+      },
+      set: function (v) {
+        _data11 = converter_.toString(v, true);
+      },
       enumerable: true
     },
     data12: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _data12;
+      },
+      set: function (v) {
+        _data12 = converter_.toString(v, true);
+      },
       enumerable: true
     }
   });
