@@ -104,11 +104,47 @@ static void BundleJsonIterator(const char *key, const int type, const bundle_key
       break;
     }
 
-    case BUNDLE_TYPE_BYTE:
-    case BUNDLE_TYPE_BYTE_ARRAY:
+    case BUNDLE_TYPE_BYTE: {
+      picojson::value::array tab;
+
+      unsigned char *basic_val = nullptr;
+      size_t basic_size = 0;
+
+      bundle_keyval_get_basic_val(const_cast<bundle_keyval_t*>(kv),
+          (void **)&basic_val, &basic_size);
+
+      for (unsigned int i = 0; i < basic_size; i++) {
+        tab.push_back(picojson::value(static_cast<double> (basic_val[i])));
+      }
+
+      o["key"] = picojson::value(key);
+      o["value"] = picojson::value(picojson::value(tab));
+      break;
+    }
+    case BUNDLE_TYPE_BYTE_ARRAY: {
+      picojson::value::array tab;
+
+      unsigned char **array_value=nullptr;
+      size_t *array_ele_size=nullptr;
+      unsigned int ele_nos=0;
+
+      bundle_keyval_get_array_val(const_cast<bundle_keyval_t*>(kv),
+          (void ***)&array_value, &ele_nos, &array_ele_size);
+
+      for (int i=0;i<ele_nos;i++)
+      {
+        picojson::value::array tab2;
+        for (unsigned int j = 0; j < array_ele_size[i]; j++) {
+          tab2.push_back(picojson::value(static_cast<double> (array_value[i][j])));
+        }
+        tab.push_back(picojson::value(tab2));
+      }
+
+      o["key"] = picojson::value(key);
+      o["value"] = picojson::value(picojson::value(tab));
+      break;
+    }
     default:
-      // For now sending only string data is supported by messageport
-      // We ignore rest of them and we send an empty value instead
       o["key"] = picojson::value(key);
       o["value"] = picojson::value();
       break;
@@ -359,16 +395,15 @@ void MessageportInstance::RemoteMessagePortSendmessage
   int result;
 
   bundle* bundle = bundle_create();
-
   for (picojson::value::array::iterator it = data.begin();
        it != data.end(); ++it) {
-    if ((*it).get("value").is<std::string>()) {
+    const std::string& valueType = (*it).get("valueType").get<std::string>();
+    if ("stringValueType" == valueType) {
       LoggerD("value is string");
       bundle_add(bundle, (*it).get("key").to_str().c_str(),
         (*it).get("value").to_str().c_str());
-    }
-    else if ((*it).get("value").is<picojson::array>()) {
-      LoggerD("value is array");
+    } else if ("stringArrayValueType" == valueType) {
+      LoggerD("value is string array");
       std::vector<picojson::value> value_array = (*it).get("value").get<picojson::array>();
       const size_t size = value_array.size();
       const char** arr = new const char*[size];
@@ -380,10 +415,38 @@ void MessageportInstance::RemoteMessagePortSendmessage
 
       bundle_add_str_array(bundle, (*it).get("key").to_str().c_str(), arr, size);
       delete[] arr;
-    } else {
-      LogAndReportError(
-          TypeMismatchException("Type mismatch Error"), out,
-          ("data value should be string or string array"));
+    } else if ("byteStreamValueType" == valueType) {
+      LoggerD("value is byte stream");
+      std::vector<picojson::value> value_array = (*it).get("value").get<picojson::array>();
+      const size_t size = value_array.size();
+      unsigned char* arr = new unsigned char[size];
+      size_t i = 0;
+
+      for (auto iter = value_array.begin(); iter != value_array.end(); ++iter, ++i) {
+        arr[i] = static_cast<unsigned char>((*iter).get<double>());
+      }
+      bundle_add_byte(bundle, (*it).get("key").to_str().c_str(), arr, size);
+      delete[] arr;
+    } else if ("byteStreamArrayValueType" == valueType) {
+      LoggerD("value is byte stream array");
+      std::vector<picojson::value> byteStreamArray = (*it).get("value").get<picojson::array>();
+      const size_t size = byteStreamArray.size();
+      bundle_add_byte_array(bundle, (*it).get("key").to_str().c_str(), nullptr, size);
+      size_t i = 0;
+
+      for (auto iter = byteStreamArray.begin(); iter != byteStreamArray.end(); ++iter, ++i) {
+        std::vector<picojson::value> byteStream = (*iter).get<picojson::array>();
+        const size_t streamSize = byteStream.size();
+        unsigned char* arr = new unsigned char[streamSize];
+        size_t j = 0;
+
+        for (auto byteIter = byteStream.begin(); byteIter != byteStream.end(); ++byteIter, ++j) {
+          arr[j] = static_cast<unsigned char>((*byteIter).get<double>());
+        }
+
+        bundle_set_byte_array_element(bundle, (*it).get("key").to_str().c_str(), i, arr, streamSize);
+        delete[] arr;
+      }
     }
   }
 

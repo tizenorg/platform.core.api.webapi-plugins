@@ -16,7 +16,7 @@
  
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
-
+var type_ = xwalk.utils.type;
 
 var callbackId = 0;
 var callbacks = {};
@@ -276,6 +276,15 @@ function RemoteMessagePort(messagePortName, appId, isTrusted) {
   });
 }
 
+function _isOctet(valArray) {
+  for(var i=0;i<valArray.length; i++) {
+    if (valArray[i]<0 || valArray[i]>255) {
+      return false;
+    }
+  }
+  return true;
+}
+
 RemoteMessagePort.prototype.sendMessage = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'data', 'type': types_.ARRAY},
@@ -300,7 +309,35 @@ RemoteMessagePort.prototype.sendMessage = function() {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'Property \'key\' should not be duplicated.');
     }
-    filtered_data[i] = { key: key, value: args.data[i].value };
+    var value = args.data[i].value;
+    if (type_.isString(value)) {
+      filtered_data[i] = { key: key, value: value, valueType: 'stringValueType'};
+    } else if(type_.isArray(value)) {
+      var arrayMember = value[0];
+      if(type_.isString(arrayMember)) {
+        for(var j=1;j<value.length;j++) {
+          if (!(type_.isString(value[j]))) {
+            throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                'Invalid array value');
+          }
+        }
+        filtered_data[i] = { key: key, value: value, valueType: 'stringArrayValueType'};
+      } else if(!type_.isArray(arrayMember)) {
+        if (!_isOctet(value)) {
+          throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+              'Data is not octet array');
+        }
+        filtered_data[i] = { key: key, value: value, valueType: 'byteStreamValueType'};
+      } else {
+        for(var j=0;j<value.length;j++) {
+          if (!_isOctet(value[j])) {
+            throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                'Data is not octet array');
+          }
+        }
+        filtered_data[i] = { key: key, value: value, valueType: 'byteStreamArrayValueType'};
+      }
+    }
     unique_data_key[key] = true;
   }
 
