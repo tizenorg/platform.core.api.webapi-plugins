@@ -668,12 +668,12 @@ PlatformResult CallHistory::setMissedDirection(int uid)
                           ("Failed to get log type [%d]", ret));
   }
 
-  if (CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN == log_type) {
+  if (CONTACTS_PLOG_TYPE_VOICE_INCOMING_UNSEEN == log_type) {
     ret = contacts_record_set_int(
-        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN);
-  } else if (CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN == log_type) {
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VOICE_INCOMING_SEEN);
+  } else if (CONTACTS_PLOG_TYPE_VIDEO_INCOMING_UNSEEN == log_type) {
     ret = contacts_record_set_int(
-        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN);
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VIDEO_INCOMING_SEEN);
   } else {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
