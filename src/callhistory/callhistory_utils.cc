@@ -125,7 +125,7 @@ void CallHistoryUtils::parseLogType(contacts_phone_log_type_e log_type, picojson
   picojson::array& features = val.get<picojson::array>();
 
   switch(log_type) {
-    case CONTACTS_PLOG_TYPE_VOICE_INCOMMING:
+    case CONTACTS_PLOG_TYPE_VOICE_INCOMING:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_RECEIVED);
       features.push_back(picojson::value(STR_CALL_VOICE));
@@ -135,12 +135,12 @@ void CallHistoryUtils::parseLogType(contacts_phone_log_type_e log_type, picojson
       obj[STR_DIRECTION] = picojson::value(STR_DIALED);
       features.push_back(picojson::value(STR_CALL_VOICE));
       break;
-    case CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN:
+    case CONTACTS_PLOG_TYPE_VOICE_INCOMING_SEEN:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_MISSED);
       features.push_back(picojson::value(STR_CALL_VOICE));
       break;
-    case CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN:
+    case CONTACTS_PLOG_TYPE_VOICE_INCOMING_UNSEEN:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_MISSED_NEW);
       features.push_back(picojson::value(STR_CALL_VOICE));
@@ -155,7 +155,7 @@ void CallHistoryUtils::parseLogType(contacts_phone_log_type_e log_type, picojson
       obj[STR_DIRECTION] = picojson::value(STR_BLOCKED);
       features.push_back(picojson::value(STR_CALL_VOICE));
       break;
-    case CONTACTS_PLOG_TYPE_VIDEO_INCOMMING:
+    case CONTACTS_PLOG_TYPE_VIDEO_INCOMING:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_RECEIVED);
       features.push_back(picojson::value(STR_CALL_VIDEO));
@@ -165,12 +165,12 @@ void CallHistoryUtils::parseLogType(contacts_phone_log_type_e log_type, picojson
       obj[STR_DIRECTION] = picojson::value(STR_DIALED);
       features.push_back(picojson::value(STR_CALL_VIDEO));
       break;
-    case CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN:
+    case CONTACTS_PLOG_TYPE_VIDEO_INCOMING_SEEN:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_MISSED);
       features.push_back(picojson::value(STR_CALL_VIDEO));
       break;
-    case CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN:
+    case CONTACTS_PLOG_TYPE_VIDEO_INCOMING_UNSEEN:
       obj[STR_CALL_TYPE] = picojson::value(STR_CALLTYPE_TEL);
       obj[STR_DIRECTION] = picojson::value(STR_MISSED_NEW);
       features.push_back(picojson::value(STR_CALL_VIDEO));
@@ -357,10 +357,10 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
   if (STR_DIRECTION == attr_name) {
     if (STR_RECEIVED == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING);
       contacts_filter_add_filter(filter_top, sub_filter);
     }
     else if (STR_DIALED == match_value_str) {
@@ -373,18 +373,18 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
     }
     else if (STR_MISSED == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING_SEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING_SEEN);
       contacts_filter_add_filter(filter_top, sub_filter);
     }
     else if (STR_MISSED_NEW == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING_UNSEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING_UNSEEN);
       contacts_filter_add_filter(filter_top, sub_filter);
     }
     else if (STR_REJECTED == match_value_str) {
@@ -412,7 +412,7 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
     if (STR_CALL == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL,
-                              CONTACTS_PLOG_TYPE_VOICE_INCOMMING);
+                              CONTACTS_PLOG_TYPE_VOICE_INCOMING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_AND);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_LESS_THAN_OR_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_BLOCKED);
@@ -420,16 +420,16 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
     }
     else if (STR_CALL_VOICE == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_OUTGOING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING_UNSEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_INCOMING_SEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VOICE_REJECT);
@@ -440,16 +440,16 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
     }
     else if (STR_CALL_VIDEO == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_OUTGOING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING_UNSEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
-                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN);
+                              CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_INCOMING_SEEN);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_OR);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_REJECT);
@@ -488,7 +488,7 @@ static void visitAttribute(std::stack<contacts_filter_h>& stack, const picojson:
     if (STR_CALLTYPE_TEL == match_value_str) {
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL,
-                              CONTACTS_PLOG_TYPE_VOICE_INCOMMING);
+                              CONTACTS_PLOG_TYPE_VOICE_INCOMING);
       contacts_filter_add_operator(sub_filter, CONTACTS_FILTER_OPERATOR_AND);
       contacts_filter_add_int(sub_filter, _contacts_phone_log.log_type,
                               CONTACTS_MATCH_LESS_THAN_OR_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_BLOCKED);
