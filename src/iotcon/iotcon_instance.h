@@ -19,6 +19,7 @@
 
 #include "common/picojson.h"
 #include "common/extension.h"
+#include "iotcon/iotcon_server_manager.h"
 
 namespace extension {
 namespace iotcon {
@@ -90,6 +91,8 @@ class IotconInstance : public common::ParsedInstance {
                         picojson::object& out);
   void IotconSetTimeout(const picojson::value& args,
                         picojson::object& out);
+
+  IotconServerManager manager_;
 };
 
 }  // namespace iotcon

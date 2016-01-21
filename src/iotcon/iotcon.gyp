@@ -14,7 +14,11 @@
         'iotcon_extension.cc',
         'iotcon_extension.h',
         'iotcon_instance.cc',
-        'iotcon_instance.h'
+        'iotcon_instance.h',
+        'iotcon_server_manager.cc',
+        'iotcon_server_manager.h',
+        'iotcon_utils.cc',
+        'iotcon_utils.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',
