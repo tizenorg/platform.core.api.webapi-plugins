@@ -210,9 +210,9 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
               ErrorCode::TYPE_MISMATCH_ERR, "Invalid days of the week value."), &out);
           return;
         }
-        ret = alarm_schedule_with_recurrence_week_flag(
-            app_control, &start_date, repeat_value, &alarm_id);
       }
+      ret = alarm_schedule_with_recurrence_week_flag(
+                app_control, &start_date, repeat_value, &alarm_id);
     } else {
       ret = alarm_schedule_at_date(app_control, &start_date, 0, &alarm_id);
     }
