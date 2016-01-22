@@ -34,7 +34,7 @@ static const PersonPropertyMap personPropertyMap = {
     {"photoURI", {_contacts_person.image_thumbnail_path, kPrimitiveTypeString}},
     {"ringtoneURI", {_contacts_person.ringtone_path, kPrimitiveTypeString}},
     {"displayContactId", {_contacts_person.display_contact_id, kPrimitiveTypeId}},
-    {"usageCount", {_contacts_person_usage.times_used, kPrimitiveTypeId}},
+    {"usageCount", {_contacts_person_usage.times_used, kPrimitiveTypeLong}},
 };
 
 PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
