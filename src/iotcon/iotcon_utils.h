@@ -18,6 +18,10 @@
 #define WEBAPI_PLUGINS_IOTCON_IOTCON_UTILS_H__
 
 #include <string>
+#include <memory>
+#include <vector>
+#include <map>
+#include <stdlib.h>
 
 #include <iotcon.h>
 
@@ -26,10 +30,45 @@
 
 namespace extension {
 namespace iotcon {
+extern const std::string kCallbackId;
+extern const std::string kIsDiscoverable;
+extern const std::string kIsObservable;
+extern const std::string kResourceTypes;
+extern const std::string kResourceInterfaces;
+extern const std::string kResourceChildren;
+extern const std::string kUriPath;
+extern const std::string kResourceId;
+
+struct ResourceInfo {
+  long long id;
+  std::vector<long long> children_ids;
+  iotcon_resource_h handle;
+  ResourceInfo() :
+    id(0), handle(nullptr) {}
+  ~ResourceInfo() {
+    iotcon_resource_destroy (handle);
+  }
+};
+
+typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
+typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
+
+class IotconServerManager;
 
 class IotconUtils {
  public:
-  static common::PlatformResult ResourceToJson(iotcon_resource_h handle, picojson::value* res);
+  static common::PlatformResult StringToInterface(const std::string& interface, iotcon_interface_e* res);
+  static common::PlatformResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
+  static picojson::array InterfacesToArray(int interfaces);
+  static common::PlatformResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
+  static common::PlatformResult ExtractFromResource(const ResourceInfoPtr& pointer,
+                                                    char** uri_path,
+                                                    iotcon_resource_types_h* res_types,
+                                                    int* ifaces,
+                                                    int* properties);
+  static common::PlatformResult ResourceToJson(ResourceInfoPtr pointer,
+                                               const IotconServerManager& manager,
+                                               picojson::object* res);
 };
 
 } // namespace iotcon

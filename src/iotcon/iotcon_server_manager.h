@@ -22,30 +22,13 @@
 #include <string>
 #include <iotcon.h>
 
+#include "iotcon/iotcon_utils.h"
+
 #include "common/picojson.h"
 #include "common/platform_result.h"
 
 namespace extension {
 namespace iotcon {
-
-struct ResourceInfo {
-  const char *uri_path;
-  iotcon_resource_types_h res_types;
-  int ifaces;
-  int properties;
-  iotcon_resource_h handle;
-  ResourceInfo() :
-    uri_path(nullptr), res_types(nullptr), ifaces(0),
-    properties(0), handle(nullptr) {}
-  ~ResourceInfo() {
-    delete uri_path;
-    iotcon_resource_types_destroy(res_types);
-    iotcon_resource_destroy (handle);
-  }
-};
-
-typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
-typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
 
 class IotconInstance;
 
@@ -54,15 +37,19 @@ class IotconServerManager {
   IotconServerManager(IotconInstance* instance);
   ~IotconServerManager();
 
+  static void RequestHandler(iotcon_resource_h resource,
+                             iotcon_request_h request, void *user_data);
   common::PlatformResult RestoreHandles();
-
-  common::PlatformResult CreateResource(/*std::string uri_path, bool is_discoverable,
-                                        bool is_observable, picojson::array array,
-                                        iotcon_resource_h* res_handle*/);
-
+  common::PlatformResult CreateResource(const std::string& uri_path,
+                                        const picojson::array& interfaces_array,
+                                        const picojson::array& types_array, bool is_discoverable,
+                                        bool is_observable,
+                                        ResourceInfoPtr res_pointer);
+  common::PlatformResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
  private:
   IotconInstance* instance_;
   ResourceInfoMap resource_map_;
+  long long global_id_;
 };
 } // namespace iotcon
 } // namespace extension

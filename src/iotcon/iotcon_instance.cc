@@ -34,12 +34,6 @@ namespace extension {
 namespace iotcon {
 
 namespace {
-const std::string kCallbackId = "callbackId";
-const std::string kIsDiscoverable = "isDiscoverable";
-const std::string kIsObservable = "isObservable";
-const std::string kResourceTypes = "resourceTypes";
-const std::string kUriPath = "uriPath";
-
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
     std::string message = std::string(name) + " is required argument";\
@@ -127,31 +121,40 @@ IotconInstance::IotconInstance() : manager_(this) {
   if (IOTCON_ERROR_NONE != ret) {
     LoggerE("Could not connnect to iotcon service: %s", get_error_message(ret));
   } else {
-    ret = iotcon_add_connection_changed_cb(ConnectionChangedCallback, nullptr);
+    LoggerD("Iotcon service connected");
+    ret = iotcon_add_connection_changed_cb(ConnectionChangedCallback, this);
     if (IOTCON_ERROR_NONE != ret) {
       LoggerE("Could not add connection changed callback for iotcon service: %s",
               get_error_message(ret));
+    } else {
+      LoggerD("Iotcon connection changed callback is registered");
     }
   }
 }
 
 void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_data) {
   LoggerD("Enter");
-
-  // try to recover connection to iotcon service
   if (!is_connected) {
-    int ret = iotcon_connect();
-    if (IOTCON_ERROR_NONE != ret) {
-      LoggerE("Could not connnect to iotcon service: %s", get_error_message(ret));
+    LoggerD("Connection lost, need to wait for connection recovery");
+  } else {
+    IotconInstance* instance = static_cast<IotconInstance*>(user_data);
+    if (!instance) {
+      LoggerE("instance is NULL");
+      return;
     }
-    // TODO consider re-adding connection changed listener with iotcon_add_connection_changed_cb()
+
+    LoggerD("Connection recovered, restoring handles");
+    PlatformResult ret = instance->manager_.RestoreHandles();
+    if (ret.IsError()) {
+      LoggerD("Connection recovered, but restoring handles failed");
+    }
   }
 }
 
 IotconInstance::~IotconInstance() {
   LoggerD("Enter");
 
-  iotcon_remove_connection_changed_cb(ConnectionChangedCallback, nullptr);
+  iotcon_remove_connection_changed_cb(ConnectionChangedCallback, this);
   iotcon_disconnect();
 }
 
@@ -309,27 +312,37 @@ void IotconInstance::IotconServerCreateResource(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Enter");
   LoggerD("args: %s", args.serialize().c_str());
-  //args: {"callbackId":2,"isDiscoverable":true,
-  //"isObservable":true,"resourceTypes":["t1","t2"],"uriPath":"uriPath"}
-
   CHECK_EXIST(args, kCallbackId, out)
   CHECK_EXIST(args, kIsDiscoverable, out)
   CHECK_EXIST(args, kIsObservable, out)
   CHECK_EXIST(args, kResourceTypes, out)
+  CHECK_EXIST(args, kResourceInterfaces, out)
   CHECK_EXIST(args, kUriPath, out)
 
   const double callback_id = args.get(kCallbackId).get<double>();
+  // TODO consider support other properties
   const bool is_discoverable = args.get(kIsDiscoverable).get<bool>();
   const bool is_observable = args.get(kIsObservable).get<bool>();
-  const auto& resource_type = args.get(kResourceTypes).get<picojson::array>();
+  const auto& resource_types = args.get(kResourceTypes).get<picojson::array>();
+  const auto& resource_interfaces = args.get(kResourceInterfaces).get<picojson::array>();
   const std::string& uri_path = args.get(kUriPath).get<std::string>();
 
-  auto create = [this, callback_id, is_discoverable, is_observable, resource_type, uri_path]
+  auto create = [this, callback_id, is_discoverable, is_observable,
+                 resource_types, uri_path, resource_interfaces]
                  (const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Create resource");
+
     picojson::value result = picojson::value(picojson::object());
-    // TODO implement CreateResource
-    PlatformResult ret = manager_.CreateResource();
+    ResourceInfoPtr resource{new ResourceInfo()};
+    PlatformResult ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
+                                                 is_discoverable, is_observable, resource);
+    if (ret.IsError()) {
+      LogAndReportError(ret,&(response->get<picojson::object>()));
+      return;
+    }
+    LoggerD("RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
+
+    ret = IotconUtils::ResourceToJson(resource, manager_, &(result.get<picojson::object>()));
     if (ret.IsError()) {
       LogAndReportError(ret,&(response->get<picojson::object>()));
       return;
@@ -353,25 +366,21 @@ void IotconInstance::IotconServerCreateResource(const picojson::value& args,
 void IotconInstance::IotconServerRemoveResource(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Enter");
-
 }
 
 void IotconInstance::IotconServerUpdateResource(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Enter");
-
 }
 
 void IotconInstance::IotconGetTimeout(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("Enter");
-
 }
 
 void IotconInstance::IotconSetTimeout(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("Enter");
-
 }
 
 }  // namespace iotcon
