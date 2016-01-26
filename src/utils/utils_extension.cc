@@ -17,7 +17,7 @@ common::Extension* CreateExtension() {
 
 UtilsExtension::UtilsExtension() {
   LoggerD("Entered");
-  SetExtensionName("xwalk.utils");
+  SetExtensionName("xwalk");
   SetJavaScriptAPI(kSource_utils_api);
 }
 
