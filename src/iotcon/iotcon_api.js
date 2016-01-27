@@ -277,8 +277,109 @@ Client.prototype.getPlatformInfo = function() {
   }
 };
 
+function Resource() {
+}
+
 function Server() {
 }
+
+Server.prototype.createResource = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'dictionary',
+    type: types.DICTIONARY
+  }, {
+    name: 'successCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = args.dictionary;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      // TODO: implement
+      args.successCallback();
+    }
+  };
+
+  var result = native.call('IotconServer_createResource', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Server.prototype.removeResource = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'resource',
+    type: types.PLATFORM_OBJECT,
+    values: Resource
+  }, {
+    name: 'successCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = args.resource._id;  // TODO: check if this is correct
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      args.successCallback();
+    }
+  };
+
+  var result = native.call('IotconServer_removeResource', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Server.prototype.updateResource = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'resource',
+    type: types.PLATFORM_OBJECT,
+    values: Resource
+  }, {
+    name: 'successCallback',
+    type: types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = args.resource._id;  // TODO: check if this is correct
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      args.successCallback(args.resource);
+    }
+  };
+
+  var result = native.call('IotconServer_updateResource', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
 
 var client = new Client();
 var server = new Server();
