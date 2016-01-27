@@ -127,7 +127,8 @@ var ResponseResult = {
   ERROR: 'ERROR',
   RESOURCE_CREATED: 'RESOURCE_CREATED',
   RESOURCE_DELETED: 'RESOURCE_DELETED',
-  SLOW: 'SLOW'
+  SLOW: 'SLOW',
+  FORBIDDEN: 'FORBIDDEN',
 };
 
 var PresenceResponseResultType = {
@@ -503,6 +504,28 @@ Response.prototype.send = function() {
     throw native.getErrorObject(result);
   }
 };
+
+function RemoteResponse(request) {
+  validator.isConstructorCall(this, tizen.RemoteResponse);
+
+  Object.defineProperties(this, {
+    result: {
+      value: null,
+      writable: false,
+      enumerable: true
+    },
+    representation: {
+      value: null,
+      writable: false,
+      enumerable: true
+    },
+    options: {
+      value: null,
+      writable: false,
+      enumerable: true
+    }
+  });
+}
 
 function State(key, state) {
   validator.isConstructorCall(this, tizen.State);
