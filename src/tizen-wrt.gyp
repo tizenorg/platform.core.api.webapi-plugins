@@ -148,6 +148,13 @@
           },
         ],
         [
+          'tizen_feature_iotcon_support==1', {
+            'dependencies': [
+              'iotcon/iotcon.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_media_controller_support==1', {
             'dependencies': [
               'mediacontroller/mediacontroller.gyp:*',

@@ -58,6 +58,7 @@ Source0:    %{name}-%{version}.tar.gz
 %else
 %define tizen_feature_ham_support                     0
 %endif
+%define tizen_feature_iotcon_support                  1
 %define tizen_feature_location_batch                  0
 %define tizen_feature_key_manager_support             1
 %define tizen_feature_media_controller_support        1
@@ -153,6 +154,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                0
 %define tizen_feature_ham_support                     1
+%define tizen_feature_iotcon_support                  0
 %define tizen_feature_location_batch                  0
 %define tizen_feature_media_controller_support        1
 
@@ -232,6 +234,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                0
 %define tizen_feature_ham_support                     0
+%define tizen_feature_iotcon_support                  0
 %define tizen_feature_key_manager_support             1
 %define tizen_feature_media_controller_support        1
 %define tizen_feature_media_key_support               1
@@ -335,6 +338,10 @@ BuildRequires: pkgconfig(capi-web-url-download)
 BuildRequires: pkgconfig(motion)
 BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires: pkgconfig(capi-location-manager)
+%endif
+
+%if 0%{?tizen_feature_iotcon_support}
+BuildRequires: pkgconfig(iotcon)
 %endif
 
 %if 0%{?tizen_feature_power_support}
@@ -459,6 +466,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_exif_support=%{?tizen_feature_exif_sup
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_filesystem_support=%{?tizen_feature_filesystem_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_fm_radio_support=%{?tizen_feature_fm_radio_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_ham_support=%{?tizen_feature_ham_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_iotcon_support=%{?tizen_feature_iotcon_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_location_batch=%{?tizen_feature_location_batch}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_key_manager_support=%{?tizen_feature_key_manager_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_media_controller_support=%{?tizen_feature_media_controller_support}"
