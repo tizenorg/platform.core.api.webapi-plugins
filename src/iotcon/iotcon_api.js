@@ -300,6 +300,169 @@ function Request(data) {
   decorateWithData(data, this);
 }
 
+function Resource(data) {
+  Object.defineProperties(this, {
+    _id: {
+      value: data.id,
+      writable: false,
+      enumerable: false
+    },
+    observerIds: {
+      get: function() {
+        var callArgs = {};
+        callArgs.id = data.id;
+        var result = native.callSync('IotconResource_getObserverIds', callArgs);
+        return native.getResultObject(result);
+      },
+      set: function() {},
+      enumerable: true
+    }
+  });
+
+  delete data.id;
+
+  var internal = new InternalData(data);
+  internal.decorate(this);
+}
+
+Resource.prototype.notify = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'observerIds',
+    type: types.ARRAY,
+    values: types.LONG,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.observerIds = args.observerIds;
+
+  var result = native.call('IotconResource_notify', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Resource.prototype.addResourceTypes = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'types',
+    type: types.ARRAY,
+    values: types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.types = args.types;
+
+  var result = native.call('IotconResource_addResourceTypes', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Resource.prototype.addResourceInterfaces = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'interfaces',
+    type: types.ARRAY,
+    values: ResourceInterface,
+    optional: false,
+    nullable: false
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.interfaces = args.interfaces;
+
+  var result = native.call('IotconResource_addResourceInterfaces', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Resource.prototype.addChildResource = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'resource',
+    type: types_.PLATFORM_OBJECT,
+    values: Resource,
+    optional: false,
+    nullable: false
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.resource = args.resource;
+
+  var result = native.call('IotconResource_addChildResource', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Resource.prototype.removeChildResource = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'resource',
+    type: types_.PLATFORM_OBJECT,
+    values: Resource,
+    optional: false,
+    nullable: false
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+  callArgs.resource = args.resource;
+
+  var result = native.call('IotconResource_removeChildResource', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+var resourceRequestListener = createListener('ResourceRequestListener');
+
+Resource.prototype.setRequestListener = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'successCallback',
+    type: types.FUNCTION
+  }]);
+
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var listener = function(result) {
+    native.callIfPossible(args.successCallback, native.getResultObject(result));
+  };
+
+  var result = native.callSync('IotconResource_setRequestListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    resourceRequestListener.addListener(this._id, listener);
+  }
+};
+
+Resource.prototype.unsetRequestListener = function() {
+  var callArgs = {};
+  callArgs.id = this._id;
+
+  var result = native.callSync('IotconRemoteResource_unsetRequestListener', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    resourceRequestListener.removeListener(this._id);
+  }
+};
+
+
 function Response(request) {
   validator.isConstructorCall(this, tizen.Response);
 
@@ -830,9 +993,6 @@ Client.prototype.getPlatformInfo = function() {
   }
 };
 
-function Resource() {
-}
-
 function Server() {
 }
 
@@ -856,8 +1016,7 @@ Server.prototype.createResource = function() {
     if (native.isFailure(result)) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.successCallback();
+      args.successCallback(new Resource(native.getResultObject(result)));
     }
   };
 
@@ -884,7 +1043,7 @@ Server.prototype.removeResource = function() {
   }]);
 
   var callArgs = {};
-  callArgs.id = args.resource._id;  // TODO: check if this is correct
+  callArgs.id = args.resource._id;
 
   var callback = function(result) {
     if (native.isFailure(result)) {
@@ -917,7 +1076,7 @@ Server.prototype.updateResource = function() {
   }]);
 
   var callArgs = {};
-  callArgs.id = args.resource._id;  // TODO: check if this is correct
+  callArgs.id = args.resource._id;
 
   var callback = function(result) {
     if (native.isFailure(result)) {
