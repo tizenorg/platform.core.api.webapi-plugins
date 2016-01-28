@@ -473,3 +473,5 @@ exports.SimpleCoordinates = function(lat, lng) {
   });
 };
 exports.SimpleCoordinates.prototype.constructor = exports.SimpleCoordinates;
+
+Object.freeze(JSON);
