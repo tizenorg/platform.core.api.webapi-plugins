@@ -42,6 +42,7 @@ class FilesystemProviderStorage : public IFilesystemProvider {
 
   DeviceChangeStateFun GetListener();
   void FillVirtualPaths(int storage_id);
+  void AddStorage(std::shared_ptr<Storage> storage);
 
  private:
   FilesystemProviderStorage();
