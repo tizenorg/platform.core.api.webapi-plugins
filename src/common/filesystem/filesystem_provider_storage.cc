@@ -97,9 +97,9 @@ bool OnForeachStorage(int storage_id, storage_type_e type,
 
   StorageType type_ =
       type == STORAGE_TYPE_INTERNAL ?
-          StorageType::kInternal : StorageType::kUnknown;
+          StorageType::kInternal : StorageType::kMmc;
 
-  provider->GetStorages().push_back(
+  provider->AddStorage(
       std::make_shared<Storage>(storage_id, type_, TranslateCoreStorageState(state), path));
   if (type_ == StorageType::kInternal) {
     // TODO check internal storage
@@ -109,6 +109,10 @@ bool OnForeachStorage(int storage_id, storage_type_e type,
     provider->FillVirtualPaths(storage_id);
   }
   return true;
+}
+
+void FilesystemProviderStorage::AddStorage(std::shared_ptr<Storage> storage) {
+  storages_.push_back(storage);
 }
 
 DeviceChangeStateFun FilesystemProviderStorage::GetListener() {
