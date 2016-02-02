@@ -88,7 +88,7 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
 }
 
 PlatformResult HumanActivityMonitorManager::SetListener(
-    const std::string& type, JsonCallback callback) {
+    const std::string& type , JsonCallback callback, const picojson::value& args) {
 
   PlatformResult result = IsSupported(type);
   if (!result) {
@@ -104,11 +104,11 @@ PlatformResult HumanActivityMonitorManager::SetListener(
   }
 
   if (type == kActivityTypeHrm) {
-    return SetHrmListener(callback);
+    return SetHrmListener(callback, args);
   }
 
   if (type == kActivityTypeGps) {
-    return SetGpsListener(callback);
+    return SetGpsListener(callback, args);
   }
 
   return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
@@ -234,7 +234,7 @@ void HumanActivityMonitorManager::OnWristUpEvent(gesture_type_e gesture,
 
 // HRM
 PlatformResult HumanActivityMonitorManager::SetHrmListener(
-    JsonCallback callback) {
+    JsonCallback callback, const picojson::value& args) {
   LoggerD("Enter");
   sensor_h hrm_sensor;
   int ret;
@@ -253,8 +253,11 @@ PlatformResult HumanActivityMonitorManager::SetHrmListener(
                           ("Failed to create HRM sensor listener, error: %d",ret));
   }
 
+  int callbackInterval = static_cast<int>(args.get("callbackInterval").get<double>());
+  LoggerD("callbackInterval: %d", callbackInterval);
+
   ret = sensor_listener_set_event_cb(hrm_sensor_listener_,
-                                     0,
+                                     callbackInterval,
                                      OnHrmSensorEvent,
                                      this);
   if (ret != SENSOR_ERROR_NONE) {
@@ -385,7 +388,7 @@ PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
 
 // GPS
 PlatformResult HumanActivityMonitorManager::SetGpsListener(
-    JsonCallback callback) {
+    JsonCallback callback, const picojson::value& args) {
   LoggerD("Enter");
   int ret;
 
@@ -396,10 +399,14 @@ PlatformResult HumanActivityMonitorManager::SetGpsListener(
                           ("Failed to create location manager, error: %d",ret));
   }
 
+  int callbackInterval = static_cast<int>(args.get("callbackInterval").get<double>()/1000);
+  int sampleInterval = static_cast<int>(args.get("sampleInterval").get<double>()/1000);
+  LoggerD("callbackInterval: %d, sampleInterval: %d", callbackInterval, sampleInterval);
+
   ret = location_manager_set_location_batch_cb(location_handle_,
                                                OnGpsEvent,
-                                               1, // batch_interval
-                                               120, // batch_period
+                                               sampleInterval, // batch_interval
+                                               callbackInterval, // batch_period
                                                this);
   if (ret != LOCATIONS_ERROR_NONE) {
     return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,

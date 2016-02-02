@@ -165,7 +165,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
     Instance::PostMessage(this, data->serialize().c_str());
   };
 
-  result = manager_->SetListener(type, cb);
+  result = manager_->SetListener(type, cb, args);
   if (result) {
     ReportSuccess(out);
   } else {
