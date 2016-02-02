@@ -193,10 +193,7 @@ class SensorData {
   common::optional<bool> is_supported_;
   SensorInstance& instance_;
   unsigned int interval_; // an interval capping the maximum frequency of callback events.
-                          // 0 means that the events are uncapped and will be called on value change.
-                          // a value in [10, 1000] will result in invoking sensor's callback method
-                          // every 10 ... 1000 milliseconds, regardless of whether its value has been
-                          // changed or not. Any other interval value is considered invalid.
+                          // valid values: from 10 to 1000 [milliseconds].
 };
 
 SensorData::SensorData(SensorInstance& instance, sensor_type_e type_enum,
@@ -321,7 +318,7 @@ bool SensorData::is_supported() {
 
 bool SensorData::UpdateEvent(sensor_event_s* event) {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
-
+  /*
   bool isThisEventDifferent = false;
 
   if(this->interval_ > 0) {
@@ -344,6 +341,12 @@ bool SensorData::UpdateEvent(sensor_event_s* event) {
   }
 
   return isThisEventDifferent;
+  */
+
+  // since the events' frequency is capped by the interval value (always greater than 0),
+  // and the event should be send regardless of whether sensor's value has changed or not,
+  // send this event notification without checking any conditions:
+  return true;
 }
 
 PlatformResult SensorData::Start() {
@@ -393,6 +396,11 @@ PlatformResult SensorData::SetChangeListener(unsigned int interval) {
   if (!res) {
     LoggerE("Sensor initialization for sensor %s failed", type_to_string_map[type_enum_].c_str());
     return res;
+  }
+
+  // if the user has not provided interval value, apply the default (100 ms):
+  if(interval == 0) {
+    interval = 100;
   }
 
   int ret = sensor_listener_set_event_cb(listener_, interval, SensorCallback, this);
@@ -679,7 +687,7 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
   LoggerD("Entered");
   const std::string type_str =
       args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
-  const double interval = args.contains("interval") ? args.get("interval").get<double>() : 0.0;
+  const double interval = args.contains("interval") ? args.get("interval").get<double>() : 100.0;
   LoggerD("input type: %s %f" , type_str.c_str(), interval);
 
   sensor_type_e type_enum = string_to_type_map[type_str];
