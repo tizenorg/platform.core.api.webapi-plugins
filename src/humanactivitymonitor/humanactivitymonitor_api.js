@@ -139,17 +139,50 @@ function stopListener(listenerId, method, data) {
 HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
-    {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true}
+    {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true},
+    {name : 'option', type : types_.DICTIONARY, optional : true, nullable : true}
   ]);
 
   var listenerId = 'HumanActivityMonitor_'  + args.type;
+  var callbackInterval = null, sampleInterval = null;
 
+  switch (args.type) {
+  case HumanActivityType.GPS:
+    callbackInterval = !type_.isNullOrUndefined(args.option) ?
+        args.option.callbackInterval : 120000;
+    sampleInterval = !type_.isNullOrUndefined(args.option) ?
+        args.option.sampleInterval : 1000;
+    if (callbackInterval < 120000 || callbackInterval > 600000) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                                'callbackInterval is out of range');
+    }
+    if (sampleInterval < 1000 || sampleInterval > 120000) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                                'sampleInterval is out of range');
+    }
+    break
+  case HumanActivityType.HRM:
+    callbackInterval = !type_.isNullOrUndefined(args.option) ?
+        args.option.callbackInterval : 100;
+    if (callbackInterval < 10 || callbackInterval > 1000) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                                'callbackInterval is out of range');
+    }
+    break
+  }
+
+  console.log("callbackInterval = " + callbackInterval + ", sampleInterval = " + sampleInterval);
   startListener(listenerId,
                 function(result) {
                   native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
                 },
                 'HumanActivityMonitorManager_start',
-                { type: args.type, listenerId: listenerId });
+                { type: args.type,
+                  listenerId: listenerId,
+                  callbackInterval: callbackInterval,
+                  sampleInterval: sampleInterval
+                }
+               );
 };
 
 HumanActivityMonitorManager.prototype.stop = function(type) {
