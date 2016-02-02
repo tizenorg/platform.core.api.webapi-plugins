@@ -252,7 +252,7 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
           } else if (result.status == 'error') {
             var err = result['error'];
             if (err) {
-              args.errorCallback(new tizen.WebAPIError(err.name, err.message));
+              args.errorCallback(new WebAPIException(err));
               return;
             }
           }
