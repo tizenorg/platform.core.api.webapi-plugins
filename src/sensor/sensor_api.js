@@ -91,10 +91,10 @@ SensorListener.prototype.stop = function () {
     }
 };
 
-SensorListener.prototype.setListener = function (successCallback) {
+SensorListener.prototype.setListener = function (successCallback, interval) {
     if (!this.callback) {
         //call platform only if there was no listener registered
-        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
+        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType, 'interval' : interval});
         if (native_.isFailure(result)) {
             throw native_.getErrorObject(result);
         }
@@ -245,10 +245,22 @@ Sensor.prototype.setChangeListener = function() {
        {
            name : 'successCallback',
            type: types_.FUNCTION
+       },
+       {
+           name : 'interval',
+           type: types_.LONG,
+           optional: true
        }
     ]);
+    var tmp_interval = args.interval;
+    if(tmp_interval === 0) {
+      tmp_interval = 100;
+    } else {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Interval should be in range [10, 1000] milliseconds.');
+    }
+    
 
-    _sensorListeners[this.sensorType].setListener(args.successCallback);
+    _sensorListeners[this.sensorType].setListener(args.successCallback, args.interval);
 };
 
 Sensor.prototype.unsetChangeListener = function() {
