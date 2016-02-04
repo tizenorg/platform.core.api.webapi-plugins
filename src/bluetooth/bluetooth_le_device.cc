@@ -97,14 +97,22 @@ static void ServiceDataToJson(bt_adapter_le_service_data_s *service_data_list,
       std::make_pair(kServiceData, picojson::value(picojson::array()))).first
       ->second.get<picojson::array>();
 
+  std::unique_ptr<char[]> service_data_hex;
+
   for (int i = 0; i < service_data_list_count; i++) {
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[kServiceUuid] = picojson::value(
         std::string(service_data_list[i].service_uuid));
-    response_obj[kData] = picojson::value(
-        std::string(service_data_list[i].service_data,
-                    service_data_list[i].service_data_len));
+
+    const int hex_count = service_data_list[i].service_data_len * 2;
+    service_data_hex.reset(new char[hex_count + 1]);
+    BinToHex((const unsigned char*) service_data_list[i].service_data,
+             service_data_list[i].service_data_len,
+             service_data_hex.get(),
+             hex_count);
+    service_data_hex[hex_count] = '\0';
+    response_obj[kData] = picojson::value(std::string(service_data_hex.get()));
 
     array.push_back(response);
   }
