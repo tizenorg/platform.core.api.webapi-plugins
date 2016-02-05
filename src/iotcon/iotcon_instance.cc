@@ -376,11 +376,36 @@ void IotconInstance::IotconServerUpdateResource(const picojson::value& args,
 void IotconInstance::IotconGetTimeout(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("Enter");
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  int timeout = 0;
+  int ret = iotcon_get_timeout(&timeout);
+
+  if (IOTCON_ERROR_NONE != ret) {
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+    return;
+  }
+
+  result_obj.insert(std::make_pair("timeout", picojson::value(static_cast<double>(timeout))));
+  ReportSuccess(result, out);
 }
 
 void IotconInstance::IotconSetTimeout(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("Enter");
+  CHECK_EXIST(args, "timeout", out);
+
+  int timeout = static_cast<int>(args.get("timeout").get<double>());
+
+  int ret = iotcon_set_timeout(timeout);
+  if (IOTCON_ERROR_NONE != ret) {
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+    return;
+  }
+
+  ReportSuccess(out);
 }
 
 }  // namespace iotcon
