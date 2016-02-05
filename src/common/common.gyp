@@ -53,6 +53,10 @@
         'filesystem/filesystem_provider.cc',
         'filesystem/filesystem_provider_storage.h',
         'filesystem/filesystem_provider_storage.cc',
+        'tizen_result.cc',
+        'tizen_result.h',
+        'tizen_instance.cc',
+        'tizen_instance.h',
       ],
       'cflags': [
         '-fvisibility=default',
