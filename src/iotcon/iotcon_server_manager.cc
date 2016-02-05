@@ -23,21 +23,21 @@
 namespace extension {
 namespace iotcon {
 
-using common::PlatformResult;
-using common::ErrorCode;
+using common::TizenResult;
+using common::TizenSuccess;
 
 IotconServerManager::IotconServerManager(IotconInstance* instance)
       : instance_(instance),
         global_id_(0) {
-  LoggerD("Entered");
+  ScopeLogger();
 }
 
 IotconServerManager::~IotconServerManager() {
-  LoggerD("Enter");
+  ScopeLogger();
 }
 
-PlatformResult IotconServerManager::RestoreHandles() {
-  LoggerD("Entered");
+TizenResult IotconServerManager::RestoreHandles() {
+  ScopeLogger();
 
   for (auto it = resource_map_.begin(); it != resource_map_.end(); ++it) {
     LoggerD ("Restoring handle for resource with id: %lld", it->first);
@@ -47,9 +47,9 @@ PlatformResult IotconServerManager::RestoreHandles() {
     iotcon_resource_types_h res_types = nullptr;
     int ifaces = 0;
     int properties = 0;
-    PlatformResult res = IotconUtils::ExtractFromResource(resource, &uri_path,
-                                                          &res_types, &ifaces, &properties);
-    if (res.IsError()){
+    auto res = IotconUtils::ExtractFromResource(resource, &uri_path,
+                                                &res_types, &ifaces, &properties);
+    if (!res){
       return res;
     }
 
@@ -62,8 +62,8 @@ PlatformResult IotconServerManager::RestoreHandles() {
                                      nullptr, // user_data
                                      &(resource->handle));
     if (IOTCON_ERROR_NONE != ret || nullptr == resource->handle) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.",
-                                ("iotcon_resource_create failed: %d (%s)",
+      return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
+                                    ("iotcon_resource_create failed: %d (%s)",
                                     ret, get_error_message(ret)));
     }
     LoggerD("new handle: %p", (resource->handle));
@@ -76,33 +76,33 @@ PlatformResult IotconServerManager::RestoreHandles() {
   // bind children (consider if it is necessary?
   //    Maybe holding children in resource_map is enough)
 
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return TizenSuccess();
 }
 
 void IotconServerManager::RequestHandler(iotcon_resource_h resource,
                                          iotcon_request_h request, void *user_data) {
-  LoggerD("Entered");
+  ScopeLogger();
   // TODO probably should be handled somehow later
 }
 
-PlatformResult IotconServerManager::CreateResource(const std::string& uri_path,
-                                                   const picojson::array& interfaces_array,
-                                                   const picojson::array& types_array,
-                                                   bool is_discoverable,
-                                                   bool is_observable,
-                                                   ResourceInfoPtr res_pointer) {
-  LoggerD("Entered");
+TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
+                                                const picojson::array& interfaces_array,
+                                                const picojson::array& types_array,
+                                                bool is_discoverable,
+                                                bool is_observable,
+                                                ResourceInfoPtr res_pointer) {
+  ScopeLogger();
 
   int ret;
   int interfaces = IOTCON_INTERFACE_NONE;
-  PlatformResult res = IotconUtils::ArrayToInterfaces(interfaces_array, &interfaces);
-  if (res.IsError()) {
+  auto res = IotconUtils::ArrayToInterfaces(interfaces_array, &interfaces);
+  if (!res) {
     return res;
   }
 
   iotcon_resource_types_h resource_types = nullptr;
   res = IotconUtils::ArrayToTypes(types_array, &resource_types);
-  if (res.IsError()) {
+  if (!res) {
     return res;
   }
 
@@ -120,28 +120,30 @@ PlatformResult IotconServerManager::CreateResource(const std::string& uri_path,
                                nullptr, // user_data
                                &(res_pointer->handle));
   if (IOTCON_ERROR_NONE != ret || nullptr == res_pointer->handle) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error occurred.",
-                              ("iotcon_resource_create failed: %d (%s)",
+    return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
+                                  ("iotcon_resource_create failed: %d (%s)",
                                   ret, get_error_message(ret)));
   }
 
   // storing ResourceInfo into map
   res_pointer->id = ++global_id_;
   resource_map_.insert(std::make_pair(res_pointer->id, res_pointer));
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return TizenSuccess();
 }
 
-common::PlatformResult IotconServerManager::GetResourceById(long long id,
-                                                            ResourceInfoPtr* res_pointer) const {
-  LoggerD("Entered");
+TizenResult IotconServerManager::GetResourceById(long long id,
+                                                 ResourceInfoPtr* res_pointer) const {
+  ScopeLogger();
+
   auto it = resource_map_.find(id);
   if (it == resource_map_.end()) {
     LoggerE("Not found such resource");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Not found such resource");
+    return LogAndCreateTizenError(NotFoundError, "Not found such resource");
   }
   LoggerE("Resource found");
   *res_pointer = it->second;
-  return PlatformResult(ErrorCode::NO_ERROR);
+
+  return TizenSuccess();
 }
 
 }  // namespace iotcon

@@ -16,105 +16,71 @@
 
 #include "iotcon/iotcon_instance.h"
 
+#include <thread>
+
 #include "common/logger.h"
-#include "common/task-queue.h"
-#include "common/tools.h"
 
 #include "iotcon/iotcon_utils.h"
-
-using common::PlatformResult;
-using common::ErrorCode;
-using common::TypeMismatchException;
-using common::tools::ReportError;
-using common::tools::ReportSuccess;
-using common::Instance;
-using common::TaskQueue;
 
 namespace extension {
 namespace iotcon {
 
 namespace {
-#define CHECK_EXIST(args, name, out) \
-  if (!args.contains(name)) {\
-    std::string message = std::string(name) + " is required argument";\
-    common::tools::ReportError(\
-        common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, message), &out);\
-    return;\
+
+#define CHECK_EXIST(args, name) \
+  if (args.end() == args.find(name)) { \
+    return common::TypeMismatchError(std::string(name) + " is required argument"); \
   }
-}
+
+}  // namespace
 
 IotconInstance::IotconInstance() : manager_(this) {
-  LoggerD("Enter");
+  ScopeLogger();
+
   using std::placeholders::_1;
   using std::placeholders::_2;
 
-  #define REGISTER_ASYNC(c, func) \
-      RegisterSyncHandler(c, func);
-  #define REGISTER_SYNC(c, func) \
-      RegisterSyncHandler(c, func);
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&IotconInstance::x, this, _1))
 
-  REGISTER_SYNC("IotconResource_getObserverIds",
-      std::bind(&IotconInstance::IotconResourceGetObserverIds, this, _1, _2));
-  REGISTER_ASYNC("IotconResource_notify",
-      std::bind(&IotconInstance::IotconResourceNotify, this, _1, _2));
-  REGISTER_ASYNC("IotconResource_addResourceTypes",
-      std::bind(&IotconInstance::IotconResourceAddResourceTypes, this, _1, _2));
-  REGISTER_ASYNC("IotconResource_addResourceInterfaces",
-      std::bind(&IotconInstance::IotconResourceAddResourceInterfaces, this, _1, _2));
-  REGISTER_ASYNC("IotconResource_addChildResource",
-      std::bind(&IotconInstance::IotconResourceAddChildResource, this, _1, _2));
-  REGISTER_ASYNC("IotconResource_removeChildResource",
-      std::bind(&IotconInstance::IotconResourceRemoveChildResource, this, _1, _2));
-  REGISTER_SYNC("IotconResource_setRequestListener",
-      std::bind(&IotconInstance::IotconResourceSetRequestListener, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_unsetRequestListener",
-      std::bind(&IotconInstance::IotconRemoteResourceUnsetRequestListener, this, _1, _2));
-  REGISTER_SYNC("IotconResponse_send",
-      std::bind(&IotconInstance::IotconResponseSend, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_getCachedRepresentation",
-      std::bind(&IotconInstance::IotconRemoteResourceGetCachedRepresentation, this, _1, _2));
-  REGISTER_ASYNC("IotconRemoteResource_methodGet",
-      std::bind(&IotconInstance::IotconRemoteResourceMethodGet, this, _1, _2));
-  REGISTER_ASYNC("IotconRemoteResource_methodPut",
-      std::bind(&IotconInstance::IotconRemoteResourceMethodPut, this, _1, _2));
-  REGISTER_ASYNC("IotconRemoteResource_methodPost",
-      std::bind(&IotconInstance::IotconRemoteResourceMethodPost, this, _1, _2));
-  REGISTER_ASYNC("IotconRemoteResource_methodDelete",
-      std::bind(&IotconInstance::IotconRemoteResourceMethodDelete, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_setStateChangeListener",
-      std::bind(&IotconInstance::IotconRemoteResourceSetStateChangeListener, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_unsetStateChangeListener",
-      std::bind(&IotconInstance::IotconRemoteResourceUnsetStateChangeListener, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_startCaching",
-      std::bind(&IotconInstance::IotconRemoteResourceStartCaching, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_stopCaching",
-      std::bind(&IotconInstance::IotconRemoteResourceStopCaching, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_setConnectionChangeListener",
-      std::bind(&IotconInstance::IotconRemoteResourceSetConnectionChangeListener, this, _1, _2));
-  REGISTER_SYNC("IotconRemoteResource_unsetConnectionChangeListener",
-      std::bind(&IotconInstance::IotconRemoteResourceUnsetConnectionChangeListener, this, _1, _2));
-  REGISTER_ASYNC("IotconClient_findResource",
-      std::bind(&IotconInstance::IotconClientFindResource, this, _1, _2));
-  REGISTER_SYNC("IotconClient_addPresenceEventListener",
-      std::bind(&IotconInstance::IotconClientAddPresenceEventListener, this, _1, _2));
-  REGISTER_SYNC("IotconClient_removePresenceEventListener",
-      std::bind(&IotconInstance::IotconClientRemovePresenceEventListener, this, _1, _2));
-  REGISTER_ASYNC("IotconClient_getDeviceInfo",
-      std::bind(&IotconInstance::IotconClientGetDeviceInfo, this, _1, _2));
-  REGISTER_ASYNC("IotconClient_getPlatformInfo",
-      std::bind(&IotconInstance::IotconClientGetPlatformInfo, this, _1, _2));
-  REGISTER_ASYNC("IotconServer_createResource",
-      std::bind(&IotconInstance::IotconServerCreateResource, this, _1, _2));
-  REGISTER_ASYNC("IotconServer_removeResource",
-      std::bind(&IotconInstance::IotconServerRemoveResource, this, _1, _2));
-  REGISTER_ASYNC("IotconServer_updateResource",
-      std::bind(&IotconInstance::IotconServerUpdateResource, this, _1, _2));
-  REGISTER_SYNC("Iotcon_getTimeout",
-      std::bind(&IotconInstance::IotconGetTimeout, this, _1, _2));
-  REGISTER_SYNC("Iotcon_setTimeout",
-      std::bind(&IotconInstance::IotconSetTimeout, this, _1, _2));
-  #undef REGISTER_ASYNC
-  #undef REGISTER_SYNC
+  REGISTER_SYNC("IotconResource_getObserverIds", ResourceGetObserverIds);
+  REGISTER_SYNC("IotconResource_setRequestListener", ResourceSetRequestListener);
+  REGISTER_SYNC("IotconRemoteResource_unsetRequestListener", RemoteResourceUnsetRequestListener);
+  REGISTER_SYNC("IotconResponse_send", ResponseSend);
+  REGISTER_SYNC("IotconRemoteResource_getCachedRepresentation", RemoteResourceGetCachedRepresentation);
+  REGISTER_SYNC("IotconRemoteResource_setStateChangeListener", RemoteResourceSetStateChangeListener);
+  REGISTER_SYNC("IotconRemoteResource_unsetStateChangeListener", RemoteResourceUnsetStateChangeListener);
+  REGISTER_SYNC("IotconRemoteResource_startCaching", RemoteResourceStartCaching);
+  REGISTER_SYNC("IotconRemoteResource_stopCaching", RemoteResourceStopCaching);
+  REGISTER_SYNC("IotconRemoteResource_setConnectionChangeListener", RemoteResourceSetConnectionChangeListener);
+  REGISTER_SYNC("IotconRemoteResource_unsetConnectionChangeListener", RemoteResourceUnsetConnectionChangeListener);
+  REGISTER_SYNC("IotconClient_addPresenceEventListener", ClientAddPresenceEventListener);
+  REGISTER_SYNC("IotconClient_removePresenceEventListener", ClientRemovePresenceEventListener);
+  REGISTER_SYNC("Iotcon_getTimeout", GetTimeout);
+  REGISTER_SYNC("Iotcon_setTimeout", SetTimeout);
+
+#undef REGISTER_SYNC
+
+#define REGISTER_ASYNC(c, x) \
+  RegisterHandler(c, std::bind(&IotconInstance::x, this, _1, _2));
+
+  REGISTER_ASYNC("IotconResource_notify", ResourceNotify);
+  REGISTER_ASYNC("IotconResource_addResourceTypes", ResourceAddResourceTypes);
+  REGISTER_ASYNC("IotconResource_addResourceInterfaces", ResourceAddResourceInterfaces);
+  REGISTER_ASYNC("IotconResource_addChildResource", ResourceAddChildResource);
+  REGISTER_ASYNC("IotconResource_removeChildResource", ResourceRemoveChildResource);
+  REGISTER_ASYNC("IotconRemoteResource_methodGet", RemoteResourceMethodGet);
+  REGISTER_ASYNC("IotconRemoteResource_methodPut", RemoteResourceMethodPut);
+  REGISTER_ASYNC("IotconRemoteResource_methodPost", RemoteResourceMethodPost);
+  REGISTER_ASYNC("IotconRemoteResource_methodDelete", RemoteResourceMethodDelete);
+  REGISTER_ASYNC("IotconClient_findResource", ClientFindResource);
+  REGISTER_ASYNC("IotconClient_getDeviceInfo", ClientGetDeviceInfo);
+  REGISTER_ASYNC("IotconClient_getPlatformInfo", ClientGetPlatformInfo);
+  REGISTER_ASYNC("IotconServer_createResource", ServerCreateResource);
+  REGISTER_ASYNC("IotconServer_removeResource", ServerRemoveResource);
+  REGISTER_ASYNC("IotconServer_updateResource", ServerUpdateResource);
+
+#undef REGISTER_ASYNC
 
   // initialize connection to iotcon service
   int ret = iotcon_connect();
@@ -133,7 +99,8 @@ IotconInstance::IotconInstance() : manager_(this) {
 }
 
 void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_data) {
-  LoggerD("Enter");
+  ScopeLogger();
+
   if (!is_connected) {
     LoggerD("Connection lost, need to wait for connection recovery");
   } else {
@@ -144,268 +111,240 @@ void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_dat
     }
 
     LoggerD("Connection recovered, restoring handles");
-    PlatformResult ret = instance->manager_.RestoreHandles();
-    if (ret.IsError()) {
+    auto ret = instance->manager_.RestoreHandles();
+    if (!ret) {
       LoggerD("Connection recovered, but restoring handles failed");
     }
   }
 }
 
 IotconInstance::~IotconInstance() {
-  LoggerD("Enter");
+  ScopeLogger();
 
   iotcon_remove_connection_changed_cb(ConnectionChangedCallback, this);
   iotcon_disconnect();
 }
 
-void IotconInstance::IotconResourceGetObserverIds(const picojson::value& args,
-                                                  picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceGetObserverIds(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceNotify(const picojson::value& args,
-                                          picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args,
+                                                   const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceAddResourceTypes(const picojson::value& args,
-                                                    picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceAddResourceTypes(const picojson::object& args,
+                                                             const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceAddResourceInterfaces(const picojson::value& args,
-                                                         picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceAddResourceInterfaces(const picojson::object& args,
+                                                                  const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceAddChildResource(const picojson::value& args,
-                                                    picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::object& args,
+                                                             const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceRemoveChildResource(const picojson::value& args,
-                                                       picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::object& args,
+                                                                const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResourceSetRequestListener(const picojson::value& args,
-                                                      picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResourceSetRequestListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceUnsetRequestListener(const picojson::value& args,
-                                                              picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceUnsetRequestListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconResponseSend(const picojson::value& args,
-                                        picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceGetCachedRepresentation(const picojson::value& args,
-                                                                 picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceGetCachedRepresentation(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceMethodGet(const picojson::value& args,
-                                                   picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::object& args,
+                                                            const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceMethodPut(const picojson::value& args,
-                                                   picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceMethodPut(const picojson::object& args,
+                                                            const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceMethodPost(const picojson::value& args,
-                                                    picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceMethodPost(const picojson::object& args,
+                                                             const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceMethodDelete(const picojson::value& args,
-                                                      picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceMethodDelete(const picojson::object& args,
+                                                               const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceSetStateChangeListener(const picojson::value& args,
-                                                                picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceUnsetStateChangeListener(const picojson::value& args,
-                                                                  picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceUnsetStateChangeListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceStartCaching(const picojson::value& args,
-                                                      picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceStartCaching(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceStopCaching(const picojson::value& args,
-                                                     picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceStopCaching(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceSetConnectionChangeListener(const picojson::value& args,
-                                                                     picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconRemoteResourceUnsetConnectionChangeListener(const picojson::value& args,
-                                                                       picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::RemoteResourceUnsetConnectionChangeListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconClientFindResource(const picojson::value& args,
-                                              picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ClientFindResource(const picojson::object& args,
+                                                       const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconClientAddPresenceEventListener(const picojson::value& args,
-                                                          picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconClientRemovePresenceEventListener(const picojson::value& args,
-                                                             picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ClientRemovePresenceEventListener(const picojson::object& args) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconClientGetDeviceInfo(const picojson::value& args,
-                                               picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& args,
+                                                        const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconClientGetPlatformInfo(const picojson::value& args,
-                                                 picojson::object& out) {
-  LoggerD("Enter");
-
+common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object& args,
+                                                          const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconServerCreateResource(const picojson::value& args,
-                                                picojson::object& out) {
-  LoggerD("Enter");
-  LoggerD("args: %s", args.serialize().c_str());
-  CHECK_EXIST(args, kCallbackId, out)
-  CHECK_EXIST(args, kIsDiscoverable, out)
-  CHECK_EXIST(args, kIsObservable, out)
-  CHECK_EXIST(args, kResourceTypes, out)
-  CHECK_EXIST(args, kResourceInterfaces, out)
-  CHECK_EXIST(args, kUriPath, out)
+common::TizenResult IotconInstance::ServerCreateResource(const picojson::object& args,
+                                                         const common::AsyncToken& token) {
+  ScopeLogger();
 
-  const double callback_id = args.get(kCallbackId).get<double>();
-  // TODO consider support other properties
-  const bool is_discoverable = args.get(kIsDiscoverable).get<bool>();
-  const bool is_observable = args.get(kIsObservable).get<bool>();
-  const auto& resource_types = args.get(kResourceTypes).get<picojson::array>();
-  const auto& resource_interfaces = args.get(kResourceInterfaces).get<picojson::array>();
-  const std::string& uri_path = args.get(kUriPath).get<std::string>();
+  CHECK_EXIST(args, kIsDiscoverable);
+  CHECK_EXIST(args, kIsObservable);
+  CHECK_EXIST(args, kResourceTypes);
+  CHECK_EXIST(args, kResourceInterfaces);
+  CHECK_EXIST(args, kUriPath);
 
-  auto create = [this, callback_id, is_discoverable, is_observable,
-                 resource_types, uri_path, resource_interfaces]
-                 (const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Create resource");
+  // TODO: consider support other properties
+  const bool is_discoverable = args.find(kIsDiscoverable)->second.get<bool>();
+  const bool is_observable = args.find(kIsObservable)->second.get<bool>();
+  const auto& resource_types = args.find(kResourceTypes)->second.get<picojson::array>();
+  const auto& resource_interfaces = args.find(kResourceInterfaces)->second.get<picojson::array>();
+  const std::string& uri_path = args.find(kUriPath)->second.get<std::string>();
+
+  auto create = [this, is_discoverable, is_observable,
+                 resource_types, uri_path, resource_interfaces, token]() {
+    ScopeLogger("Create resource");
 
     picojson::value result = picojson::value(picojson::object());
     ResourceInfoPtr resource{new ResourceInfo()};
-    PlatformResult ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
-                                                 is_discoverable, is_observable, resource);
-    if (ret.IsError()) {
-      LogAndReportError(ret,&(response->get<picojson::object>()));
+    auto ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
+                                       is_discoverable, is_observable, resource);
+    if (!ret) {
+      Post(token, ret);
       return;
     }
     LoggerD("RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
 
     ret = IotconUtils::ResourceToJson(resource, manager_, &(result.get<picojson::object>()));
-    if (ret.IsError()) {
-      LogAndReportError(ret,&(response->get<picojson::object>()));
+    if (!ret) {
+      Post(token, ret);
       return;
     }
-    ReportSuccess(result, response->get<picojson::object>());
+
+    Post(token, common::TizenSuccess{result});
   };
 
-  auto create_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Response");
-    picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
-    LoggerD("message: %s", response->serialize().c_str());
-    Instance::PostMessage(this, response->serialize().c_str());
-  };
+  std::thread{create}.detach();
 
-  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-
-  TaskQueue::GetInstance().Queue<picojson::value>(create, create_response, data);
+  return common::TizenSuccess();
 }
 
-void IotconInstance::IotconServerRemoveResource(const picojson::value& args,
-                                                picojson::object& out) {
-  LoggerD("Enter");
+common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object& args,
+                                                         const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconServerUpdateResource(const picojson::value& args,
-                                                picojson::object& out) {
-  LoggerD("Enter");
+common::TizenResult IotconInstance::ServerUpdateResource(const picojson::object& args,
+                                                         const common::AsyncToken& token) {
+  ScopeLogger();
+  return common::UnknownError("Not implemented");
 }
 
-void IotconInstance::IotconGetTimeout(const picojson::value& args,
-                                      picojson::object& out) {
-  LoggerD("Enter");
-
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
+common::TizenResult IotconInstance::GetTimeout(const picojson::object& args) {
+  ScopeLogger();
 
   int timeout = 0;
   int ret = iotcon_get_timeout(&timeout);
 
   if (IOTCON_ERROR_NONE != ret) {
-    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
-    return;
+    return LogAndCreateTizenError(UnknownError, ret);
   }
 
-  result_obj.insert(std::make_pair("timeout", picojson::value(static_cast<double>(timeout))));
-  ReportSuccess(result, out);
+  return common::TizenSuccess{picojson::value{static_cast<double>(timeout)}};
 }
 
-void IotconInstance::IotconSetTimeout(const picojson::value& args,
-                                      picojson::object& out) {
-  LoggerD("Enter");
-  CHECK_EXIST(args, "timeout", out);
+common::TizenResult IotconInstance::SetTimeout(const picojson::object& args) {
+  ScopeLogger();
 
-  int timeout = static_cast<int>(args.get("timeout").get<double>());
+  CHECK_EXIST(args, "timeout");
+
+  int timeout = static_cast<int>(args.find("timeout")->second.get<double>());
 
   int ret = iotcon_set_timeout(timeout);
   if (IOTCON_ERROR_NONE != ret) {
-    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
-    return;
+    return LogAndCreateTizenError(UnknownError, ret);
   }
 
-  ReportSuccess(out);
+  return common::TizenSuccess();
 }
 
 }  // namespace iotcon

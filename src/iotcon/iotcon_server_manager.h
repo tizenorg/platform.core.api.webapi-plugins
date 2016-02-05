@@ -24,8 +24,7 @@
 
 #include "iotcon/iotcon_utils.h"
 
-#include "common/picojson.h"
-#include "common/platform_result.h"
+#include "common/tizen_result.h"
 
 namespace extension {
 namespace iotcon {
@@ -39,13 +38,13 @@ class IotconServerManager {
 
   static void RequestHandler(iotcon_resource_h resource,
                              iotcon_request_h request, void *user_data);
-  common::PlatformResult RestoreHandles();
-  common::PlatformResult CreateResource(const std::string& uri_path,
-                                        const picojson::array& interfaces_array,
-                                        const picojson::array& types_array, bool is_discoverable,
-                                        bool is_observable,
-                                        ResourceInfoPtr res_pointer);
-  common::PlatformResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
+  common::TizenResult RestoreHandles();
+  common::TizenResult CreateResource(const std::string& uri_path,
+                                     const picojson::array& interfaces_array,
+                                     const picojson::array& types_array, bool is_discoverable,
+                                     bool is_observable,
+                                     ResourceInfoPtr res_pointer);
+  common::TizenResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
  private:
   IotconInstance* instance_;
   ResourceInfoMap resource_map_;

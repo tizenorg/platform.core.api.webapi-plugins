@@ -25,12 +25,11 @@
 
 #include <iotcon.h>
 
-#include "common/picojson.h"
-#include "common/platform_result.h"
+#include "common/tizen_result.h"
 
 namespace extension {
 namespace iotcon {
-extern const std::string kCallbackId;
+
 extern const std::string kIsDiscoverable;
 extern const std::string kIsObservable;
 extern const std::string kResourceTypes;
@@ -57,18 +56,18 @@ class IotconServerManager;
 
 class IotconUtils {
  public:
-  static common::PlatformResult StringToInterface(const std::string& interface, iotcon_interface_e* res);
-  static common::PlatformResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
+  static common::TizenResult StringToInterface(const std::string& interface, iotcon_interface_e* res);
+  static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
   static picojson::array InterfacesToArray(int interfaces);
-  static common::PlatformResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
-  static common::PlatformResult ExtractFromResource(const ResourceInfoPtr& pointer,
-                                                    char** uri_path,
-                                                    iotcon_resource_types_h* res_types,
-                                                    int* ifaces,
-                                                    int* properties);
-  static common::PlatformResult ResourceToJson(ResourceInfoPtr pointer,
-                                               const IotconServerManager& manager,
-                                               picojson::object* res);
+  static common::TizenResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
+  static common::TizenResult ExtractFromResource(const ResourceInfoPtr& pointer,
+                                                 char** uri_path,
+                                                 iotcon_resource_types_h* res_types,
+                                                 int* ifaces,
+                                                 int* properties);
+  static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
+                                            const IotconServerManager& manager,
+                                            picojson::object* res);
 };
 
 } // namespace iotcon
