@@ -32,6 +32,10 @@ namespace iotcon {
 
 extern const std::string kIsDiscoverable;
 extern const std::string kIsObservable;
+extern const std::string kIsActive;
+extern const std::string kIsSlow;
+extern const std::string kIsSecure;
+extern const std::string kIsExplicitDiscoverable;
 extern const std::string kResourceTypes;
 extern const std::string kResourceInterfaces;
 extern const std::string kResourceChildren;

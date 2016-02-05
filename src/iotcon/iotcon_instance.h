@@ -68,12 +68,8 @@ class IotconInstance : public common::TizenInstance {
                                           const common::AsyncToken& token);
   common::TizenResult ClientGetPlatformInfo(const picojson::object& args,
                                             const common::AsyncToken& token);
-  common::TizenResult ServerCreateResource(const picojson::object& args,
-                                           const common::AsyncToken& token);
-  common::TizenResult ServerRemoveResource(const picojson::object& args,
-                                           const common::AsyncToken& token);
-  common::TizenResult ServerUpdateResource(const picojson::object& args,
-                                           const common::AsyncToken& token);
+  common::TizenResult ServerCreateResource(const picojson::object& args);
+  common::TizenResult ServerRemoveResource(const picojson::object& args);
   common::TizenResult GetTimeout(const picojson::object& args);
   common::TizenResult SetTimeout(const picojson::object& args);
 

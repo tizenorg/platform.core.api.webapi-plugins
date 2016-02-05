@@ -29,6 +29,10 @@ namespace iotcon {
 
 const std::string kIsDiscoverable = "isDiscoverable";
 const std::string kIsObservable = "isObservable";
+const std::string kIsActive = "isActive";
+const std::string kIsSlow = "isSlow";
+const std::string kIsSecure = "isSecure";
+const std::string kIsExplicitDiscoverable = "isExplicitDiscoverable";
 const std::string kResourceTypes = "resourceTypes";
 const std::string kResourceInterfaces = "resourceInterfaces";
 const std::string kResourceChildren = "resources";
@@ -196,10 +200,18 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
 
   res->insert(std::make_pair(kResourceInterfaces,
                              picojson::value(InterfacesToArray(ifaces))));
-  bool observable = properties & IOTCON_RESOURCE_OBSERVABLE;
-  res->insert(std::make_pair(kIsObservable, picojson::value(observable)));
-  bool discoverable = properties & IOTCON_RESOURCE_DISCOVERABLE;
-  res->insert(std::make_pair(kIsDiscoverable, picojson::value(discoverable)));
+  bool value = properties & IOTCON_RESOURCE_OBSERVABLE;
+  res->insert(std::make_pair(kIsObservable, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_DISCOVERABLE;
+  res->insert(std::make_pair(kIsDiscoverable, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_ACTIVE;
+  res->insert(std::make_pair(kIsActive, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_SLOW;
+  res->insert(std::make_pair(kIsSlow, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_SECURE;
+  res->insert(std::make_pair(kIsSecure, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE;
+  res->insert(std::make_pair(kIsExplicitDiscoverable, picojson::value(value)));
 
   picojson::array children;
   for (auto iter = pointer->children_ids.begin(); iter != pointer->children_ids.end(); ++iter) {

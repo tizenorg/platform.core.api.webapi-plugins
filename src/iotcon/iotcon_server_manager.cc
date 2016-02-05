@@ -88,8 +88,7 @@ void IotconServerManager::RequestHandler(iotcon_resource_h resource,
 TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
                                                 const picojson::array& interfaces_array,
                                                 const picojson::array& types_array,
-                                                bool is_discoverable,
-                                                bool is_observable,
+                                                int properties,
                                                 ResourceInfoPtr res_pointer) {
   ScopeLogger();
 
@@ -105,11 +104,6 @@ TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
   if (!res) {
     return res;
   }
-
-  // TODO consider support other properties
-  int properties = ((is_discoverable ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY) |
-      (is_observable ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY) |
-          IOTCON_RESOURCE_ACTIVE);
 
   // Create resource
   ret = iotcon_resource_create(uri_path.c_str(),
@@ -144,6 +138,16 @@ TizenResult IotconServerManager::GetResourceById(long long id,
   *res_pointer = it->second;
 
   return TizenSuccess();
+}
+
+common::TizenResult IotconServerManager::DestroyResource(long long id) {
+  ScopeLogger();
+
+  if (resource_map_.erase(id)) {
+    return TizenSuccess();
+  } else {
+    return LogAndCreateTizenError(NotFoundError, "Resource with specified ID does not exist");
+  }
 }
 
 }  // namespace iotcon

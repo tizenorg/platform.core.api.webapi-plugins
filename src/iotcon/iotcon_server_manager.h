@@ -41,10 +41,11 @@ class IotconServerManager {
   common::TizenResult RestoreHandles();
   common::TizenResult CreateResource(const std::string& uri_path,
                                      const picojson::array& interfaces_array,
-                                     const picojson::array& types_array, bool is_discoverable,
-                                     bool is_observable,
+                                     const picojson::array& types_array,
+                                     int properties,
                                      ResourceInfoPtr res_pointer);
   common::TizenResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
+  common::TizenResult DestroyResource(long long id);
  private:
   IotconInstance* instance_;
   ResourceInfoMap resource_map_;

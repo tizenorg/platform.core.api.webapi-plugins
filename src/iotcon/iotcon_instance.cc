@@ -32,6 +32,21 @@ namespace {
     return common::TypeMismatchError(std::string(name) + " is required argument"); \
   }
 
+long long GetId(const picojson::object& args) {
+  return static_cast<long long>(args.find(kResourceId)->second.get<double>());
+}
+
+const picojson::value& GetArg(const picojson::object& args, const std::string& name) {
+  static const picojson::value kNull;
+
+  auto it = args.find(name);
+  if (args.end() == it) {
+    return kNull;
+  } else {
+    return it->second;
+  }
+}
+
 }  // namespace
 
 IotconInstance::IotconInstance() : manager_(this) {
@@ -58,6 +73,8 @@ IotconInstance::IotconInstance() : manager_(this) {
   REGISTER_SYNC("IotconClient_removePresenceEventListener", ClientRemovePresenceEventListener);
   REGISTER_SYNC("Iotcon_getTimeout", GetTimeout);
   REGISTER_SYNC("Iotcon_setTimeout", SetTimeout);
+  REGISTER_SYNC("IotconServer_createResource", ServerCreateResource);
+  REGISTER_SYNC("IotconServer_removeResource", ServerRemoveResource);
 
 #undef REGISTER_SYNC
 
@@ -76,9 +93,6 @@ IotconInstance::IotconInstance() : manager_(this) {
   REGISTER_ASYNC("IotconClient_findResource", ClientFindResource);
   REGISTER_ASYNC("IotconClient_getDeviceInfo", ClientGetDeviceInfo);
   REGISTER_ASYNC("IotconClient_getPlatformInfo", ClientGetPlatformInfo);
-  REGISTER_ASYNC("IotconServer_createResource", ServerCreateResource);
-  REGISTER_ASYNC("IotconServer_removeResource", ServerRemoveResource);
-  REGISTER_ASYNC("IotconServer_updateResource", ServerUpdateResource);
 
 #undef REGISTER_ASYNC
 
@@ -262,61 +276,63 @@ common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object
   return common::UnknownError("Not implemented");
 }
 
-common::TizenResult IotconInstance::ServerCreateResource(const picojson::object& args,
-                                                         const common::AsyncToken& token) {
+common::TizenResult IotconInstance::ServerCreateResource(const picojson::object& args) {
   ScopeLogger();
 
-  CHECK_EXIST(args, kIsDiscoverable);
-  CHECK_EXIST(args, kIsObservable);
-  CHECK_EXIST(args, kResourceTypes);
-  CHECK_EXIST(args, kResourceInterfaces);
   CHECK_EXIST(args, kUriPath);
 
-  // TODO: consider support other properties
-  const bool is_discoverable = args.find(kIsDiscoverable)->second.get<bool>();
-  const bool is_observable = args.find(kIsObservable)->second.get<bool>();
-  const auto& resource_types = args.find(kResourceTypes)->second.get<picojson::array>();
-  const auto& resource_interfaces = args.find(kResourceInterfaces)->second.get<picojson::array>();
   const std::string& uri_path = args.find(kUriPath)->second.get<std::string>();
 
-  auto create = [this, is_discoverable, is_observable,
-                 resource_types, uri_path, resource_interfaces, token]() {
-    ScopeLogger("Create resource");
+  const auto& interfaces = GetArg(args, kResourceInterfaces);
+  const auto& resource_interfaces = interfaces.is<picojson::array>() ? interfaces.get<picojson::array>() : picojson::array();
 
-    picojson::value result = picojson::value(picojson::object());
-    ResourceInfoPtr resource{new ResourceInfo()};
-    auto ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
-                                       is_discoverable, is_observable, resource);
-    if (!ret) {
-      Post(token, ret);
-      return;
-    }
-    LoggerD("RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
+  const auto& types = GetArg(args, kResourceTypes);
+  const auto& resource_types = types.is<picojson::array>() ? types.get<picojson::array>() : picojson::array();
 
-    ret = IotconUtils::ResourceToJson(resource, manager_, &(result.get<picojson::object>()));
-    if (!ret) {
-      Post(token, ret);
-      return;
-    }
+  int properties = IOTCON_RESOURCE_NO_PROPERTY;
 
-    Post(token, common::TizenSuccess{result});
-  };
+  const auto& observable = GetArg(args, kIsObservable);
+  properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY;
 
-  std::thread{create}.detach();
+  const auto& discoverable = GetArg(args, kIsDiscoverable);
+  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : false) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
 
-  return common::TizenSuccess();
+  const auto& active = GetArg(args, kIsActive);
+  properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& slow = GetArg(args, kIsSlow);
+  properties |= (slow.is<bool>() ? slow.get<bool>() : false) ? IOTCON_RESOURCE_SLOW : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& secure = GetArg(args, kIsSecure);
+  properties |= (secure.is<bool>() ? secure.get<bool>() : false) ? IOTCON_RESOURCE_SECURE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& explicit_discoverable = GetArg(args, kIsExplicitDiscoverable);
+  properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  ResourceInfoPtr resource{new ResourceInfo()};
+  auto ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
+                                     properties, resource);
+  if (!ret) {
+    return ret;
+  }
+
+  LoggerD("RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
+
+  picojson::value result = picojson::value(picojson::object());
+  ret = IotconUtils::ResourceToJson(resource, manager_, &(result.get<picojson::object>()));
+  if (!ret) {
+    return ret;
+  }
+
+  return common::TizenSuccess{result};
 }
 
-common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object& args,
-                                                         const common::AsyncToken& token) {
+common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
-}
 
-common::TizenResult IotconInstance::ServerUpdateResource(const picojson::object& args,
-                                                         const common::AsyncToken& token) {
-  ScopeLogger();
-  return common::UnknownError("Not implemented");
+  CHECK_EXIST(args, kResourceId);
+
+  return manager_.DestroyResource(GetId(args));
 }
 
 common::TizenResult IotconInstance::GetTimeout(const picojson::object& args) {
