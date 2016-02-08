@@ -72,6 +72,8 @@ class IotconUtils {
   static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
                                             const IotconServerManager& manager,
                                             picojson::object* res);
+
+  static common::TizenResult ConvertIotconError(int error);
 };
 
 } // namespace iotcon

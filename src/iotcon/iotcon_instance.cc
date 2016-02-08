@@ -339,10 +339,10 @@ common::TizenResult IotconInstance::GetTimeout(const picojson::object& args) {
   ScopeLogger();
 
   int timeout = 0;
-  int ret = iotcon_get_timeout(&timeout);
+  auto result = IotconUtils::ConvertIotconError(iotcon_get_timeout(&timeout));
 
-  if (IOTCON_ERROR_NONE != ret) {
-    return LogAndCreateTizenError(UnknownError, ret);
+  if (!result) {
+    LogAndReturnTizenError(result);
   }
 
   return common::TizenSuccess{picojson::value{static_cast<double>(timeout)}};
@@ -354,10 +354,10 @@ common::TizenResult IotconInstance::SetTimeout(const picojson::object& args) {
   CHECK_EXIST(args, "timeout");
 
   int timeout = static_cast<int>(args.find("timeout")->second.get<double>());
+  auto result = IotconUtils::ConvertIotconError(iotcon_set_timeout(timeout));
 
-  int ret = iotcon_set_timeout(timeout);
-  if (IOTCON_ERROR_NONE != ret) {
-    return LogAndCreateTizenError(UnknownError, ret);
+  if (!result) {
+    LogAndReturnTizenError(result);
   }
 
   return common::TizenSuccess();

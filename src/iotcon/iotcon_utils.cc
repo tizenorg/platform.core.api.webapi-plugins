@@ -108,23 +108,19 @@ TizenResult IotconUtils::ArrayToTypes(const picojson::array& types, iotcon_resou
   ScopeLogger();
 
   iotcon_resource_types_h resource_types = nullptr;
-  int ret = iotcon_resource_types_create(&resource_types);
-  if (IOTCON_ERROR_NONE != ret) {
-    return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
-                                  ("iotcon_resource_types_create failed: %d (%s)",
-                                  ret, get_error_message(ret)));
+  auto result = ConvertIotconError(iotcon_resource_types_create(&resource_types));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_types_create() failed"));
   }
 
   for (auto iter = types.begin(); iter != types.end(); ++iter) {
     if (!iter->is<std::string>()) {
       return LogAndCreateTizenError(InvalidValuesError, "Array holds incorrect types");
     } else {
-      ret = iotcon_resource_types_add(resource_types, iter->get<std::string>().c_str());
-      if (IOTCON_ERROR_NONE != ret) {
+      result = ConvertIotconError(iotcon_resource_types_add(resource_types, iter->get<std::string>().c_str()));
+      if (!result) {
         iotcon_resource_types_destroy(resource_types);
-        return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
-                                      ("iotcon_resource_types_add failed: %d (%s)",
-                                      ret, get_error_message(ret)));
+        LogAndReturnTizenError(result, ("iotcon_resource_types_add() failed"));
       }
     }
   }
@@ -152,28 +148,24 @@ TizenResult IotconUtils::ExtractFromResource(const ResourceInfoPtr& pointer,
                                              int* properties) {
   ScopeLogger();
 
-  int ret = iotcon_resource_get_uri_path (pointer->handle, uri_path);
-  if (IOTCON_ERROR_NONE != ret) {
-    LoggerD("Error %s", get_error_message(ret));
-    return LogAndCreateTizenError(UnknownError, "Gathering resource uri path failed");
+  auto result = ConvertIotconError(iotcon_resource_get_uri_path(pointer->handle, uri_path));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering resource uri path failed"));
   }
 
-  ret = iotcon_resource_get_types (pointer->handle, res_types);
-  if (IOTCON_ERROR_NONE != ret) {
-    LoggerD("Error %s", get_error_message(ret));
-    return LogAndCreateTizenError(UnknownError, "Gathering resource types failed");
+  result = ConvertIotconError(iotcon_resource_get_types(pointer->handle, res_types));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering resource types failed"));
   }
 
-  ret = iotcon_resource_get_interfaces (pointer->handle, ifaces);
-  if (IOTCON_ERROR_NONE != ret) {
-    LoggerD("Error %s", get_error_message(ret));
-    return LogAndCreateTizenError(UnknownError, "Gathering resource interfaces failed");
+  result = ConvertIotconError(iotcon_resource_get_interfaces(pointer->handle, ifaces));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering resource interfaces failed"));
   }
 
-  ret = iotcon_resource_get_properties (pointer->handle, properties);
-  if (IOTCON_ERROR_NONE != ret) {
-    LoggerD("Error %s", get_error_message(ret));
-    return LogAndCreateTizenError(UnknownError, "Gathering resource properties failed");
+  result = ConvertIotconError(iotcon_resource_get_properties(pointer->handle, properties));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering resource properties failed"));
   }
   return TizenSuccess();
 }
@@ -237,6 +229,45 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
   // observerIds would be done on demand from JS
 
   return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::ConvertIotconError(int error) {
+  switch (error) {
+    case IOTCON_ERROR_NONE:
+      return common::TizenSuccess();
+
+    case IOTCON_ERROR_IO_ERROR:
+      return common::IoError(error);
+
+    case IOTCON_ERROR_PERMISSION_DENIED:
+      return common::SecurityError(error);
+
+    case IOTCON_ERROR_NOT_SUPPORTED:
+      return common::NotSupportedError(error);
+
+    case IOTCON_ERROR_INVALID_PARAMETER:
+      return common::InvalidValuesError(error);
+
+    case IOTCON_ERROR_NO_DATA:
+      return common::NotFoundError(error);
+
+    case IOTCON_ERROR_TIMEOUT:
+      return common::TimeoutError(error);
+
+    case IOTCON_ERROR_INVALID_TYPE:
+      return common::TypeMismatchError(error);
+
+    case IOTCON_ERROR_ALREADY:
+      return common::InvalidStateError(error);
+
+    case IOTCON_ERROR_OUT_OF_MEMORY:
+    case IOTCON_ERROR_IOTIVITY:
+    case IOTCON_ERROR_REPRESENTATION:
+    case IOTCON_ERROR_DBUS:
+    case IOTCON_ERROR_SYSTEM:
+    default:
+      return common::AbortError(error);
+  }
 }
 
 } // namespace iotcon

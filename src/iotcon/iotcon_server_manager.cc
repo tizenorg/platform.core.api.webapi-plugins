@@ -62,9 +62,9 @@ TizenResult IotconServerManager::RestoreHandles() {
                                      nullptr, // user_data
                                      &(resource->handle));
     if (IOTCON_ERROR_NONE != ret || nullptr == resource->handle) {
-      return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
-                                    ("iotcon_resource_create failed: %d (%s)",
-                                    ret, get_error_message(ret)));
+      LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
+                             ("iotcon_resource_create() failed: %d (%s)",
+                                 ret, get_error_message(ret)));
     }
     LoggerD("new handle: %p", (resource->handle));
     if (old_handle) {
@@ -114,9 +114,9 @@ TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
                                nullptr, // user_data
                                &(res_pointer->handle));
   if (IOTCON_ERROR_NONE != ret || nullptr == res_pointer->handle) {
-    return LogAndCreateTizenError(UnknownError, "Unknown error occurred.",
-                                  ("iotcon_resource_create failed: %d (%s)",
-                                  ret, get_error_message(ret)));
+    LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
+                           ("iotcon_resource_create() failed: %d (%s)",
+                               ret, get_error_message(ret)));
   }
 
   // storing ResourceInfo into map

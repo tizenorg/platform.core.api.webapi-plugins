@@ -223,6 +223,27 @@ public:
      LogAndCreateTizenError_1(__VA_ARGS__) \
   )
 
+// internal macros
+#define LogAndReturnTizenError_1(error) \
+  do { \
+    LoggerE("Reporting error."); \
+    return error; \
+  } while(false)
+
+#define LogAndReturnTizenError_2(error, log) \
+  do { \
+    LoggerE log; \
+    return error; \
+  } while(false)
+
+#define LogAndReturnTizenError_X(_0, _1, _2, FUNC, ...) FUNC
+
+#define LogAndReturnTizenError(...) \
+  LogAndReturnTizenError_X(, ##__VA_ARGS__, \
+     LogAndReturnTizenError_2(__VA_ARGS__), \
+     LogAndReturnTizenError_1(__VA_ARGS__) \
+  )
+
 namespace common {
 
 // defined here, so LoggerD() depends on TIZEN_DEBUG_ENABLE flag on per-module
