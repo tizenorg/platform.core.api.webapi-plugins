@@ -47,7 +47,7 @@ class BluetoothLEDevice {
   void RemoveConnectStateChangeListener(const picojson::value& data,
                                         picojson::object& out);
 
-  void GetServiceUuids(const picojson::value& data, picojson::object& out);
+  void GetServiceAllUuids(const picojson::value& data, picojson::object& out);
 
   static common::PlatformResult ToJson(
       bt_adapter_le_device_scan_result_info_s* info,

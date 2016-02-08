@@ -439,7 +439,7 @@ void BluetoothLEDevice::RemoveConnectStateChangeListener(
   ReportSuccess(out);
 }
 
-void BluetoothLEDevice::GetServiceUuids(const picojson::value& data,
+void BluetoothLEDevice::GetServiceAllUuids(const picojson::value& data,
                                         picojson::object& out) {
   LoggerD("Entered");
 
@@ -449,7 +449,7 @@ void BluetoothLEDevice::GetServiceUuids(const picojson::value& data,
   picojson::value response = picojson::value(picojson::array());
   picojson::array *data_obj = &response.get<picojson::array>();
 
-  PlatformResult result = service_.GetServiceUuids(address, data_obj);
+  PlatformResult result = service_.GetServiceAllUuids(address, data_obj);
 
   if (result) {
     ReportSuccess(response, out);

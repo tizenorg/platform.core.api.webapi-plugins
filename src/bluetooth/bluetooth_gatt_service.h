@@ -48,8 +48,8 @@ class BluetoothGATTService {
   void RemoveValueChangeListener(const picojson::value& args,
                                  picojson::object& out);
 
-  common::PlatformResult GetServiceUuids(const std::string& address,
-                                         picojson::array* array);
+  common::PlatformResult GetServiceAllUuids(const std::string& address,
+                                            picojson::array* array);
 
  private:
   bool IsStillConnected(const std::string& address);
