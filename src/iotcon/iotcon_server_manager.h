@@ -47,10 +47,12 @@ class IotconServerManager {
   common::TizenResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
   common::TizenResult DestroyResource(long long id);
  private:
+  common::TizenResult GetResourceByHandle(iotcon_resource_h resource, ResourceInfoPtr* res_pointer) const;
+
   IotconInstance* instance_;
   ResourceInfoMap resource_map_;
-  long long global_id_;
 };
+
 } // namespace iotcon
 } // namespace extension
 

@@ -26,9 +26,17 @@ namespace iotcon {
 using common::TizenResult;
 using common::TizenSuccess;
 
+namespace {
+
+long long GetNextId() {
+  static long long id = 0;
+  return ++id;
+}
+
+}  // namespace
+
 IotconServerManager::IotconServerManager(IotconInstance* instance)
-      : instance_(instance),
-        global_id_(0) {
+      : instance_(instance) {
   ScopeLogger();
 }
 
@@ -59,7 +67,7 @@ TizenResult IotconServerManager::RestoreHandles() {
 
     int ret = iotcon_resource_create(uri_path, res_types, ifaces, properties,
                                      RequestHandler, // request_callback
-                                     nullptr, // user_data
+                                     this, // user_data
                                      &(resource->handle));
     if (IOTCON_ERROR_NONE != ret || nullptr == resource->handle) {
       LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
@@ -82,7 +90,78 @@ TizenResult IotconServerManager::RestoreHandles() {
 void IotconServerManager::RequestHandler(iotcon_resource_h resource,
                                          iotcon_request_h request, void *user_data) {
   ScopeLogger();
-  // TODO probably should be handled somehow later
+
+  auto that = static_cast<IotconServerManager*>(user_data);
+  ResourceInfoPtr r;
+  auto result = that->GetResourceByHandle(resource, &r);
+
+  if (!result) {
+    LoggerE("Resource is not handled by the manager!");
+    return;
+  }
+
+  // handle observer changes
+  iotcon_observe_type_e type = IOTCON_OBSERVE_NO_TYPE;
+  result = IotconUtils::ConvertIotconError(iotcon_request_get_observe_type(request, &type));
+
+  if (!result) {
+    LoggerE("iotcon_request_get_observe_type() failed");
+    return;
+  }
+
+  int observer_id = -1;
+  result = IotconUtils::ConvertIotconError(iotcon_request_get_observe_id(request, &observer_id));
+
+  if (!result) {
+    LoggerE("iotcon_request_get_observe_id() failed");
+    return;
+  }
+
+  switch (type) {
+    case IOTCON_OBSERVE_NO_TYPE:
+      LoggerD("observer did not change");
+      break;
+
+    case IOTCON_OBSERVE_REGISTER:
+      LoggerD("Observer has been registered: %d", observer_id);
+      r->observers.insert(observer_id);
+      break;
+
+    case IOTCON_OBSERVE_DEREGISTER:
+      LoggerD("Observer has been deregistered: %d", observer_id);
+      r->observers.erase(observer_id);
+      break;
+  }
+
+  if (r->request_listener) {
+    // convert request to JSON
+    picojson::value value{picojson::object{}};
+    auto& obj = value.get<picojson::object>();
+
+    result = IotconUtils::RequestToJson(request, &obj);
+
+    if (!result) {
+      LoggerE("RequestToJson() failed");
+      return;
+    }
+
+    // create response
+    iotcon_response_h response = nullptr;
+    result = IotconUtils::ConvertIotconError(iotcon_response_create(request, &response));
+
+    if (!result) {
+      LoggerE("iotcon_response_create() failed");
+      return;
+    }
+
+    // store data
+    long long id = GetNextId();
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
+    r->unhandled_responses.insert(std::make_pair(id, response));
+
+    // call listener
+    r->request_listener(TizenSuccess(), value);
+  }
 }
 
 TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
@@ -111,7 +190,7 @@ TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
                                interfaces,
                                properties,
                                RequestHandler, // request_callback
-                               nullptr, // user_data
+                               this, // user_data
                                &(res_pointer->handle));
   if (IOTCON_ERROR_NONE != ret || nullptr == res_pointer->handle) {
     LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
@@ -120,7 +199,7 @@ TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
   }
 
   // storing ResourceInfo into map
-  res_pointer->id = ++global_id_;
+  res_pointer->id = GetNextId();
   resource_map_.insert(std::make_pair(res_pointer->id, res_pointer));
   return TizenSuccess();
 }
@@ -148,6 +227,24 @@ common::TizenResult IotconServerManager::DestroyResource(long long id) {
   } else {
     return LogAndCreateTizenError(NotFoundError, "Resource with specified ID does not exist");
   }
+}
+
+common::TizenResult IotconServerManager::GetResourceByHandle(
+    iotcon_resource_h resource, ResourceInfoPtr* res_pointer) const {
+  ScopeLogger();
+
+  auto it = std::find_if(resource_map_.begin(), resource_map_.end(), [resource](const ResourceInfoMap::value_type& p) -> bool {
+    return p.second->handle == resource;
+  });
+
+  if (it == resource_map_.end()) {
+    return LogAndCreateTizenError(NotFoundError, "Resource with specified handle does not exist");
+  }
+
+  LoggerE("Resource found");
+  *res_pointer = it->second;
+
+  return TizenSuccess();
 }
 
 }  // namespace iotcon

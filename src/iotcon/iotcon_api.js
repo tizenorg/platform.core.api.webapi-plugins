@@ -29,8 +29,11 @@ function createListener(name, c) {
   var jsListenerRegistered = false;
 
   function internalCallback(response) {
-    if (listeners[response.id]) {
-      listeners[response.id](callback(response));
+    if (native.isSuccess(response)) {
+      response = native.getResultObject(response);
+      if (listeners[response.id]) {
+        listeners[response.id](callback(response));
+      }
     }
   }
 
@@ -199,45 +202,6 @@ function PresenceResponse(data) {
   decorateWithData(data, this);
 }
 
-function Query(resourceTypes, resourceInterface, filters) {
-  validator.isConstructorCall(this, tizen.Query);
-
-  Object.defineProperties(this, {
-    resourceTypes: {
-      value: resourceTypes || null,
-      writable: true,
-      enumerable: true
-    },
-    resourceInterface: {
-      value: resourceInterface || null,
-      writable: true,
-      enumerable: true
-    },
-    filters: {
-      value: filters || null,
-      writable: true,
-      enumerable: true
-    }
-  });
-}
-
-function QueryFilter(key, value) {
-  validator.isConstructorCall(this, tizen.QueryFilter);
-
-  Object.defineProperties(this, {
-    key: {
-      value: key,
-      writable: true,
-      enumerable: true
-    },
-    value: {
-      value: value,
-      writable: true,
-      enumerable: true
-    }
-  });
-}
-
 function Representation(uriPath) {
   validator.isConstructorCall(this, tizen.Representation);
 
@@ -294,6 +258,18 @@ function Request(data) {
   this[kIdKey] = data.id;
 
   delete data.id;
+
+  if (data.representation) {
+    data.representation = createRepresentation(data.representation);
+  }
+
+  if (data.options) {
+    var options = [];
+    for (var i = 0; i < data.options.length; ++i) {
+      options.push(new IotconOption(data.options[i].id, data.options[i].data));
+    }
+    data.options = options;
+  }
 
   decorateWithData(data, this);
 }
@@ -422,7 +398,9 @@ Resource.prototype.removeChildResource = function() {
   }
 };
 
-var resourceRequestListener = createListener('ResourceRequestListener');
+var resourceRequestListener = createListener('ResourceRequestListener', function(response) {
+  return new Request(response.data);
+});
 
 Resource.prototype.setRequestListener = function() {
   var args = validator.validateMethod(arguments, [{
@@ -434,7 +412,7 @@ Resource.prototype.setRequestListener = function() {
   callArgs.id = this[kIdKey];
 
   var listener = function(result) {
-    native.callIfPossible(args.successCallback, native.getResultObject(result));
+    args.successCallback(result);
   };
 
   var result = native.callSync('IotconResource_setRequestListener', callArgs);
@@ -450,7 +428,7 @@ Resource.prototype.unsetRequestListener = function() {
   var callArgs = {};
   callArgs.id = this[kIdKey];
 
-  var result = native.callSync('IotconRemoteResource_unsetRequestListener', callArgs);
+  var result = native.callSync('IotconResource_unsetRequestListener', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
@@ -565,8 +543,7 @@ function RemoteResource(data) {
 RemoteResource.prototype.methodGet = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'query',
-    type: types.PLATFORM_OBJECT,
-    values: Query
+    type: types.DICTIONARY
   }, {
     name: 'responseCallback',
     type: types.FUNCTION
@@ -604,8 +581,7 @@ RemoteResource.prototype.methodPut = function() {
     values: Representation
   }, {
     name: 'query',
-    type: types.PLATFORM_OBJECT,
-    values: Query
+    type: types.DICTIONARY
   }, {
     name: 'responseCallback',
     type: types.FUNCTION
@@ -644,8 +620,7 @@ RemoteResource.prototype.methodPost = function() {
     values: Representation
   }, {
     name: 'query',
-    type: types.PLATFORM_OBJECT,
-    values: Query
+    type: types.DICTIONARY
   }, {
     name: 'responseCallback',
     type: types.FUNCTION
@@ -712,8 +687,7 @@ var stateChangeListener = createListener('RemoteResourceStateChangeListener');
 RemoteResource.prototype.setStateChangeListener = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'query',
-    type: types.PLATFORM_OBJECT,
-    values: Query
+    type: types.DICTIONARY
   }, {
     name: 'observePolicy',
     type: types.ENUM,
@@ -1117,8 +1091,6 @@ Iotcon.prototype.setTimeout = function() {
 
 // Exports
 tizen.IotconOption = IotconOption;
-tizen.Query = Query;
-tizen.QueryFilter = QueryFilter;
 tizen.Representation = Representation;
 tizen.Response = Response;
 tizen.State = State;

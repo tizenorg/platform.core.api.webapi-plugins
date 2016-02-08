@@ -43,7 +43,7 @@ class IotconInstance : public common::TizenInstance {
   common::TizenResult ResourceRemoveChildResource(const picojson::object& args,
                                                   const common::AsyncToken& token);
   common::TizenResult ResourceSetRequestListener(const picojson::object& args);
-  common::TizenResult RemoteResourceUnsetRequestListener(const picojson::object& args);
+  common::TizenResult ResourceUnsetRequestListener(const picojson::object& args);
   common::TizenResult ResponseSend(const picojson::object& args);
   common::TizenResult RemoteResourceGetCachedRepresentation(const picojson::object& args);
   common::TizenResult RemoteResourceMethodGet(const picojson::object& args,

@@ -33,7 +33,7 @@ namespace {
   }
 
 long long GetId(const picojson::object& args) {
-  return static_cast<long long>(args.find(kResourceId)->second.get<double>());
+  return static_cast<long long>(args.find(kId)->second.get<double>());
 }
 
 const picojson::value& GetArg(const picojson::object& args, const std::string& name) {
@@ -46,6 +46,8 @@ const picojson::value& GetArg(const picojson::object& args, const std::string& n
     return it->second;
   }
 }
+
+const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
 
 }  // namespace
 
@@ -60,7 +62,7 @@ IotconInstance::IotconInstance() : manager_(this) {
 
   REGISTER_SYNC("IotconResource_getObserverIds", ResourceGetObserverIds);
   REGISTER_SYNC("IotconResource_setRequestListener", ResourceSetRequestListener);
-  REGISTER_SYNC("IotconRemoteResource_unsetRequestListener", RemoteResourceUnsetRequestListener);
+  REGISTER_SYNC("IotconResource_unsetRequestListener", ResourceUnsetRequestListener);
   REGISTER_SYNC("IotconResponse_send", ResponseSend);
   REGISTER_SYNC("IotconRemoteResource_getCachedRepresentation", RemoteResourceGetCachedRepresentation);
   REGISTER_SYNC("IotconRemoteResource_setStateChangeListener", RemoteResourceSetStateChangeListener);
@@ -176,12 +178,47 @@ common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::
 
 common::TizenResult IotconInstance::ResourceSetRequestListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+
+  ResourceInfoPtr resource;
+  long long id = GetId(args);
+  auto result = manager_.GetResourceById(id, &resource);
+
+  if (!result) {
+    return result;
+  }
+
+  if (!resource->request_listener) {
+    resource->request_listener = [this, id](const common::TizenResult&, const picojson::value& v) {
+      picojson::value response{picojson::object{}};
+      auto& obj = response.get<picojson::object>();
+
+      obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
+      obj.insert(std::make_pair("data", v));
+
+      Post(kResourceRequestListenerToken, common::TizenSuccess{response});
+    };
+  }
+
+  return common::TizenSuccess();
 }
 
-common::TizenResult IotconInstance::RemoteResourceUnsetRequestListener(const picojson::object& args) {
+common::TizenResult IotconInstance::ResourceUnsetRequestListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+
+  ResourceInfoPtr resource;
+  auto result = manager_.GetResourceById(GetId(args), &resource);
+
+  if (!result) {
+    return result;
+  }
+
+  resource->request_listener = nullptr;
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
@@ -330,7 +367,7 @@ common::TizenResult IotconInstance::ServerCreateResource(const picojson::object&
 common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object& args) {
   ScopeLogger();
 
-  CHECK_EXIST(args, kResourceId);
+  CHECK_EXIST(args, kId);
 
   return manager_.DestroyResource(GetId(args));
 }

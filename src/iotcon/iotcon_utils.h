@@ -17,14 +17,17 @@
 #ifndef WEBAPI_PLUGINS_IOTCON_IOTCON_UTILS_H__
 #define WEBAPI_PLUGINS_IOTCON_IOTCON_UTILS_H__
 
-#include <string>
-#include <memory>
-#include <vector>
 #include <map>
+#include <memory>
+#include <set>
 #include <stdlib.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <iotcon.h>
 
+#include "common/tizen_instance.h"
 #include "common/tizen_result.h"
 
 namespace extension {
@@ -40,16 +43,23 @@ extern const std::string kResourceTypes;
 extern const std::string kResourceInterfaces;
 extern const std::string kResourceChildren;
 extern const std::string kUriPath;
-extern const std::string kResourceId;
+extern const std::string kStates;
+extern const std::string kId;
 
 struct ResourceInfo {
   long long id;
   std::vector<long long> children_ids;
   iotcon_resource_h handle;
+  std::set<int> observers;
+  common::PostCallback request_listener;
+  std::unordered_map<long long, iotcon_response_h> unhandled_responses;
   ResourceInfo() :
     id(0), handle(nullptr) {}
   ~ResourceInfo() {
-    iotcon_resource_destroy (handle);
+    iotcon_resource_destroy(handle);
+    for (auto& it : unhandled_responses) {
+      iotcon_response_destroy(it.second);
+    }
   }
 };
 
@@ -60,7 +70,6 @@ class IotconServerManager;
 
 class IotconUtils {
  public:
-  static common::TizenResult StringToInterface(const std::string& interface, iotcon_interface_e* res);
   static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
   static picojson::array InterfacesToArray(int interfaces);
   static common::TizenResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
@@ -73,7 +82,26 @@ class IotconUtils {
                                             const IotconServerManager& manager,
                                             picojson::object* res);
 
+  static common::TizenResult RequestToJson(iotcon_request_h request,
+                                           picojson::object* out);
+  static common::TizenResult RepresentationToJson(iotcon_representation_h representation,
+                                                  picojson::object* out);
+  static common::TizenResult StateToJson(iotcon_state_h state,
+                                         picojson::object* out);
+  static common::TizenResult StateListToJson(iotcon_list_h list,
+                                             picojson::array* out);
+  static common::TizenResult OptionsToJson(iotcon_options_h  options,
+                                           picojson::array* out);
+  static common::TizenResult QueryToJson(iotcon_query_h query,
+                                         picojson::object* out);
+
   static common::TizenResult ConvertIotconError(int error);
+  static std::string FromConnectivityType(iotcon_connectivity_type_e e);
+  static std::string FromRequestType(iotcon_request_type_e e);
+  static std::string FromObserveType(iotcon_observe_type_e e);
+  static std::string FromInterface(iotcon_interface_e e);
+
+  static iotcon_interface_e ToInterface(const std::string& e);
 };
 
 } // namespace iotcon
