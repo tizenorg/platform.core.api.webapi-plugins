@@ -19,6 +19,7 @@
 #include <thread>
 
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 #include "iotcon/iotcon_utils.h"
 
@@ -49,9 +50,12 @@ const picojson::value& GetArg(const picojson::object& args, const std::string& n
 
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
 
+const std::string kObserverIds = "observerIds";
+const std::string kQos = "qos";
+
 }  // namespace
 
-IotconInstance::IotconInstance() : manager_(this) {
+IotconInstance::IotconInstance() {
   ScopeLogger();
 
   using std::placeholders::_1;
@@ -61,6 +65,7 @@ IotconInstance::IotconInstance() : manager_(this) {
   RegisterSyncHandler(c, std::bind(&IotconInstance::x, this, _1))
 
   REGISTER_SYNC("IotconResource_getObserverIds", ResourceGetObserverIds);
+  REGISTER_SYNC("IotconResource_notify", ResourceNotify);
   REGISTER_SYNC("IotconResource_setRequestListener", ResourceSetRequestListener);
   REGISTER_SYNC("IotconResource_unsetRequestListener", ResourceUnsetRequestListener);
   REGISTER_SYNC("IotconResponse_send", ResponseSend);
@@ -83,7 +88,6 @@ IotconInstance::IotconInstance() : manager_(this) {
 #define REGISTER_ASYNC(c, x) \
   RegisterHandler(c, std::bind(&IotconInstance::x, this, _1, _2));
 
-  REGISTER_ASYNC("IotconResource_notify", ResourceNotify);
   REGISTER_ASYNC("IotconResource_addResourceTypes", ResourceAddResourceTypes);
   REGISTER_ASYNC("IotconResource_addResourceInterfaces", ResourceAddResourceInterfaces);
   REGISTER_ASYNC("IotconResource_addChildResource", ResourceAddChildResource);
@@ -127,7 +131,7 @@ void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_dat
     }
 
     LoggerD("Connection recovered, restoring handles");
-    auto ret = instance->manager_.RestoreHandles();
+    auto ret = IotconServerManager::GetInstance().RestoreHandles();
     if (!ret) {
       LoggerD("Connection recovered, but restoring handles failed");
     }
@@ -146,10 +150,82 @@ common::TizenResult IotconInstance::ResourceGetObserverIds(const picojson::objec
   return common::UnknownError("Not implemented");
 }
 
-common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args,
-                                                   const common::AsyncToken& token) {
+common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+  CHECK_EXIST(args, kQos);
+  CHECK_EXIST(args, kStates);
+
+  ResourceInfoPtr resource;
+  long long id = GetId(args);
+  auto result = IotconServerManager::GetInstance().GetResourceById(id, &resource);
+
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() failed"));
+  }
+
+  auto& qos = GetArg(args, kQos);
+  if (!qos.is<std::string>()) {
+    return common::TypeMismatchError("QOS needs to be a string");
+  }
+
+  // create observers to notify
+  auto& observer_ids = GetArg(args, kObserverIds);
+
+  std::vector<int> observers;
+
+  if (observer_ids.is<picojson::array>()) {
+    // use provided list, make sure that observer exists
+    for (auto& id : observer_ids.get<picojson::array>()) {
+      if (id.is<double>()) {
+        auto v = static_cast<int>(id.get<double>());
+        if (resource->observers.end() != resource->observers.find(v)) {
+          observers.push_back(v);
+        }
+      }
+    }
+  } else {
+    // use own list
+    observers.assign(resource->observers.begin(), resource->observers.end());
+  }
+
+  // create & initialize platform object
+  iotcon_observers_h observers_handle = nullptr;
+  result = IotconUtils::ConvertIotconError(iotcon_observers_create(&observers_handle));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_observers_create() failed"));
+  }
+
+  SCOPE_EXIT {
+    iotcon_observers_destroy(observers_handle);
+  };
+
+  for (auto& id : observers) {
+    result = IotconUtils::ConvertIotconError(iotcon_observers_add(observers_handle, id));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_observers_add() failed"));
+    }
+  }
+
+  // create representation from resource and states
+  iotcon_representation_h representation = nullptr;
+
+  result = IotconUtils::RepresentationFromResource(resource, GetArg(args, kStates), &representation);
+  if (!result) {
+    LogAndReturnTizenError(result, ("RepresentationFromResource() failed"));
+  }
+
+  SCOPE_EXIT {
+    iotcon_representation_destroy(representation);
+  };
+
+  result = IotconUtils::ConvertIotconError(iotcon_resource_notify(resource->handle, representation, observers_handle, IotconUtils::ToQos(qos.get<std::string>())));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_notify() failed"));
+  }
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::ResourceAddResourceTypes(const picojson::object& args,
@@ -183,7 +259,7 @@ common::TizenResult IotconInstance::ResourceSetRequestListener(const picojson::o
 
   ResourceInfoPtr resource;
   long long id = GetId(args);
-  auto result = manager_.GetResourceById(id, &resource);
+  auto result = IotconServerManager::GetInstance().GetResourceById(id, &resource);
 
   if (!result) {
     return result;
@@ -210,7 +286,7 @@ common::TizenResult IotconInstance::ResourceUnsetRequestListener(const picojson:
   CHECK_EXIST(args, kId);
 
   ResourceInfoPtr resource;
-  auto result = manager_.GetResourceById(GetId(args), &resource);
+  auto result = IotconServerManager::GetInstance().GetResourceById(GetId(args), &resource);
 
   if (!result) {
     return result;
@@ -347,8 +423,8 @@ common::TizenResult IotconInstance::ServerCreateResource(const picojson::object&
   properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
 
   ResourceInfoPtr resource{new ResourceInfo()};
-  auto ret = manager_.CreateResource(uri_path, resource_interfaces, resource_types,
-                                     properties, resource);
+  auto ret = IotconServerManager::GetInstance().CreateResource(uri_path, resource_interfaces, resource_types,
+                                                               properties, resource);
   if (!ret) {
     return ret;
   }
@@ -356,7 +432,7 @@ common::TizenResult IotconInstance::ServerCreateResource(const picojson::object&
   LoggerD("RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
 
   picojson::value result = picojson::value(picojson::object());
-  ret = IotconUtils::ResourceToJson(resource, manager_, &(result.get<picojson::object>()));
+  ret = IotconUtils::ResourceToJson(resource, &(result.get<picojson::object>()));
   if (!ret) {
     return ret;
   }
@@ -369,7 +445,7 @@ common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object&
 
   CHECK_EXIST(args, kId);
 
-  return manager_.DestroyResource(GetId(args));
+  return IotconServerManager::GetInstance().DestroyResource(GetId(args));
 }
 
 common::TizenResult IotconInstance::GetTimeout(const picojson::object& args) {

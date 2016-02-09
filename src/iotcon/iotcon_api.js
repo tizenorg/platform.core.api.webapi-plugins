@@ -173,6 +173,11 @@ var PresenceTriggerType = {
   DEREGISTER: 'DEREGISTER'
 };
 
+var QosLevel = {
+  LOW: 'LOW',
+  HIGH: 'HIGH'
+};
+
 function DeviceInfo(data) {
   decorateWithData(data, this);
 }
@@ -300,6 +305,10 @@ function Resource(data) {
 
 Resource.prototype.notify = function() {
   var args = validator.validateMethod(arguments, [{
+    name: 'qos',
+    type: types.ENUM,
+    values: T.getValues(QosLevel)
+  }, {
     name: 'observerIds',
     type: types.ARRAY,
     values: types.LONG,
@@ -307,11 +316,22 @@ Resource.prototype.notify = function() {
     nullable: true
   }]);
 
+  var states = {};
+  function getStates(r) {
+    states[r[kIdKey]] = r.states;
+    for (var i = 0; i < r.resources.length; ++i) {
+      getStates(r.resources[i]);
+    }
+  }
+  getStates(this);
+
   var callArgs = {};
   callArgs.id = this[kIdKey];
+  callArgs.qos = args.qos;
   callArgs.observerIds = args.observerIds;
+  callArgs.states = states;
 
-  var result = native.call('IotconResource_notify', callArgs);
+  var result = native.callSync('IotconResource_notify', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);

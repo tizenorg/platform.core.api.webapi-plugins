@@ -66,8 +66,6 @@ struct ResourceInfo {
 typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
 typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
 
-class IotconServerManager;
-
 class IotconUtils {
  public:
   static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
@@ -79,7 +77,6 @@ class IotconUtils {
                                                  int* ifaces,
                                                  int* properties);
   static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
-                                            const IotconServerManager& manager,
                                             picojson::object* res);
 
   static common::TizenResult RequestToJson(iotcon_request_h request,
@@ -95,6 +92,15 @@ class IotconUtils {
   static common::TizenResult QueryToJson(iotcon_query_h query,
                                          picojson::object* out);
 
+  static common::TizenResult RepresentationFromResource(const ResourceInfoPtr& resource,
+                                                        const picojson::value& states,
+                                                        iotcon_representation_h* representation);
+
+  static common::TizenResult StateFromJson(const picojson::object& state,
+                                           iotcon_state_h* out);
+  static common::TizenResult StateListFromJson(const picojson::array& list,
+                                               iotcon_list_h* out);
+
   static common::TizenResult ConvertIotconError(int error);
   static std::string FromConnectivityType(iotcon_connectivity_type_e e);
   static std::string FromRequestType(iotcon_request_type_e e);
@@ -102,6 +108,7 @@ class IotconUtils {
   static std::string FromInterface(iotcon_interface_e e);
 
   static iotcon_interface_e ToInterface(const std::string& e);
+  static iotcon_qos_e ToQos(const std::string& e);
 };
 
 } // namespace iotcon

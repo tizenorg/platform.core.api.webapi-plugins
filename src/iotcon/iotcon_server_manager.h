@@ -33,11 +33,8 @@ class IotconInstance;
 
 class IotconServerManager {
  public:
-  IotconServerManager(IotconInstance* instance);
-  ~IotconServerManager();
+  static IotconServerManager& GetInstance();
 
-  static void RequestHandler(iotcon_resource_h resource,
-                             iotcon_request_h request, void *user_data);
   common::TizenResult RestoreHandles();
   common::TizenResult CreateResource(const std::string& uri_path,
                                      const picojson::array& interfaces_array,
@@ -46,10 +43,18 @@ class IotconServerManager {
                                      ResourceInfoPtr res_pointer);
   common::TizenResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
   common::TizenResult DestroyResource(long long id);
- private:
   common::TizenResult GetResourceByHandle(iotcon_resource_h resource, ResourceInfoPtr* res_pointer) const;
 
-  IotconInstance* instance_;
+ private:
+  IotconServerManager() = default;
+  IotconServerManager(const IotconServerManager&) = delete;
+  IotconServerManager(IotconServerManager&&) = delete;
+  IotconServerManager& operator=(const IotconServerManager&) = delete;
+  IotconServerManager& operator=(IotconServerManager&&) = delete;
+
+  static void RequestHandler(iotcon_resource_h resource,
+                             iotcon_request_h request, void *user_data);
+
   ResourceInfoMap resource_map_;
 };
 

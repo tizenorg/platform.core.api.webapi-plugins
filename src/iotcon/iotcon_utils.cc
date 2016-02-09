@@ -61,6 +61,11 @@ namespace {
   X(IOTCON_INTERFACE_READONLY, "READONLY") \
   XD(IOTCON_INTERFACE_NONE, "unknown")
 
+#define IOTCON_QOS_E \
+  X(IOTCON_QOS_LOW, "LOW") \
+  X(IOTCON_QOS_HIGH, "HIGH") \
+  XD(IOTCON_QOS_LOW, "unknown")
+
 }  // namespace
 
 const std::string kIsDiscoverable = "isDiscoverable";
@@ -204,7 +209,6 @@ TizenResult IotconUtils::ExtractFromResource(const ResourceInfoPtr& pointer,
 }
 
 TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
-                                        const IotconServerManager& manager,
                                         picojson::object* res) {
   ScopeLogger();
 
@@ -245,12 +249,12 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
       continue;
     }
     ResourceInfoPtr resource;
-    ret = manager.GetResourceById((*iter), &resource);
+    ret = IotconServerManager::GetInstance().GetResourceById((*iter), &resource);
     if (ret.IsSuccess()) {
       LoggerD("Found children RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
 
       picojson::value child = picojson::value(picojson::object());
-      ret = IotconUtils::ResourceToJson(resource, manager, &(child.get<picojson::object>()));
+      ret = IotconUtils::ResourceToJson(resource, &(child.get<picojson::object>()));
       if (ret.IsSuccess()) {
         children.push_back(child);
       }
@@ -773,6 +777,330 @@ common::TizenResult IotconUtils::QueryToJson(iotcon_query_h query,
   return TizenSuccess();
 }
 
+common::TizenResult IotconUtils::RepresentationFromResource(const ResourceInfoPtr& resource,
+                                                            const picojson::value& states,
+                                                            iotcon_representation_h* out) {
+  ScopeLogger();
+
+  iotcon_representation_h representation = nullptr;
+
+  auto result = IotconUtils::ConvertIotconError(iotcon_representation_create(&representation));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_representation_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_representation_h>::type, void(*)(iotcon_representation_h)> ptr{representation, &iotcon_representation_destroy};
+
+  {
+    char* uri_path = nullptr;
+    result = IotconUtils::ConvertIotconError(iotcon_resource_get_uri_path(resource->handle, &uri_path));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_resource_get_uri_path() failed"));
+    }
+    result = IotconUtils::ConvertIotconError(iotcon_representation_set_uri_path(representation, uri_path));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_representation_set_uri_path() failed"));
+    }
+  }
+
+  {
+    iotcon_resource_types_h types = nullptr;
+    result = IotconUtils::ConvertIotconError(iotcon_resource_get_types(resource->handle, &types));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_resource_get_types() failed"));
+    }
+    result = IotconUtils::ConvertIotconError(iotcon_representation_set_resource_types(representation, types));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_representation_set_resource_types() failed"));
+    }
+  }
+
+  {
+    int intrefaces = IOTCON_INTERFACE_NONE;
+    result = IotconUtils::ConvertIotconError(iotcon_resource_get_interfaces(resource->handle, &intrefaces));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_resource_get_interfaces() failed"));
+    }
+    result = IotconUtils::ConvertIotconError(iotcon_representation_set_resource_interfaces(representation, intrefaces));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_representation_set_resource_interfaces() failed"));
+    }
+  }
+
+  {
+    auto& state = states.get(std::to_string(resource->id));
+    if (state.is<picojson::object>()) {
+      iotcon_state_h state_handle = nullptr;
+      result = IotconUtils::StateFromJson(state.get<picojson::object>(), &state_handle);
+      if (!result) {
+        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_state_destroy(state_handle);
+      };
+      result = IotconUtils::ConvertIotconError(iotcon_representation_set_state(representation, state_handle));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_set_state() failed"));
+      }
+    }
+  }
+
+  {
+    int children = 0;
+    result = IotconUtils::ConvertIotconError(iotcon_resource_get_number_of_children(resource->handle, &children));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_resource_get_number_of_children() failed"));
+    }
+
+    for (int i = 0; i < children; ++i) {
+      iotcon_resource_h child = nullptr;
+      result = IotconUtils::ConvertIotconError(iotcon_resource_get_nth_child(resource->handle, i, &child));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_resource_get_nth_child() failed"));
+      }
+
+      ResourceInfoPtr child_resource;
+      result = IotconServerManager::GetInstance().GetResourceByHandle(child, &child_resource);
+      if (!result) {
+        LogAndReturnTizenError(result, ("GetResourceByHandle() failed"));
+      }
+
+      iotcon_representation_h child_representation = nullptr;
+      result = RepresentationFromResource(child_resource, states, &child_representation);
+      if (!result) {
+        LogAndReturnTizenError(result, ("RepresentationFromResource() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_representation_destroy(child_representation);
+      };
+      result = IotconUtils::ConvertIotconError(iotcon_representation_add_child(representation, child_representation));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_add_child() failed"));
+      }
+    }
+  }
+
+  *out = ptr.release();
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::StateFromJson(const picojson::object& s,
+                                               iotcon_state_h* out) {
+  ScopeLogger();
+
+  iotcon_state_h state = nullptr;
+
+  auto result = IotconUtils::ConvertIotconError(iotcon_state_create(&state));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_state_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_state_h>::type, void(*)(iotcon_state_h)> ptr{state, &iotcon_state_destroy};
+
+  for (const auto& property : s) {
+    const auto& key = property.first;
+
+    if (property.second.is<picojson::null>()) {
+      result = IotconUtils::ConvertIotconError(iotcon_state_add_null(state, key.c_str()));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_state_add_null() failed"));
+      }
+    } else if (property.second.is<bool>()) {
+      result = IotconUtils::ConvertIotconError(iotcon_state_add_bool(state, key.c_str(), property.second.get<bool>()));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_state_add_bool() failed"));
+      }
+    } else if (property.second.is<double>()) {
+      result = IotconUtils::ConvertIotconError(iotcon_state_add_double(state, key.c_str(), property.second.get<double>()));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_state_add_double() failed"));
+      }
+    } else if (property.second.is<std::string>()) {
+      const auto& value = property.second.get<std::string>();
+
+      if (0 == value.find(kHexPrefix)) {
+        auto data = value.c_str() + kHexPrefix.length(); // skip prefix
+        auto size = value.length() - kHexPrefix.length();
+        auto length = size / 2;
+        std::unique_ptr<unsigned char[]> hex{new unsigned char[length]};
+        common::tools::HexToBin(data, size, hex.get(), length);
+        result = IotconUtils::ConvertIotconError(iotcon_state_add_byte_str(state, key.c_str(), hex.get(), length));
+        if (!result) {
+          LogAndReturnTizenError(result, ("iotcon_state_add_byte_str() failed"));
+        }
+      } else {
+        result = IotconUtils::ConvertIotconError(iotcon_state_add_str(state, key.c_str(), const_cast<char*>(value.c_str())));
+        if (!result) {
+          LogAndReturnTizenError(result, ("iotcon_state_add_str() failed"));
+        }
+      }
+    } else if (property.second.is<picojson::array>()) {
+      iotcon_list_h list = nullptr;
+      result = StateListFromJson(property.second.get<picojson::array>(), &list);
+      if (!result) {
+        LogAndReturnTizenError(result, ("StateListFromJson() failed"));
+      }
+      if (list) {
+        SCOPE_EXIT {
+          iotcon_list_destroy(list);
+        };
+        result = IotconUtils::ConvertIotconError(iotcon_state_add_list(state, key.c_str(), list));
+        if (!result) {
+          LogAndReturnTizenError(result, ("iotcon_state_add_list() failed"));
+        }
+      }
+    } else if (property.second.is<picojson::object>()) {
+      iotcon_state_h sub_state = nullptr;
+      result = StateFromJson(property.second.get<picojson::object>(), &sub_state);
+      if (!result) {
+        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_state_destroy(sub_state);
+      };
+      result = IotconUtils::ConvertIotconError(iotcon_state_add_state(state, key.c_str(), sub_state));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_state_add_state() failed"));
+      }
+    }
+  }
+
+  *out = ptr.release();
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::StateListFromJson(const picojson::array& l,
+                                                   iotcon_list_h* out) {
+  ScopeLogger();
+
+  iotcon_list_h list = nullptr;
+  iotcon_type_e type = IOTCON_TYPE_NONE;
+
+  // check first element in array for type
+  if (l.size() > 0) {
+    if (l[0].is<bool>()) {
+      type = IOTCON_TYPE_BOOL;
+    } else if (l[0].is<double>()) {
+      type = IOTCON_TYPE_DOUBLE;
+    } else if (l[0].is<std::string>()) {
+      if (0 == l[0].get<std::string>().find(kHexPrefix)) {
+        type = IOTCON_TYPE_BYTE_STR;
+      } else {
+        type = IOTCON_TYPE_STR;
+      }
+    } else if (l[0].is<picojson::array>()) {
+      type = IOTCON_TYPE_LIST;
+    } else if (l[0].is<picojson::object>()) {
+      type = IOTCON_TYPE_STATE;
+    }
+  }
+
+  if (IOTCON_TYPE_NONE == type) {
+    LoggerD("Empty list");
+    return TizenSuccess();
+  }
+
+  auto result = IotconUtils::ConvertIotconError(iotcon_list_create(type, &list));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_list_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_list_h>::type, void(*)(iotcon_list_h)> ptr{list, &iotcon_list_destroy};
+
+  int position = 0;
+
+  // we're ignoring values with wrong type
+  for (const auto& v : l) {
+    switch (type) {
+      case IOTCON_TYPE_BOOL:
+        if (v.is<bool>()) {
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_bool(list, v.get<bool>(), position++));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_list_add_bool() failed"));
+          }
+        }
+        break;
+
+      case IOTCON_TYPE_DOUBLE:
+        if (v.is<double>()) {
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_double(list, v.get<double>(), position++));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_list_add_double() failed"));
+          }
+        }
+        break;
+
+      case IOTCON_TYPE_BYTE_STR:
+        if (v.is<std::string>()) {
+          const auto& str = v.get<std::string>();
+          if (0 == str.find(kHexPrefix)) {
+            auto data = str.c_str() + kHexPrefix.length(); // skip prefix
+            auto size = str.length() - kHexPrefix.length();
+            auto length = size / 2;
+            std::unique_ptr<unsigned char[]> hex{new unsigned char[length]};
+            common::tools::HexToBin(data, size, hex.get(), length);
+            result = IotconUtils::ConvertIotconError(iotcon_list_add_byte_str(list, hex.get(), length, position++));
+            if (!result) {
+              LogAndReturnTizenError(result, ("iotcon_list_add_byte_str() failed"));
+            }
+          }
+        }
+        break;
+
+      case IOTCON_TYPE_STR:
+        if (v.is<std::string>()) {
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_str(list, const_cast<char*>(v.get<std::string>().c_str()), position++));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_list_add_str() failed"));
+          }
+        }
+        break;
+
+      case IOTCON_TYPE_LIST:
+        if (v.is<picojson::array>()) {
+          iotcon_list_h sub_list = nullptr;
+          result = StateListFromJson(v.get<picojson::array>(), &sub_list);
+          if (!result) {
+            LogAndReturnTizenError(result, ("StateListFromJson() failed"));
+          }
+          SCOPE_EXIT {
+            iotcon_list_destroy(sub_list);
+          };
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_list(list, sub_list, position++));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_list_add_list() failed"));
+          }
+        }
+        break;
+
+      case IOTCON_TYPE_STATE:
+        if (v.is<picojson::object>()) {
+          iotcon_state_h state = nullptr;
+          result = StateFromJson(v.get<picojson::object>(), &state);
+          if (!result) {
+            LogAndReturnTizenError(result, ("StateFromJson() failed"));
+          }
+          SCOPE_EXIT {
+            iotcon_state_destroy(state);
+          };
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_state(list, state, position++));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_list_add_state() failed"));
+          }
+        }
+        break;
+
+      default:
+        // should not happen
+        LoggerE("Unexpected type: %d", type);
+        return common::UnknownError("Unexpected list type");
+    }
+  }
+
+  *out = ptr.release();
+  return TizenSuccess();
+}
+
 common::TizenResult IotconUtils::ConvertIotconError(int error) {
   switch (error) {
     case IOTCON_ERROR_NONE:
@@ -862,6 +1190,12 @@ iotcon_interface_e IotconUtils::ToInterface(const std::string& e) {
   ScopeLogger();
 
   IOTCON_INTERFACE_E
+}
+
+iotcon_qos_e IotconUtils::ToQos(const std::string& e) {
+  ScopeLogger();
+
+  IOTCON_QOS_E
 }
 
 #undef X

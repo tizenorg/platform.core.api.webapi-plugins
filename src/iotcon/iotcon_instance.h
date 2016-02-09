@@ -32,8 +32,7 @@ class IotconInstance : public common::TizenInstance {
   static void ConnectionChangedCallback(bool is_connected, void* user_data);
 
   common::TizenResult ResourceGetObserverIds(const picojson::object& args);
-  common::TizenResult ResourceNotify(const picojson::object& args,
-                                     const common::AsyncToken& token);
+  common::TizenResult ResourceNotify(const picojson::object& args);
   common::TizenResult ResourceAddResourceTypes(const picojson::object& args,
                                                const common::AsyncToken& token);
   common::TizenResult ResourceAddResourceInterfaces(const picojson::object& args,
@@ -72,8 +71,6 @@ class IotconInstance : public common::TizenInstance {
   common::TizenResult ServerRemoveResource(const picojson::object& args);
   common::TizenResult GetTimeout(const picojson::object& args);
   common::TizenResult SetTimeout(const picojson::object& args);
-
-  IotconServerManager manager_;
 };
 
 }  // namespace iotcon

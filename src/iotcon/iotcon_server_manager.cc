@@ -35,13 +35,9 @@ long long GetNextId() {
 
 }  // namespace
 
-IotconServerManager::IotconServerManager(IotconInstance* instance)
-      : instance_(instance) {
-  ScopeLogger();
-}
-
-IotconServerManager::~IotconServerManager() {
-  ScopeLogger();
+IotconServerManager& IotconServerManager::GetInstance() {
+  static IotconServerManager instance;
+  return instance;
 }
 
 TizenResult IotconServerManager::RestoreHandles() {
