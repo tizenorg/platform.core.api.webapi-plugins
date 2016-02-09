@@ -80,9 +80,10 @@ const std::string kResourceChildren = "resources";
 const std::string kUriPath = "uriPath";
 const std::string kStates = "states";
 const std::string kId = "id";
-
+const std::string kDeviceId = "deviceId";
 const std::string kHostAddress = "hostAddress";
 const std::string kConnectivityType = "connectivityType";
+
 const std::string kRepresentation = "representation";
 const std::string kRepresentations = "representations";
 const std::string kRequestType = "type";
@@ -119,6 +120,22 @@ const std::string kDataModelVersion = "dataModelVersion";
 
 using common::TizenResult;
 using common::TizenSuccess;
+
+
+void IotconUtils::PropertiesToJson(int properties, picojson::object* res) {
+  bool value = properties & IOTCON_RESOURCE_OBSERVABLE;
+  res->insert(std::make_pair(kIsObservable, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_DISCOVERABLE;
+  res->insert(std::make_pair(kIsDiscoverable, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_ACTIVE;
+  res->insert(std::make_pair(kIsActive, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_SLOW;
+  res->insert(std::make_pair(kIsSlow, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_SECURE;
+  res->insert(std::make_pair(kIsSecure, picojson::value(value)));
+  value = properties & IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE;
+  res->insert(std::make_pair(kIsExplicitDiscoverable, picojson::value(value)));
+}
 
 TizenResult IotconUtils::ArrayToInterfaces(const picojson::array& interfaces, int* res) {
   ScopeLogger();
@@ -246,18 +263,7 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
 
   res->insert(std::make_pair(kResourceInterfaces,
                              picojson::value(InterfacesToArray(ifaces))));
-  bool value = properties & IOTCON_RESOURCE_OBSERVABLE;
-  res->insert(std::make_pair(kIsObservable, picojson::value(value)));
-  value = properties & IOTCON_RESOURCE_DISCOVERABLE;
-  res->insert(std::make_pair(kIsDiscoverable, picojson::value(value)));
-  value = properties & IOTCON_RESOURCE_ACTIVE;
-  res->insert(std::make_pair(kIsActive, picojson::value(value)));
-  value = properties & IOTCON_RESOURCE_SLOW;
-  res->insert(std::make_pair(kIsSlow, picojson::value(value)));
-  value = properties & IOTCON_RESOURCE_SECURE;
-  res->insert(std::make_pair(kIsSecure, picojson::value(value)));
-  value = properties & IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE;
-  res->insert(std::make_pair(kIsExplicitDiscoverable, picojson::value(value)));
+  IotconUtils::PropertiesToJson(properties, res);
 
   picojson::array children;
   for (const auto& child_resource : pointer->children) {
@@ -270,6 +276,116 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
   res->insert(std::make_pair(kResourceChildren, picojson::value(children)));
 
   // observerIds would be done on demand from JS
+
+  return TizenSuccess();
+}
+
+TizenResult IotconUtils::ExtractFromRemoteResource(RemoteResourceInfo* resource) {
+  ScopeLogger();
+
+  auto result = ConvertIotconError(
+      iotcon_remote_resource_get_uri_path(resource->resource, &resource->uri_path));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering uri path failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_connectivity_type(resource->resource, &resource->connectivity_type));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering connectivity type failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_host_address(resource->resource, &resource->host_address));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering host address failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_device_id(resource->resource, &resource->device_id));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering host address failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_types(resource->resource, &resource->types));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering types failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_interfaces(resource->resource, &resource->ifaces));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering interfaces failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_properties(resource->resource, &resource->properties));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering properties failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_options(resource->resource, &resource->options));
+  if (!result) {
+    LogAndReturnTizenError(result, ("Gathering options failed"));
+  }
+
+  result = ConvertIotconError(
+      iotcon_remote_resource_get_cached_representation(resource->resource, &resource->representation));
+  if (!result) {
+    LoggerD("Gathering cached representation failed");
+    //TODO check: native method returns error here, now ignoring fail instead of returning error
+    //LogAndReturnTizenError(result, ("Gathering cached representation failed"));
+  }
+
+  return TizenSuccess();
+}
+
+TizenResult IotconUtils::RemoteResourceToJson(iotcon_remote_resource_h handle,
+                                              picojson::object* res) {
+  ScopeLogger();
+
+  RemoteResourceInfo remote_res;
+  remote_res.resource = handle;
+  auto result = ExtractFromRemoteResource(&remote_res);
+  if (!result){
+    return result;
+  }
+  res->insert(std::make_pair(kUriPath, picojson::value(remote_res.uri_path)));
+  res->insert(std::make_pair(kConnectivityType, picojson::value(
+      FromConnectivityType(remote_res.connectivity_type))));
+  res->insert(std::make_pair(kHostAddress, picojson::value(remote_res.host_address)));
+  res->insert(std::make_pair(kDeviceId, picojson::value(remote_res.device_id)));
+
+  if (remote_res.types) {
+    picojson::array types;
+    iotcon_resource_types_foreach(remote_res.types, ResourceTypeIterator, &types);
+    res->insert(std::make_pair(kResourceTypes, picojson::value(types)));
+  }
+
+  res->insert(std::make_pair(kResourceInterfaces,
+                             picojson::value(InterfacesToArray(remote_res.ifaces))));
+
+  IotconUtils::PropertiesToJson(remote_res.properties, res);
+
+  if (remote_res.options) {
+    picojson::value opt_json{picojson::array{}};
+    result = OptionsToJson(remote_res.options, &opt_json.get<picojson::array>());
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsToJson() failed"));
+    }
+    res->insert(std::make_pair(kOptions, opt_json));
+  }
+
+  if (remote_res.representation) {
+    picojson::value repr_json{picojson::object{}};
+    result = RepresentationToJson(remote_res.representation, &repr_json.get<picojson::object>());
+    if (!result) {
+      LogAndReturnTizenError(result, ("RepresentationToJson() failed"));
+    }
+    res->insert(std::make_pair(kRepresentation, repr_json));
+  }
 
   return TizenSuccess();
 }

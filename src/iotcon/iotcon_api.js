@@ -555,7 +555,12 @@ function RemoteResource(data) {
         var callArgs = {};
         callArgs.id = this[kIdKey];
         var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
-        return createRepresentation(native.getResultObject(result));
+        if (native.isSuccess(result)) {
+          return createRepresentation(native.getResultObject(result));
+        }
+        // TODO check what should be returned
+        console.log("returning empty Object");
+        return {};
       }.bind(this),
       set: function() {},
       enumerable: true
@@ -840,6 +845,9 @@ RemoteResource.prototype.unsetConnectionChangeListener = function() {
 function Client() {
 }
 
+var findResourceListener = createListener('FindResourceListener');
+var globalFindResourceId = 0;
+
 Client.prototype.findResource = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'hostAddress',
@@ -861,12 +869,17 @@ Client.prototype.findResource = function() {
     type: types.FUNCTION,
     optional: true,
     nullable: true
+  }, {
+    name: 'isSecure',
+    type: types.BOOLEAN
   }]);
 
   var callArgs = {};
+  callArgs.id = ++globalFindResourceId;
   callArgs.hostAddress = args.hostAddress;
   callArgs.resourceType = args.resourceType;
   callArgs.connectivityType = args.connectivityType;
+  callArgs.isSecure = args.isSecure;
 
   var callback = function(result) {
     if (native.isFailure(result)) {
@@ -877,10 +890,11 @@ Client.prototype.findResource = function() {
     }
   };
 
-  var result = native.call('IotconClient_findResource', callArgs, callback);
-
+  var result = native.callSync('IotconClient_findResource', callArgs);
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    findResourceListener.addListener(callArgs.id, callback);
   }
 };
 

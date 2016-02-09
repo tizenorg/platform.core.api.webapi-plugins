@@ -45,8 +45,10 @@ extern const std::string kResourceChildren;
 extern const std::string kUriPath;
 extern const std::string kStates;
 extern const std::string kId;
+extern const std::string kDeviceId;
 extern const std::string kHostAddress;
 extern const std::string kConnectivityType;
+extern const std::string kResourceType;
 
 class ResourceInfo;
 typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
@@ -71,8 +73,30 @@ struct ResourceInfo {
   }
 };
 
+struct RemoteResourceInfo {
+  iotcon_remote_resource_h resource;
+  char* uri_path;
+  iotcon_connectivity_type_e connectivity_type;
+  char* host_address;
+  char* device_id;
+  iotcon_resource_types_h types;
+  int ifaces;
+  int properties;  // to check if observable
+  iotcon_options_h options;
+  iotcon_representation_h representation;
+  RemoteResourceInfo() :
+    resource(nullptr), uri_path(nullptr),
+    connectivity_type(IOTCON_CONNECTIVITY_ALL), host_address(nullptr),
+    device_id(nullptr), types(nullptr), ifaces(0),
+    properties(0), options(nullptr), representation(nullptr) {}
+  ~RemoteResourceInfo() {
+    //according to native description, must not release any handles
+  }
+};
+
 class IotconUtils {
  public:
+  static void PropertiesToJson(int properties, picojson::object* res);
   static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
   static picojson::array InterfacesToArray(int interfaces);
   static common::TizenResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
@@ -83,6 +107,9 @@ class IotconUtils {
                                                  int* properties);
   static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
                                             picojson::object* res);
+  static common::TizenResult ExtractFromRemoteResource(RemoteResourceInfo* resource);
+  static common::TizenResult RemoteResourceToJson(iotcon_remote_resource_h handle,
+                                                  picojson::object* res);
 
   static common::TizenResult RequestToJson(iotcon_request_h request,
                                            picojson::object* out);

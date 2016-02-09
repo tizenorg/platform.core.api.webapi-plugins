@@ -20,6 +20,7 @@
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
 
 #include "iotcon/iotcon_utils.h"
 
@@ -55,6 +56,7 @@ const picojson::value& GetArg(const picojson::object& args, const std::string& n
 }
 
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
+const common::ListenerToken kFindResourceListenerToken{"FindResourceListener"};
 
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
@@ -95,6 +97,7 @@ IotconInstance::IotconInstance() {
   REGISTER_SYNC("Iotcon_setTimeout", SetTimeout);
   REGISTER_SYNC("IotconServer_createResource", ServerCreateResource);
   REGISTER_SYNC("IotconServer_removeResource", ServerRemoveResource);
+  REGISTER_SYNC("IotconClient_findResource", ClientFindResource);
 
 #undef REGISTER_SYNC
 
@@ -105,7 +108,6 @@ IotconInstance::IotconInstance() {
   REGISTER_ASYNC("IotconRemoteResource_methodPut", RemoteResourceMethodPut);
   REGISTER_ASYNC("IotconRemoteResource_methodPost", RemoteResourceMethodPost);
   REGISTER_ASYNC("IotconRemoteResource_methodDelete", RemoteResourceMethodDelete);
-  REGISTER_ASYNC("IotconClient_findResource", ClientFindResource);
   REGISTER_ASYNC("IotconClient_getDeviceInfo", ClientGetDeviceInfo);
   REGISTER_ASYNC("IotconClient_getPlatformInfo", ClientGetPlatformInfo);
 
@@ -465,10 +467,88 @@ common::TizenResult IotconInstance::RemoteResourceUnsetConnectionChangeListener(
   return common::UnknownError("Not implemented");
 }
 
-common::TizenResult IotconInstance::ClientFindResource(const picojson::object& args,
-                                                       const common::AsyncToken& token) {
+void IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,
+                                           iotcon_error_e result, void *user_data) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  CallbackData* data = static_cast<CallbackData*>(user_data);
+  auto ret = IotconUtils::ConvertIotconError(result);
+  if (!ret) {
+    data->fun(ret, picojson::value{});
+    return;
+  }
+
+  picojson::value json_result = picojson::value(picojson::object());
+
+  ret = IotconUtils::RemoteResourceToJson(resource, &(json_result.get<picojson::object>()));
+  if (!ret) {
+    data->fun(ret, picojson::value{});
+    return;
+  }
+  data->fun(ret, json_result);
+}
+
+common::TizenResult IotconInstance::ClientFindResource(const picojson::object& args) {
+  ScopeLogger();
+
+  CHECK_EXIST(args, kHostAddress);
+  char* host_address = nullptr;
+  if (args.find(kHostAddress)->second.is<std::string>()) {
+    host_address = const_cast<char*>(args.find(kHostAddress)->second.get<std::string>().c_str());
+  }
+
+  CHECK_EXIST(args, kResourceType);
+  char* resource_type = nullptr;
+  if (args.find(kResourceType)->second.is<std::string>()) {
+    resource_type = const_cast<char*>(args.find(kResourceType)->second.get<std::string>().c_str());
+  }
+
+  CHECK_EXIST(args, kConnectivityType);
+  iotcon_connectivity_type_e connectivity_type = IotconUtils::ToConnectivityType(
+      args.find(kConnectivityType)->second.get<std::string>());
+  CHECK_EXIST(args, kIsSecure);
+  bool is_secure = args.find(kIsSecure)->second.get<bool>();
+
+  long long id = GetId(args);
+  auto response = [this, id](const common::TizenResult& res, const picojson::value& v) {
+    picojson::value response{picojson::object{}};
+    auto& obj = response.get<picojson::object>();
+
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
+    if(res) {
+      common::tools::ReportSuccess(v, obj);
+    } else {
+      common::tools::ReportError(res, &obj);
+    }
+
+    Post(kFindResourceListenerToken, common::TizenSuccess{response});
+  };
+  CallbackData* data = new CallbackData{response};
+
+  LoggerD("Running find with:\nhost_address: %s,\nconnectivity_type: %d,\nresource_type: %s,\nis_secure: %d",
+          host_address, connectivity_type, resource_type, is_secure);
+  auto result = IotconUtils::ConvertIotconError(
+      iotcon_find_resource(host_address, connectivity_type, resource_type,
+                           is_secure, ResourceFoundCallback, data));
+  if (!result) {
+    delete data;
+    LogAndReturnTizenError(result);
+  } else {
+    int timeout = 60; //default value set much bigger than default value for iotcon = 30s
+    auto result = IotconUtils::ConvertIotconError(iotcon_get_timeout(&timeout));
+    if (!result) {
+      LoggerE("iotcon_get_timeout - function call failed, using default value %d", timeout);
+    } else {
+      timeout = timeout + 1; //add one extra second to prevent too fast delete
+    }
+    // adding listener to delete data, when find would be finished
+    std::thread([data, timeout]() {
+      std::this_thread::sleep_for(std::chrono::seconds(timeout));
+      LoggerD("Deleting resource find data: %p", data);
+      delete data;
+    }).detach();
+  }
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojson::object& args) {

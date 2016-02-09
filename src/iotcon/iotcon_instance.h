@@ -30,6 +30,8 @@ class IotconInstance : public common::TizenInstance {
   virtual ~IotconInstance();
  private:
   static void ConnectionChangedCallback(bool is_connected, void* user_data);
+  static void ResourceFoundCallback(iotcon_remote_resource_h resource,
+                                    iotcon_error_e result, void *user_data);
 
   common::TizenResult ResourceGetObserverIds(const picojson::object& args);
   common::TizenResult ResourceNotify(const picojson::object& args);
@@ -55,8 +57,7 @@ class IotconInstance : public common::TizenInstance {
   common::TizenResult RemoteResourceStopCaching(const picojson::object& args);
   common::TizenResult RemoteResourceSetConnectionChangeListener(const picojson::object& args);
   common::TizenResult RemoteResourceUnsetConnectionChangeListener(const picojson::object& args);
-  common::TizenResult ClientFindResource(const picojson::object& args,
-                                         const common::AsyncToken& token);
+  common::TizenResult ClientFindResource(const picojson::object& args);
   common::TizenResult ClientAddPresenceEventListener(const picojson::object& args);
   common::TizenResult ClientRemovePresenceEventListener(const picojson::object& args);
   common::TizenResult ClientGetDeviceInfo(const picojson::object& args,
