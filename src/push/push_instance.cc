@@ -40,10 +40,10 @@ PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
     #define REGISTER_SYNC(c, func) \
         RegisterSyncHandler(c, func);
 
-    REGISTER_ASYNC("Push_registerService",
-        std::bind(&PushInstance::registerService, this, _1, _2));
-    REGISTER_ASYNC("Push_unregisterService",
-        std::bind(&PushInstance::unregisterService, this, _1, _2));
+    REGISTER_ASYNC("Push_registerApplication",
+        std::bind(&PushInstance::registerApplication, this, _1, _2));
+    REGISTER_ASYNC("Push_unregisterApplication",
+        std::bind(&PushInstance::unregisterApplication, this, _1, _2));
     REGISTER_SYNC("Push_connectService",
         std::bind(&PushInstance::connectService, this, _1, _2));
     REGISTER_SYNC("Push_disconnectService",
@@ -52,43 +52,20 @@ PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
         std::bind(&PushInstance::getRegistrationId, this, _1, _2));
     REGISTER_SYNC("Push_getUnreadNotifications",
         std::bind(&PushInstance::getUnreadNotifications, this, _1, _2));
+    REGISTER_SYNC("Push_getPushMessage",
+        std::bind(&PushInstance::getPushMessage, this, _1, _2));
     PushManager::getInstance().setListener(this);
 
     #undef REGISTER_ASYNC
     #undef REGISTER_SYNC
 }
 
-void PushInstance::registerService(const picojson::value& args,
+void PushInstance::registerApplication(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
-
-    PushManager::ApplicationControl appControl;
-    appControl.operation = args.get("operation").get<std::string>();
-    if (args.get("uri").is<std::string>()) {
-        appControl.uri = args.get("uri").get<std::string>();
-    }
-    if (args.get("mime").is<std::string>()) {
-        appControl.mime = args.get("mime").get<std::string>();
-    }
-    if (args.get("category").is<std::string>()) {
-        appControl.category = args.get("category").get<std::string>();
-    }
-    if (args.get("data").is<picojson::null>() == false) {
-        std::vector<picojson::value> dataArray =
-                args.get("data").get<picojson::array>();
-        for (auto &item : dataArray) {
-            std::string key = item.get("key").get<std::string>();
-            std::vector<picojson::value> values =
-                    item.get("value").get<picojson::array>();
-            for (auto &value : values) {
-                appControl.data[key].push_back(value.to_str());
-            }
-        }
-    }
-    common::PlatformResult result = PushManager::getInstance().registerService(
-            appControl,
+    common::PlatformResult result = PushManager::getInstance().registerApplication(
             args.get("callbackId").get<double>());
     if (result.IsError()) {
         LogAndReportError(result, &out, ("Error occured"));
@@ -98,14 +75,14 @@ void PushInstance::registerService(const picojson::value& args,
     }
 }
 
-void PushInstance::unregisterService(const picojson::value& args,
+void PushInstance::unregisterApplication(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
 
     common::PlatformResult result = PushManager::getInstance()
-            .unregisterService(args.get("callbackId").get<double>());
+            .unregisterApplication(args.get("callbackId").get<double>());
     if (result.IsError()) {
         LogAndReportError(result, &out, ("Error occured"));
     } else {
@@ -171,6 +148,23 @@ void PushInstance::getUnreadNotifications(const picojson::value& args,
     }
 }
 
+void PushInstance::getPushMessage(const picojson::value& args,
+                                  picojson::object& out) {
+  LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
+  picojson::value msg;
+  common::PlatformResult result = PushManager::getInstance().getPushMessage(&msg);
+
+  if (result.IsError()) {
+    LoggerE("Error occurred");
+    ReportError(result, &out);
+  } else {
+    ReportSuccess(msg, out);
+  }
+}
+
 void PushInstance::onPushRegister(double callbackId,
         common::PlatformResult result, const std::string& id) {
     LoggerD("Enter");
@@ -185,18 +179,16 @@ void PushInstance::onPushRegister(double callbackId,
     Instance::PostMessage(this, res.serialize().c_str());
 }
 
-void PushInstance::onPushNotify(const std::string& appData,
-        const std::string& alertMessage, double date) {
+void PushInstance::onPushNotify(push_service_notification_h noti) {
     LoggerD("Enter");
     if (m_ignoreNotificationEvents) {
         LoggerD("Listener not set, ignoring event");
     }
     picojson::value::object dict;
-    dict["listenerId"] = picojson::value("Push_Notification_Listener");
     picojson::value::object pushMessage;
-    pushMessage["appData"] = picojson::value(appData);
-    pushMessage["alertMessage"] = picojson::value(alertMessage);
-    pushMessage["date"] = picojson::value(date);
+    PushManager::getInstance().notificationToJson(noti, &pushMessage);
+
+    dict["listenerId"] = picojson::value("Push_Notification_Listener");
     dict["pushMessage"] = picojson::value(pushMessage);
     picojson::value resultListener(dict);
     Instance::PostMessage(this, resultListener.serialize().c_str());
