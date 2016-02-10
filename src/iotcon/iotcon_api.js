@@ -381,40 +381,47 @@ Resource.prototype.addResourceInterfaces = function() {
 Resource.prototype.addChildResource = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'resource',
-    type: types_.PLATFORM_OBJECT,
-    values: Resource,
-    optional: false,
-    nullable: false
+    type: types.PLATFORM_OBJECT,
+    values: Resource
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.resource = args.resource;
+  callArgs.childId = args.resource[kIdKey];
 
-  var result = native.call('IotconResource_addChildResource', callArgs);
+  var result = native.callSync('IotconResource_addChildResource', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var children = this.resources;
+    children.push(args.resource);
+    updateWithInternalData({ resources: children }, this);
   }
 };
 
 Resource.prototype.removeChildResource = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'resource',
-    type: types_.PLATFORM_OBJECT,
-    values: Resource,
-    optional: false,
-    nullable: false
+    type: types.PLATFORM_OBJECT,
+    values: Resource
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.resource = args.resource;
+  callArgs.childId = args.resource[kIdKey];
 
-  var result = native.call('IotconResource_removeChildResource', callArgs);
+  var result = native.callSync('IotconResource_removeChildResource', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var children = this.resources;
+    var position = children.indexOf(args.resource);
+    if (-1 !== position) {
+      children.splice(position, 1);
+      updateWithInternalData({ resources: children }, this);
+    }
   }
 };
 

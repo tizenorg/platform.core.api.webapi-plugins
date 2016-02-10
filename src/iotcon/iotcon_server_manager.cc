@@ -43,14 +43,15 @@ IotconServerManager& IotconServerManager::GetInstance() {
 TizenResult IotconServerManager::RestoreHandles() {
   ScopeLogger();
 
-  for (auto it = resource_map_.begin(); it != resource_map_.end(); ++it) {
-    LoggerD ("Restoring handle for resource with id: %lld", it->first);
-    ResourceInfoPtr resource = it->second;
+  for (const auto& it : resource_map_) {
+    LoggerD("Restoring handle for resource with id: %lld", it.first);
 
+    ResourceInfoPtr resource = it.second;
     char* uri_path = nullptr;
     iotcon_resource_types_h res_types = nullptr;
     int ifaces = 0;
     int properties = 0;
+
     auto res = IotconUtils::ExtractFromResource(resource, &uri_path,
                                                 &res_types, &ifaces, &properties);
     if (!res){
@@ -76,9 +77,16 @@ TizenResult IotconServerManager::RestoreHandles() {
       iotcon_resource_destroy(old_handle);
     }
   }
-  // TODO
-  // bind children (consider if it is necessary?
-  //    Maybe holding children in resource_map is enough)
+
+  // rebind children
+  for (const auto& it : resource_map_) {
+    for (const auto& child : it.second->children) {
+      auto result = IotconUtils::ConvertIotconError(iotcon_resource_bind_child_resource(it.second->handle, child->handle));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_resource_bind_child_resource() failed"));
+      }
+    }
+  }
 
   return TizenSuccess();
 }
@@ -206,8 +214,7 @@ TizenResult IotconServerManager::GetResourceById(long long id,
 
   auto it = resource_map_.find(id);
   if (it == resource_map_.end()) {
-    LoggerE("Not found such resource");
-    return LogAndCreateTizenError(NotFoundError, "Not found such resource");
+    return LogAndCreateTizenError(NotFoundError, "Resource with specified ID does not exist");
   }
   LoggerE("Resource found");
   *res_pointer = it->second;
@@ -218,11 +225,25 @@ TizenResult IotconServerManager::GetResourceById(long long id,
 common::TizenResult IotconServerManager::DestroyResource(long long id) {
   ScopeLogger();
 
-  if (resource_map_.erase(id)) {
-    return TizenSuccess();
-  } else {
-    return LogAndCreateTizenError(NotFoundError, "Resource with specified ID does not exist");
+  ResourceInfoPtr resource;
+  auto result = GetResourceById(id, &resource);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
+
+  // do not allow to destroy a resource which has a parent resource
+  if (resource->parents.size() > 0) {
+    return LogAndCreateTizenError(InvalidStateError, "Cannot destroy child resource, remove it from parent first");
+  }
+
+  // notify children they've lost a parent :(
+  for (const auto& child : resource->children) {
+    child->parents.erase(resource);
+  }
+
+  resource_map_.erase(id);
+
+  return TizenSuccess();
 }
 
 common::TizenResult IotconServerManager::GetResourceByHandle(

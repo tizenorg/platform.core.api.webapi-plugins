@@ -260,26 +260,15 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
   res->insert(std::make_pair(kIsExplicitDiscoverable, picojson::value(value)));
 
   picojson::array children;
-  for (auto iter = pointer->children_ids.begin(); iter != pointer->children_ids.end(); ++iter) {
-    if (pointer->id == (*iter)) {
-      // prevent infinite recurrence
-      continue;
-    }
-    ResourceInfoPtr resource;
-    ret = IotconServerManager::GetInstance().GetResourceById((*iter), &resource);
+  for (const auto& child_resource : pointer->children) {
+    picojson::value child = picojson::value(picojson::object());
+    ret = IotconUtils::ResourceToJson(child_resource, &(child.get<picojson::object>()));
     if (ret.IsSuccess()) {
-      LoggerD("Found children RESOURCE\nid: %lld\nhandle: %p", resource->id, resource->handle);
-
-      picojson::value child = picojson::value(picojson::object());
-      ret = IotconUtils::ResourceToJson(resource, &(child.get<picojson::object>()));
-      if (ret.IsSuccess()) {
-        children.push_back(child);
-      }
-    } else {
-      LoggerD("Not found such resource");
+      children.push_back(child);
     }
   }
   res->insert(std::make_pair(kResourceChildren, picojson::value(children)));
+
   // observerIds would be done on demand from JS
 
   return TizenSuccess();

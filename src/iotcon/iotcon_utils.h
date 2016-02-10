@@ -48,13 +48,19 @@ extern const std::string kId;
 extern const std::string kHostAddress;
 extern const std::string kConnectivityType;
 
+class ResourceInfo;
+typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
+typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
+
 struct ResourceInfo {
   long long id;
-  std::vector<long long> children_ids;
   iotcon_resource_h handle;
   std::set<int> observers;
   common::PostCallback request_listener;
   std::unordered_map<long long, iotcon_response_h> unhandled_responses;
+  std::set<ResourceInfoPtr> children;
+  std::set<ResourceInfoPtr> parents;
+
   ResourceInfo() :
     id(0), handle(nullptr) {}
   ~ResourceInfo() {
@@ -64,9 +70,6 @@ struct ResourceInfo {
     }
   }
 };
-
-typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
-typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
 
 class IotconUtils {
  public:

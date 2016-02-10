@@ -58,6 +58,7 @@ const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListen
 
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
+const std::string kChildId = "childId";
 
 }  // namespace
 
@@ -72,6 +73,8 @@ IotconInstance::IotconInstance() {
 
   REGISTER_SYNC("IotconResource_getObserverIds", ResourceGetObserverIds);
   REGISTER_SYNC("IotconResource_notify", ResourceNotify);
+  REGISTER_SYNC("IotconResource_addChildResource", ResourceAddChildResource);
+  REGISTER_SYNC("IotconResource_removeChildResource", ResourceRemoveChildResource);
   REGISTER_SYNC("IotconResource_setRequestListener", ResourceSetRequestListener);
   REGISTER_SYNC("IotconResource_unsetRequestListener", ResourceUnsetRequestListener);
   REGISTER_SYNC("IotconResponse_send", ResponseSend);
@@ -96,8 +99,6 @@ IotconInstance::IotconInstance() {
 
   REGISTER_ASYNC("IotconResource_addResourceTypes", ResourceAddResourceTypes);
   REGISTER_ASYNC("IotconResource_addResourceInterfaces", ResourceAddResourceInterfaces);
-  REGISTER_ASYNC("IotconResource_addChildResource", ResourceAddChildResource);
-  REGISTER_ASYNC("IotconResource_removeChildResource", ResourceRemoveChildResource);
   REGISTER_ASYNC("IotconRemoteResource_methodGet", RemoteResourceMethodGet);
   REGISTER_ASYNC("IotconRemoteResource_methodPut", RemoteResourceMethodPut);
   REGISTER_ASYNC("IotconRemoteResource_methodPost", RemoteResourceMethodPost);
@@ -246,16 +247,66 @@ common::TizenResult IotconInstance::ResourceAddResourceInterfaces(const picojson
   return common::UnknownError("Not implemented");
 }
 
-common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::object& args,
-                                                             const common::AsyncToken& token) {
+common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+  CHECK_EXIST(args, kChildId);
+
+  ResourceInfoPtr parent;
+  auto result = IotconServerManager::GetInstance().GetResourceById(GetId(args), &parent);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() parent failed"));
+  }
+
+  long long child_id = static_cast<long long>(GetArg(args, kChildId).get<double>());
+  ResourceInfoPtr child;
+
+  result = IotconServerManager::GetInstance().GetResourceById(child_id, &child);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() failed"));
+  }
+
+  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_child_resource(parent->handle, child->handle));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_bind_child_resource() failed"));
+  }
+
+  parent->children.insert(child);
+  child->parents.insert(parent);
+
+  return common::TizenSuccess();
 }
 
-common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::object& args,
-                                                                const common::AsyncToken& token) {
+common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+  CHECK_EXIST(args, kChildId);
+
+  ResourceInfoPtr parent;
+  auto result = IotconServerManager::GetInstance().GetResourceById(GetId(args), &parent);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() parent failed"));
+  }
+
+  long long child_id = static_cast<long long>(GetArg(args, kChildId).get<double>());
+  ResourceInfoPtr child;
+
+  result = IotconServerManager::GetInstance().GetResourceById(child_id, &child);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() failed"));
+  }
+
+  result = IotconUtils::ConvertIotconError(iotcon_resource_unbind_child_resource(parent->handle, child->handle));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_unbind_child_resource() failed"));
+  }
+
+  parent->children.erase(child);
+  child->parents.erase(parent);
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::ResourceSetRequestListener(const picojson::object& args) {
