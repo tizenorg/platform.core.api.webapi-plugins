@@ -28,6 +28,12 @@ namespace iotcon {
 
 namespace {
 
+typedef struct {
+  common::PostCallback fun;
+} CallbackData;
+
+const std::string kTimeout = "timeout";
+
 #define CHECK_EXIST(args, name) \
   if (args.end() == args.find(name)) { \
     return common::TypeMismatchError(std::string(name) + " is required argument"); \
@@ -383,10 +389,47 @@ common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& 
   return common::UnknownError("Not implemented");
 }
 
+void IotconPlatformInfoCb(iotcon_platform_info_h platform_info,
+                          iotcon_error_e result, void *user_data) {
+  ScopeLogger();
+
+  CallbackData* data = static_cast<CallbackData*>(user_data);
+  picojson::value v{picojson::object{}};
+  common::TizenResult ret = common::TizenSuccess();
+
+  if (IOTCON_ERROR_NONE != result) {
+    ret = IotconUtils::ConvertIotconError(result);
+  } else {
+    ret = IotconUtils::PlatformInfoToJson(platform_info,&v.get<picojson::object>());
+  }
+
+  data->fun(ret, v);
+  delete data;
+}
+
 common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object& args,
                                                           const common::AsyncToken& token) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kHostAddress);
+  CHECK_EXIST(args, kConnectivityType);
+
+  std::string host = args.find(kHostAddress)->second.get<std::string>();
+  std::string con_type = args.find(kConnectivityType)->second.get<std::string>();
+  iotcon_connectivity_type_e con_type_e = IotconUtils::ToConnectivityType(con_type);
+
+  CallbackData* data = new CallbackData{SimplePost(token)};
+
+  auto result = IotconUtils::ConvertIotconError(
+       iotcon_get_platform_info(host.c_str(), con_type_e, IotconPlatformInfoCb,
+                                data));
+
+  if (!result) {
+    delete data;
+    LogAndReturnTizenError(result);
+  }
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::ServerCreateResource(const picojson::object& args) {
@@ -464,9 +507,9 @@ common::TizenResult IotconInstance::GetTimeout(const picojson::object& args) {
 common::TizenResult IotconInstance::SetTimeout(const picojson::object& args) {
   ScopeLogger();
 
-  CHECK_EXIST(args, "timeout");
+  CHECK_EXIST(args, kTimeout);
 
-  int timeout = static_cast<int>(args.find("timeout")->second.get<double>());
+  int timeout = static_cast<int>(args.find(kTimeout)->second.get<double>());
   auto result = IotconUtils::ConvertIotconError(iotcon_set_timeout(timeout));
 
   if (!result) {

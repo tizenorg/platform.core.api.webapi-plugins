@@ -100,6 +100,18 @@ const std::string kFilter = "filter";
 
 const std::string kHexPrefix = "0x";
 
+const std::string kPlatformId = "platformId";
+const std::string kManufacturerName = "manufacturerName";
+const std::string kManufacturerUrl = "manufacturerUrl";
+const std::string kModelNumber = "modelNumber";
+const std::string kManufactureDate = "manufactureDate";
+const std::string kPlatformVersion = "platformVersion";
+const std::string kOperatingSystemVersion = "operatingSystemVersion";
+const std::string kHardwareVersion = "hardwareVersion";
+const std::string kFirmwareVersion = "firmwareVersion";
+const std::string kSupportUrl = "supportUrl";
+const std::string kSystemTime = "systemTime";
+
 using common::TizenResult;
 using common::TizenSuccess;
 
@@ -1101,6 +1113,129 @@ common::TizenResult IotconUtils::StateListFromJson(const picojson::array& l,
   return TizenSuccess();
 }
 
+common::TizenResult IotconUtils::PlatformInfoGetProperty(iotcon_platform_info_h platform,
+                                                         iotcon_platform_info_e property_e,
+                                                         const std::string& name,
+                                                         picojson::object* out) {
+  ScopeLogger();
+
+  char* property = nullptr;
+  auto result = ConvertIotconError(iotcon_platform_info_get_property(platform,
+                                                                     property_e,
+                                                                     &property));
+  if (!result || !property) {
+    LogAndReturnTizenError(result, ("iotcon_platform_info_get_property() failed"));
+  }
+  out->insert(std::make_pair(name, picojson::value{property}));
+
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::PlatformInfoToJson(iotcon_platform_info_h platform,
+                                                    picojson::object* out) {
+  ScopeLogger();
+
+  {
+    // platformId
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_ID,
+                                          kPlatformId, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // manufacturerName
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_MANUF_NAME,
+                                          kManufacturerName, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // manufacturerUrl
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_MANUF_URL,
+                                          kManufacturerUrl, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // modelNumber
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_MODEL_NUMBER,
+                                          kModelNumber, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // manufactureDate
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_DATE_OF_MANUF,
+                                          kManufactureDate, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // platformVersion
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_PLATFORM_VER,
+                                          kPlatformVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // operatingSystemVersion
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_OS_VER,
+                                          kOperatingSystemVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // hardwareVersion
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_HARDWARE_VER,
+                                          kHardwareVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // firmwareVersion
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_FIRMWARE_VER,
+                                          kFirmwareVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // supportUrl
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_SUPPORT_URL,
+                                          kSupportUrl, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // systemTime
+    auto result = PlatformInfoGetProperty(platform, IOTCON_PLATFORM_INFO_SYSTEM_TIME,
+                                          kSystemTime, out);
+    if (!result) {
+      return result;
+    }
+  }
+  return TizenSuccess();
+}
+
 common::TizenResult IotconUtils::ConvertIotconError(int error) {
   switch (error) {
     case IOTCON_ERROR_NONE:
@@ -1196,6 +1331,12 @@ iotcon_qos_e IotconUtils::ToQos(const std::string& e) {
   ScopeLogger();
 
   IOTCON_QOS_E
+}
+
+iotcon_connectivity_type_e IotconUtils::ToConnectivityType(const std::string& e) {
+  ScopeLogger();
+
+  IOTCON_CONNECTIVITY_TYPE_E
 }
 
 #undef X

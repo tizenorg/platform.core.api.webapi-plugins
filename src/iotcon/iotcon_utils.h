@@ -45,6 +45,8 @@ extern const std::string kResourceChildren;
 extern const std::string kUriPath;
 extern const std::string kStates;
 extern const std::string kId;
+extern const std::string kHostAddress;
+extern const std::string kConnectivityType;
 
 struct ResourceInfo {
   long long id;
@@ -91,6 +93,12 @@ class IotconUtils {
                                            picojson::array* out);
   static common::TizenResult QueryToJson(iotcon_query_h query,
                                          picojson::object* out);
+  static common::TizenResult PlatformInfoToJson(iotcon_platform_info_h platform,
+                                                picojson::object* out);
+  static common::TizenResult PlatformInfoGetProperty(iotcon_platform_info_h platform,
+                                                     iotcon_platform_info_e property,
+                                                     const std::string& name,
+                                                     picojson::object* out);
 
   static common::TizenResult RepresentationFromResource(const ResourceInfoPtr& resource,
                                                         const picojson::value& states,
@@ -108,6 +116,7 @@ class IotconUtils {
   static std::string FromInterface(iotcon_interface_e e);
 
   static iotcon_interface_e ToInterface(const std::string& e);
+  static iotcon_connectivity_type_e ToConnectivityType(const std::string& e);
   static iotcon_qos_e ToQos(const std::string& e);
 };
 
