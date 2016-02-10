@@ -284,10 +284,10 @@ function Resource(data) {
     observerIds: {
       get: function() {
         var callArgs = {};
-        callArgs.id = data.id;
+        callArgs.id = this[kIdKey];
         var result = native.callSync('IotconResource_getObserverIds', callArgs);
         return native.getResultObject(result);
-      },
+      }.bind(this),
       set: function() {},
       enumerable: true
     }
@@ -550,10 +550,10 @@ function RemoteResource(data) {
     cachedRepresentation: {
       get: function() {
         var callArgs = {};
-        callArgs.id = data.id;
+        callArgs.id = this[kIdKey];
         var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
         return createRepresentation(native.getResultObject(result));
-      },
+      }.bind(this),
       set: function() {},
       enumerable: true
     }

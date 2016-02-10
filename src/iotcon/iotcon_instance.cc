@@ -154,7 +154,24 @@ IotconInstance::~IotconInstance() {
 
 common::TizenResult IotconInstance::ResourceGetObserverIds(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+
+  ResourceInfoPtr resource;
+  auto result = IotconServerManager::GetInstance().GetResourceById(GetId(args), &resource);
+
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResourceById() failed"));
+  }
+
+  picojson::value value{picojson::array{}};
+  auto& arr = value.get<picojson::array>();
+
+  for (auto id : resource->observers) {
+    arr.push_back(picojson::value{static_cast<double>(id)});
+  }
+
+  return common::TizenSuccess(value);
 }
 
 common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args) {
