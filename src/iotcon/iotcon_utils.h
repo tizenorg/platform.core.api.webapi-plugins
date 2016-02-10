@@ -99,6 +99,12 @@ class IotconUtils {
                                                      iotcon_platform_info_e property,
                                                      const std::string& name,
                                                      picojson::object* out);
+  static common::TizenResult DeviceInfoToJson(iotcon_device_info_h device,
+                                                picojson::object* out);
+  static common::TizenResult DeviceInfoGetProperty(iotcon_device_info_h platform,
+                                                   iotcon_device_info_e  property,
+                                                   const std::string& name,
+                                                   picojson::object* out);
 
   static common::TizenResult RepresentationFromResource(const ResourceInfoPtr& resource,
                                                         const picojson::value& states,

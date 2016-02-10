@@ -112,6 +112,11 @@ const std::string kFirmwareVersion = "firmwareVersion";
 const std::string kSupportUrl = "supportUrl";
 const std::string kSystemTime = "systemTime";
 
+const std::string kDeviceName = "deviceName";
+const std::string kSpecVersion = "specVersion";
+const std::string kOicDeviceId = "oicDeviceId";
+const std::string kDataModelVersion = "dataModelVersion";
+
 using common::TizenResult;
 using common::TizenSuccess;
 
@@ -1233,6 +1238,67 @@ common::TizenResult IotconUtils::PlatformInfoToJson(iotcon_platform_info_h platf
       return result;
     }
   }
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::DeviceInfoGetProperty(iotcon_device_info_h device,
+                                                       iotcon_device_info_e property_e,
+                                                       const std::string& name,
+                                                       picojson::object* out) {
+  ScopeLogger();
+
+  char* property = nullptr;
+  auto result = ConvertIotconError(iotcon_device_info_get_property(device,
+                                                                   property_e,
+                                                                   &property));
+  if (!result || !property) {
+    LogAndReturnTizenError(result, ("iotcon_device_info_get_property() failed"));
+  }
+  out->insert(std::make_pair(name, picojson::value{property}));
+
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::DeviceInfoToJson(iotcon_device_info_h device,
+                                                  picojson::object* out) {
+  ScopeLogger();
+
+  {
+    // deviceName
+    auto result = DeviceInfoGetProperty(device, IOTCON_DEVICE_INFO_NAME,
+                                        kDeviceName, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // specVersion
+    auto result = DeviceInfoGetProperty(device, IOTCON_DEVICE_INFO_SPEC_VER,
+                                        kSpecVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // oicDeviceId
+    auto result = DeviceInfoGetProperty(device, IOTCON_DEVICE_INFO_ID,
+                                        kOicDeviceId, out);
+    if (!result) {
+      return result;
+    }
+  }
+
+  {
+    // dataModelVersion
+    auto result = DeviceInfoGetProperty(device, IOTCON_DEVICE_INFO_DATA_MODEL_VER,
+                                        kDataModelVersion, out);
+    if (!result) {
+      return result;
+    }
+  }
+
   return TizenSuccess();
 }
 
