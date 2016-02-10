@@ -338,43 +338,46 @@ Resource.prototype.notify = function() {
   }
 };
 
-Resource.prototype.addResourceTypes = function() {
+Resource.prototype.addResourceType = function() {
   var args = validator.validateMethod(arguments, [{
-    name: 'types',
-    type: types.ARRAY,
-    values: types.STRING,
-    optional: false,
-    nullable: false
+    name: 'type',
+    type: types.STRING
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.types = args.types;
+  callArgs.type = args.type;
 
-  var result = native.call('IotconResource_addResourceTypes', callArgs);
+  var result = native.callSync('IotconResource_addResourceType', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var t = this.resourceTypes;
+    t.push(args.type);
+    updateWithInternalData({ resourceTypes: t }, this);
   }
 };
 
-Resource.prototype.addResourceInterfaces = function() {
+Resource.prototype.addResourceInterface = function() {
   var args = validator.validateMethod(arguments, [{
-    name: 'interfaces',
-    type: types.ARRAY,
-    values: ResourceInterface,
-    optional: false,
-    nullable: false
+    name: 'iface',
+    type: types.ENUM,
+    values: T.getValues(ResourceInterface)
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.interfaces = args.interfaces;
+  callArgs.iface = args.iface;
 
-  var result = native.call('IotconResource_addResourceInterfaces', callArgs);
+  var result = native.callSync('IotconResource_addResourceInterface', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var interfaces = this.resourceInterfaces;
+    interfaces.push(args.iface);
+    updateWithInternalData({ resourceInterfaces: interfaces }, this);
   }
 };
 
