@@ -161,7 +161,7 @@ void IotconServerManager::RequestHandler(iotcon_resource_h resource,
     // store data
     long long id = GetNextId();
     obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
-    r->unhandled_responses.insert(std::make_pair(id, response));
+    r->pending_responses.insert(std::make_pair(id, ResponsePtr{response, &iotcon_response_destroy}));
 
     // call listener
     r->request_listener(TizenSuccess(), value);
@@ -262,6 +262,20 @@ common::TizenResult IotconServerManager::GetResourceByHandle(
   *res_pointer = it->second;
 
   return TizenSuccess();
+}
+
+common::TizenResult IotconServerManager::GetResponseById(long long id, ResponsePtr* out) const {
+  ScopeLogger();
+
+  for (const auto& resource : resource_map_) {
+    const auto& it = resource.second->pending_responses.find(id);
+    if (resource.second->pending_responses.end() != it) {
+      *out = it->second;
+      return TizenSuccess();
+    }
+  }
+
+  return LogAndCreateTizenError(NotFoundError, "Response with specified ID does not exist");
 }
 
 }  // namespace iotcon

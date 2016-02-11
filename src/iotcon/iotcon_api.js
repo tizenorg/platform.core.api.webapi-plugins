@@ -496,11 +496,18 @@ function Response(request) {
 }
 
 Response.prototype.send = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'iface',
+    type: types.ENUM,
+    values: T.getValues(ResourceInterface)
+  }]);
+
   var callArgs = {};
   callArgs.id = this.request[kIdKey];
   callArgs.result = this.result;
   callArgs.representation = this.representation;
   callArgs.options = this.options;
+  callArgs.iface = args.iface;
 
   var result = native.callSync('IotconResponse_send', callArgs);
 

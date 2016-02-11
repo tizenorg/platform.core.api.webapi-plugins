@@ -65,6 +65,7 @@ const std::string kQos = "qos";
 const std::string kChildId = "childId";
 const std::string kType = "type";
 const std::string kInterface = "iface";
+const std::string kResult = "result";
 
 const std::string kTimeout = "timeout";
 }  // namespace
@@ -422,7 +423,79 @@ common::TizenResult IotconInstance::ResourceUnsetRequestListener(const picojson:
 
 common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+  CHECK_EXIST(args, kResult);
+  CHECK_EXIST(args, kRepresentation);
+  CHECK_EXIST(args, kOptions);
+  CHECK_EXIST(args, kInterface);
+
+  ResponsePtr response = nullptr;
+  auto result = IotconServerManager::GetInstance().GetResponseById(GetId(args), &response);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetResponseById() failed"));
+  }
+
+  {
+    const auto& js_response_result = GetArg(args, kResult);
+    if (!js_response_result.is<std::string>()) {
+      return LogAndCreateTizenError(TypeMismatchError, "ResponseResult should be a string");
+    }
+    iotcon_response_result_e response_result = IotconUtils::ToResponseResult(js_response_result.get<std::string>());
+
+    result = IotconUtils::ConvertIotconError(iotcon_response_set_result(response.get(), response_result));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_result() failed"));
+    }
+  }
+
+  {
+    const auto& js_representation = GetArg(args, kRepresentation);
+    if (!js_representation.is<picojson::object>()) {
+      return LogAndCreateTizenError(TypeMismatchError, "Representation should be an object");
+    }
+    iotcon_representation_h representation = nullptr;
+    result = IotconUtils::RepresentationFromJson(js_representation.get<picojson::object>(), &representation);
+    if (!result) {
+      LogAndReturnTizenError(result, ("RepresentationFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_representation_destroy(representation);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_response_set_representation(response.get(), IotconUtils::ToInterface(GetArg(args, kInterface).get<std::string>()), representation));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_representation() failed"));
+    }
+  }
+
+  {
+    const auto& js_options = GetArg(args, kOptions);
+
+    if (js_options.is<picojson::array>()) {
+      iotcon_options_h options = nullptr;
+
+      result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+      if (!result) {
+        LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_options_destroy(options);
+      };
+
+      result = IotconUtils::ConvertIotconError(iotcon_response_set_options(response.get(), options));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+      }
+    }
+  }
+
+  result = IotconUtils::ConvertIotconError(iotcon_response_send(response.get()));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_response_send() failed"));
+  }
+
+  return common::TizenSuccess();
 }
 
 common::TizenResult IotconInstance::RemoteResourceGetCachedRepresentation(const picojson::object& args) {

@@ -44,6 +44,7 @@ class IotconServerManager {
   common::TizenResult GetResourceById(long long id, ResourceInfoPtr* res_pointer) const;
   common::TizenResult DestroyResource(long long id);
   common::TizenResult GetResourceByHandle(iotcon_resource_h resource, ResourceInfoPtr* res_pointer) const;
+  common::TizenResult GetResponseById(long long id, ResponsePtr* out) const;
 
  private:
   IotconServerManager() = default;

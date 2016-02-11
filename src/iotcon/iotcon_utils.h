@@ -50,6 +50,8 @@ extern const std::string kDeviceId;
 extern const std::string kHostAddress;
 extern const std::string kConnectivityType;
 extern const std::string kResourceType;
+extern const std::string kRepresentation;
+extern const std::string kOptions;
 
 class ResourceInfo;
 class PresenceEvent;
@@ -59,12 +61,14 @@ typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
 typedef std::shared_ptr<PresenceEvent> PresenceEventPtr;
 typedef std::map<long long, PresenceEventPtr> PresenceMap;
 
+using ResponsePtr = std::shared_ptr<std::remove_pointer<iotcon_response_h>::type>;
+
 struct ResourceInfo {
   long long id;
   iotcon_resource_h handle;
   std::set<int> observers;
   common::PostCallback request_listener;
-  std::unordered_map<long long, iotcon_response_h> unhandled_responses;
+  std::unordered_map<long long, ResponsePtr> pending_responses;
   std::set<ResourceInfoPtr> children;
   std::set<ResourceInfoPtr> parents;
 
@@ -72,9 +76,6 @@ struct ResourceInfo {
     id(0), handle(nullptr) {}
   ~ResourceInfo() {
     iotcon_resource_destroy(handle);
-    for (auto& it : unhandled_responses) {
-      iotcon_response_destroy(it.second);
-    }
   }
 };
 
@@ -161,6 +162,10 @@ class IotconUtils {
                                            iotcon_state_h* out);
   static common::TizenResult StateListFromJson(const picojson::array& list,
                                                iotcon_list_h* out);
+  static common::TizenResult OptionsFromJson(const picojson::array& options,
+                                             iotcon_options_h* out);
+  static common::TizenResult RepresentationFromJson(const picojson::object& representation,
+                                                    iotcon_representation_h* out);
 
   static common::TizenResult ConvertIotconError(int error);
   static std::string FromConnectivityType(iotcon_connectivity_type_e e);
@@ -173,6 +178,7 @@ class IotconUtils {
   static iotcon_interface_e ToInterface(const std::string& e);
   static iotcon_connectivity_type_e ToConnectivityType(const std::string& e);
   static iotcon_qos_e ToQos(const std::string& e);
+  static iotcon_response_result_e ToResponseResult(const std::string& e);
 };
 
 } // namespace iotcon

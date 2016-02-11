@@ -76,6 +76,15 @@ namespace {
   X(IOTCON_PRESENCE_RESOURCE_UPDATED, "UPDATED") \
   XD(IOTCON_PRESENCE_RESOURCE_DESTROYED, "DESTROYED")
 
+#define IOTCON_RESPONSE_RESULT_E \
+  X(IOTCON_RESPONSE_OK, "SUCCESS") \
+  X(IOTCON_RESPONSE_ERROR, "ERROR") \
+  X(IOTCON_RESPONSE_RESOURCE_CREATED, "RESOURCE_CREATED") \
+  X(IOTCON_RESPONSE_RESOURCE_DELETED, "RESOURCE_DELETED") \
+  X(IOTCON_RESPONSE_SLOW, "SLOW") \
+  X(IOTCON_RESPONSE_FORBIDDEN, "FORBIDDEN") \
+  XD(IOTCON_RESPONSE_ERROR, "unknown")
+
 }  // namespace
 
 const std::string kIsDiscoverable = "isDiscoverable";
@@ -1338,6 +1347,155 @@ common::TizenResult IotconUtils::ExtractFromPresenceEvent(const PresenceEventPtr
   return TizenSuccess();
 }
 
+common::TizenResult IotconUtils::OptionsFromJson(const picojson::array& o,
+                                                 iotcon_options_h* out) {
+  ScopeLogger();
+
+  iotcon_options_h options = nullptr;
+
+  auto result = ConvertIotconError(iotcon_options_create(&options));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_options_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_options_h>::type, void(*)(iotcon_options_h)> ptr{options, &iotcon_options_destroy};
+
+  // we ignore values with incorrect types
+  // TODO: should we convert them in JS?
+  for (const auto& option : o) {
+    if (option.is<picojson::object>()) {
+      const auto& js_id = option.get(kOptionsId);
+      const auto& js_data = option.get(kOptionsData);
+
+      if (js_id.is<double>() && js_data.is<std::string>()) {
+        result = ConvertIotconError(iotcon_options_add(options, js_id.get<double>(), js_data.get<std::string>().c_str()));
+        if (!result) {
+          LogAndReturnTizenError(result, ("iotcon_options_add() failed"));
+        }
+      }
+    }
+  }
+
+  *out = ptr.release();
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::RepresentationFromJson(const picojson::object& r,
+                                                        iotcon_representation_h* out) {
+  ScopeLogger();
+
+  iotcon_representation_h representation = nullptr;
+
+  auto result = ConvertIotconError(iotcon_representation_create(&representation));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_representation_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_representation_h>::type, void(*)(iotcon_representation_h)> ptr{representation, &iotcon_representation_destroy};
+
+  {
+    const auto& uri_path = r.find(kUriPath);
+    if (r.end() != uri_path && uri_path->second.is<std::string>()) {
+      result = ConvertIotconError(iotcon_representation_set_uri_path(representation, uri_path->second.get<std::string>().c_str()));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_set_uri_path() failed"));
+      }
+    } else {
+      return LogAndCreateTizenError(TypeMismatchError, "Representation object needs to have an uriPath attribute which is a string.");
+    }
+  }
+
+  {
+    const auto& resource_types = r.find(kResourceTypes);
+    if (r.end() != resource_types && resource_types->second.is<picojson::array>()) {
+      iotcon_resource_types_h types = nullptr;
+
+      result = ArrayToTypes(resource_types->second.get<picojson::array>(), &types);
+      if (!result) {
+        LogAndReturnTizenError(result, ("ArrayToTypes() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_resource_types_destroy(types);
+      };
+
+      result = ConvertIotconError(iotcon_representation_set_resource_types(representation, types));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_set_resource_types() failed"));
+      }
+    } else {
+      return LogAndCreateTizenError(TypeMismatchError, "Representation object needs to have a resourceTypes attribute which is an array.");
+    }
+  }
+
+  {
+    const auto& resource_interfaces = r.find(kResourceInterfaces);
+    if (r.end() != resource_interfaces && resource_interfaces->second.is<picojson::array>()) {
+      int interfaces = IOTCON_INTERFACE_NONE;
+
+      result = ArrayToInterfaces(resource_interfaces->second.get<picojson::array>(), &interfaces);
+      if (!result) {
+        LogAndReturnTizenError(result, ("ArrayToInterfaces() failed"));
+      }
+
+      result = ConvertIotconError(iotcon_representation_set_resource_interfaces(representation, interfaces));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_set_resource_interfaces() failed"));
+      }
+    } else {
+      return LogAndCreateTizenError(TypeMismatchError, "Representation object needs to have a resourceInterfaces attribute which is an array.");
+    }
+  }
+
+  {
+    const auto& states = r.find(kStates);
+    if (r.end() != states && states->second.is<picojson::object>()) {
+      iotcon_state_h s = nullptr;
+
+      result = StateFromJson(states->second.get<picojson::object>(), &s);
+      if (!result) {
+        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+      }
+      SCOPE_EXIT {
+        iotcon_state_destroy(s);
+      };
+
+      result = ConvertIotconError(iotcon_representation_set_state(representation, s));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_representation_set_state() failed"));
+      }
+    }
+  }
+
+  {
+    const auto& representations = r.find(kRepresentations);
+    if (r.end() != representations && representations->second.is<picojson::array>()) {
+      for (const auto& js_child : representations->second.get<picojson::array>()) {
+        if (js_child.is<picojson::object>()) {
+          iotcon_representation_h child = nullptr;
+
+          result = RepresentationFromJson(js_child.get<picojson::object>(), &child);
+          if (!result) {
+            LogAndReturnTizenError(result, ("RepresentationFromJson() failed"));
+          }
+          SCOPE_EXIT {
+            iotcon_representation_destroy(child);
+          };
+
+          result = ConvertIotconError(iotcon_representation_add_child(representation, child));
+          if (!result) {
+            LogAndReturnTizenError(result, ("iotcon_representation_add_child() failed"));
+          }
+        } else {
+          return LogAndCreateTizenError(TypeMismatchError, "The Representation.representations attribute needs to be an array of Representation objects.");
+        }
+      }
+    }
+  }
+
+  *out = ptr.release();
+  return TizenSuccess();
+}
+
 common::TizenResult IotconUtils::PlatformInfoGetProperty(iotcon_platform_info_h platform,
                                                          iotcon_platform_info_e property_e,
                                                          const std::string& name,
@@ -1639,6 +1797,10 @@ iotcon_connectivity_type_e IotconUtils::ToConnectivityType(const std::string& e)
   ScopeLogger();
 
   IOTCON_CONNECTIVITY_TYPE_E
+}
+
+iotcon_response_result_e IotconUtils::ToResponseResult(const std::string& e) {
+  IOTCON_RESPONSE_RESULT_E
 }
 
 #undef X
