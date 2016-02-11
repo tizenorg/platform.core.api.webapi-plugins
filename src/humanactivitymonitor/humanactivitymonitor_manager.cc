@@ -19,12 +19,32 @@
 #include <gesture_recognition.h>
 
 #include "common/logger.h"
+#include "common/picojson.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace humanactivitymonitor {
 
 using common::PlatformResult;
 using common::ErrorCode;
+using common::tools::ReportError;
+using common::tools::ReportSuccess;
+
+namespace {
+const std::string kActivityRecognitionStationary = "STATIONARY";
+const std::string kActivityRecognitionWalking = "WALKING";
+const std::string kActivityRecognitionRunning = "RUNNING";
+const std::string kActivityRecognitionInVehicle = "IN_VEHICLE";
+
+const std::string kActivityAccuracyLow = "LOW";
+const std::string kActivityAccuracyMedium = "MEDIUM";
+const std::string kActivityAccuracyHigh = "HIGH";
+
+long GetNextId() {
+  static long id = 0;
+  return ++id;
+}
+}
 
 HumanActivityMonitorManager::HumanActivityMonitorManager()
     : gesture_handle_(nullptr),
@@ -38,6 +58,12 @@ HumanActivityMonitorManager::~HumanActivityMonitorManager() {
   UnsetWristUpListener();
   UnsetHrmListener();
   UnsetGpsListener();
+
+  for (const auto& it: handles_cb_) {
+    activity_release(it.second->handle);
+    delete it.second;
+  }
+  handles_cb_.erase(handles_cb_.begin(), handles_cb_.end());
 }
 
 PlatformResult HumanActivityMonitorManager::Init() {
@@ -76,6 +102,42 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
     }
   } else if (type == kActivityTypeGps) {
     supported = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
+  } else if (type == kActivityRecognitionStationary) {
+    ret = activity_is_supported(ACTIVITY_STATIONARY, &supported);
+    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
+      LoggerD("Type %s not supported", type.c_str());
+    } else if (ret != ACTIVITY_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "activity_is_supported failed",
+                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
+    }
+  } else if (type == kActivityRecognitionWalking) {
+    ret = activity_is_supported(ACTIVITY_WALK, &supported);
+    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
+      LoggerD("Type %s not supported", type.c_str());
+    } else if (ret != ACTIVITY_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "activity_is_supported failed",
+                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
+    }
+  } else if (type == kActivityRecognitionRunning) {
+    ret = activity_is_supported(ACTIVITY_RUN, &supported);
+    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
+      LoggerD("Type %s not supported", type.c_str());
+    } else if (ret != ACTIVITY_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "activity_is_supported failed",
+                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
+    }
+  } else if (type == kActivityRecognitionInVehicle) {
+    ret = activity_is_supported(ACTIVITY_IN_VEHICLE, &supported);
+    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
+      LoggerD("Type %s not supported", type.c_str());
+    } else if (ret != ACTIVITY_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "activity_is_supported failed",
+                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
+    }
   } else {
     return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR);
   }
@@ -139,6 +201,193 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
   }
 
   return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+}
+
+void HumanActivityMonitorManager:: ActivityRecognitionCb(
+                activity_type_e type,
+                const activity_data_h data,
+                double timestamp,
+                activity_error_e callback_error,
+                void *user_data) {
+  LoggerD("enter");
+
+  HandleCallback* handle_callback = static_cast<HandleCallback*>(user_data);
+  long watch_id = handle_callback->watch_id;
+  JsonCallback callback = handle_callback->callback;
+
+  picojson::value val = picojson::value(picojson::object());
+  picojson::object& obj = val.get<picojson::object>();
+  obj["watchId"] = picojson::value(static_cast<double>(watch_id));
+
+  if (callback_error != ACTIVITY_ERROR_NONE) {
+    LogAndReportError(
+        PlatformResult(ErrorCode::ABORT_ERR, "System operation was failed"),
+        &obj,
+        ("activity_recognition_cb() is failed with error code %d - %s", callback_error, get_error_message(callback_error)));
+    callback(&val);
+    return;
+  }
+
+  activity_accuracy_e accuracy = ACTIVITY_ACCURACY_MID;
+
+  int ret = activity_get_accuracy(data, &accuracy);
+  if (ret != ACTIVITY_ERROR_NONE) {
+    LogAndReportError(
+        PlatformResult(ErrorCode::ABORT_ERR, "System operation was failed"),
+        &obj,
+        ("activity_get_accuracy() is failed with error code %d - %s", ret, get_error_message(ret)));
+    callback(&val);
+    return;
+  }
+
+  const char *type_str;
+
+  switch (type) {
+    case ACTIVITY_STATIONARY:
+      type_str = kActivityRecognitionStationary.c_str();
+      break;
+
+    case ACTIVITY_WALK:
+      type_str = kActivityRecognitionWalking.c_str();
+      break;
+
+    case ACTIVITY_RUN:
+      type_str = kActivityRecognitionRunning.c_str();
+      break;
+
+    case ACTIVITY_IN_VEHICLE:
+      type_str = kActivityRecognitionInVehicle.c_str();
+      break;
+
+    default:
+      LogAndReportError(
+          PlatformResult(ErrorCode::ABORT_ERR, "Unknown activity recognition type"),
+          &obj,
+          ("Unknown activity recognition type %d", type));
+      callback(&val);
+      return;
+  }
+
+  LoggerD("Activity type: (%s)", type_str);
+
+  const char *accuracy_str;
+
+  switch (accuracy) {
+    case ACTIVITY_ACCURACY_LOW:
+      accuracy_str = kActivityAccuracyLow.c_str();
+      break;
+
+    case ACTIVITY_ACCURACY_MID:
+      accuracy_str = kActivityAccuracyMedium.c_str();
+      break;
+
+    case ACTIVITY_ACCURACY_HIGH:
+      accuracy_str = kActivityAccuracyHigh.c_str();
+      break;
+
+    default:
+      LogAndReportError(
+          PlatformResult(ErrorCode::ABORT_ERR, "Unknown activity accuracy type"),
+          &obj,
+          ("Unknown activity accuracy type %d", accuracy));
+      callback(&val);
+      return;
+  }
+
+  LoggerD("accuracy: (%s)", accuracy_str);
+  LoggerD("##### timeStamp: (%f)", timestamp);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  result_obj.insert(std::make_pair("type", picojson::value(type_str)));
+  result_obj.insert(std::make_pair("timestamp", picojson::value(timestamp)));
+  result_obj.insert(std::make_pair("accuracy", picojson::value(accuracy_str)));
+
+  ReportSuccess(result, obj);
+  callback(&val);
+  return;
+}
+
+PlatformResult HumanActivityMonitorManager:: AddActivityRecognitionListener(
+    const std::string& type, JsonCallback callback, const picojson::value& args, long* watch_id) {
+  LoggerD("Enter");
+
+  PlatformResult result = IsSupported(type);
+  if (!result) {
+    return result;
+  }
+
+  activity_type_e activity_type = ACTIVITY_STATIONARY;
+
+  if (type == kActivityRecognitionStationary) {
+    activity_type = ACTIVITY_STATIONARY;
+  } else if (type == kActivityRecognitionWalking) {
+    activity_type = ACTIVITY_WALK;
+  } else if (type == kActivityRecognitionRunning) {
+    activity_type = ACTIVITY_RUN;
+  } else if (type == kActivityRecognitionInVehicle) {
+    activity_type = ACTIVITY_IN_VEHICLE;
+  } else {
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                              "A type not supported",
+                              ("The type %s is not matched with the activity recognition type", type.c_str()));
+  }
+
+  activity_h handle = nullptr;
+  int ret = activity_create(&handle);
+  if (ret != ACTIVITY_ERROR_NONE) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "activity_create error",
+                              ("activity_create error: %d - %s", ret, get_error_message(ret)));
+  }
+
+  long id = GetNextId();
+
+  // Adding the handle to handles map
+  HandleCallback* handle_callback = new HandleCallback(id, callback, handle);
+
+  handles_cb_[id] = handle_callback;
+
+  ret = activity_start_recognition(handle, activity_type, ActivityRecognitionCb, static_cast<void*>(handle_callback));
+  if (ret != ACTIVITY_ERROR_NONE) {
+    delete handle_callback;
+    handles_cb_.erase(id);
+    activity_release(handle);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "activity_start_recognition error",
+                              ("activity_start_recognition error: %d - %s", ret, get_error_message(ret)));
+  }
+
+  *watch_id = id;
+
+  return result;
+}
+
+PlatformResult HumanActivityMonitorManager::RemoveActivityRecognitionListener(const long watch_id) {
+  LoggerD("Enter");
+
+  if (handles_cb_.find(watch_id) == handles_cb_.end()) {
+    return LogAndCreateResult(
+              ErrorCode::ABORT_ERR,
+              "Listener not found",
+              ("Listener with id = %ld not found", watch_id));
+  }
+  activity_h handle = handles_cb_[watch_id]->handle;
+
+  int ret = activity_stop_recognition(handle);
+  if (ret != ACTIVITY_ERROR_NONE) {
+    return LogAndCreateResult(
+              ErrorCode::ABORT_ERR,
+              "System operation was failed",
+              ("Activity_stop_recognition() return (%d) - %s", ret, get_error_message(ret)));
+  }
+
+  activity_release(handle);
+  delete handles_cb_[watch_id];
+  handles_cb_.erase(watch_id);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult HumanActivityMonitorManager::GetHumanActivityData(

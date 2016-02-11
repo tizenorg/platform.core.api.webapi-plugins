@@ -45,6 +45,19 @@ var PedometerStepStatus = {
   RUNNING: 'RUNNING'
 };
 
+var ActivityRecognitionType = {
+  STATIONARY: 'STATIONARY',
+  WALKING: 'WALKING',
+  RUNNING: 'RUNNING',
+  IN_VEHICLE: 'IN_VEHICLE'
+};
+
+var ActivityAccuracy = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+};
+
 function convertActivityData(type, data) {
   switch (type) {
     case HumanActivityType.PEDOMETER:
@@ -62,6 +75,57 @@ function convertActivityData(type, data) {
       return new HumanActivityGPSInfoArray(gpsInfo);
   }
 }
+
+function ActivityRecognitionListenerManager() {
+  this.listeners = {};
+  this.nextId = 1;
+  this.nativeSet = false;
+  this.native = native_;
+  this.listenerName = 'ActivityRecognitionListener';
+};
+
+ActivityRecognitionListenerManager.prototype.onListener = function(data) {
+  var watchId = data.watchId;
+
+  if (this.listeners[watchId]) {
+    if (native_.isFailure(data)) {
+      native_.callIfPossible(this.listeners[watchId].errorCallback, native_.getErrorObject(data));
+      return;
+    }
+
+    native_.callIfPossible(
+        this.listeners[watchId].listener,
+        new HumanActivityRecognitionData(native_.getResultObject(data)));
+  }
+};
+
+ActivityRecognitionListenerManager.prototype.addListener = function(watchId, listener, errorCallback) {
+  this.listeners[watchId] = {
+    listener: listener,
+    errorCallback: errorCallback
+  };
+
+  if (!this.nativeSet) {
+    this.native.addListener(this.listenerName, this.onListener.bind(this));
+    this.nativeSet = true;
+  }
+};
+
+ActivityRecognitionListenerManager.prototype.removeListener = function(watchId) {
+  if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
+    throw new WebAPIException(0, 'Listener id not found.', 'InvalidValuesError');
+  }
+
+  if (this.listeners.hasOwnProperty(watchId)) {
+    delete this.listeners[watchId];
+    if (type_.isEmptyObject(this.listeners)) {
+      this.native.removeListener(this.listenerName);
+      this.nativeSet = false;
+    }
+  }
+};
+
+var activityRecognitionListener = new ActivityRecognitionListenerManager();
 
 function HumanActivityMonitorManager() {
 }
@@ -160,7 +224,7 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                 'sampleInterval is out of range');
     }
-    break
+    break;
   case HumanActivityType.HRM:
     callbackInterval = !type_.isNullOrUndefined(args.option) ?
         args.option.callbackInterval : 100;
@@ -168,7 +232,7 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                 'callbackInterval is out of range');
     }
-    break
+    break;
   }
 
   console.log("callbackInterval = " + callbackInterval + ", sampleInterval = " + sampleInterval);
@@ -216,6 +280,45 @@ HumanActivityMonitorManager.prototype.unsetAccumulativePedometerListener = funct
   stopListener(accumulativePedometerListenerId,
                'HumanActivityMonitorManager_unsetAccumulativePedometerListener',
                {});
+};
+
+
+HumanActivityMonitorManager.prototype.addActivityRecognitionListener = function() {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'type', type: types_.ENUM, values: Object.keys(ActivityRecognitionType)},
+    {name: 'listener', type: types_.FUNCTION},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+
+  var result = native_.call(
+                  'HumanActivityMonitorManager_addActivityRecognitionListener',
+                  { type: args.type,
+                    listenerId: activityRecognitionListener.listenerName });
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  var watchId = result.watchId;
+  activityRecognitionListener.addListener(watchId, args.listener, args.errorCallback);
+
+  return watchId;
+};
+
+HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = function() {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'watchId', type: types_.ENUM},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var result = native_.call(
+                  'HumanActivityMonitorManager_removeActivityRecognitionListener',
+                  { watchId: args.watchId });
+  if (native_.isFailure(result)) {
+    setTimeout(function () { native_.callIfPossible(args.errorCallback, native_.getErrorObject(result)); }, 0);
+    return;
+  }
+  activityRecognitionListener.removeListener(watchId);
 };
 
 function StepDifference() {
@@ -268,6 +371,14 @@ function HumanActivityHRMData(data) {
 HumanActivityHRMData.prototype = new HumanActivityData();
 HumanActivityHRMData.prototype.constructor = HumanActivityHRMData;
 
+function HumanActivityRecognitionData(data) {
+  SetReadOnlyProperty(this, 'type', data.type);
+  SetReadOnlyProperty(this, 'timestamp', data.timestamp);
+  SetReadOnlyProperty(this, 'accuracy', data.accuracy);
+}
+
+HumanActivityRecognitionData.prototype = new HumanActivityData();
+HumanActivityRecognitionData.prototype.constructor = HumanActivityRecognitionData;
 
 function HumanActivityGPSInfo(data) {
   SetReadOnlyProperty(this, 'latitude', data.latitude);

@@ -42,6 +42,10 @@ class HumanActivityMonitorInstance : public common::ParsedInstance {
       const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerSetAccumulativePedometerListener(
       const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerAddActivityRecognitionListener(
+      const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerRemoveActivityRecognitionListener(
+      const picojson::value& args, picojson::object& out);
 
   std::shared_ptr<HumanActivityMonitorManager> manager_;
   common::PlatformResult Init();
