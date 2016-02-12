@@ -195,4 +195,78 @@ public:
      LogAndCreateResult_1(__VA_ARGS__) \
   )
 
+// internal macros
+#define LogAndCreateTizenError_1(error_name) \
+  ( \
+    LoggerE("Creating TizenError"), \
+    common::error_name() \
+  )
+
+#define LogAndCreateTizenError_2(error_name, msg) \
+  ( \
+    LoggerE("Creating TizenError"), \
+    common::error_name(msg) \
+  )
+
+#define LogAndCreateTizenError_3(error_name, msg, log) \
+  ( \
+    LoggerE log, \
+    common::error_name(msg) \
+  )
+
+#define LogAndCreateTizenError_X(_0, _1, _2, _3, FUNC, ...) FUNC
+
+#define LogAndCreateTizenError(...) \
+  LogAndCreateTizenError_X(, ##__VA_ARGS__, \
+     LogAndCreateTizenError_3(__VA_ARGS__), \
+     LogAndCreateTizenError_2(__VA_ARGS__), \
+     LogAndCreateTizenError_1(__VA_ARGS__) \
+  )
+
+// internal macros
+#define LogAndReturnTizenError_1(error) \
+  do { \
+    LoggerE("Reporting error."); \
+    return error; \
+  } while(false)
+
+#define LogAndReturnTizenError_2(error, log) \
+  do { \
+    LoggerE log; \
+    return error; \
+  } while(false)
+
+#define LogAndReturnTizenError_X(_0, _1, _2, FUNC, ...) FUNC
+
+#define LogAndReturnTizenError(...) \
+  LogAndReturnTizenError_X(, ##__VA_ARGS__, \
+     LogAndReturnTizenError_2(__VA_ARGS__), \
+     LogAndReturnTizenError_1(__VA_ARGS__) \
+  )
+
+namespace common {
+
+// defined here, so LoggerD() depends on TIZEN_DEBUG_ENABLE flag on per-module
+// basis
+class ScopeLogger {
+ public:
+  ScopeLogger(const std::string& f, const std::string& m, int l, const std::string& ex = "")
+      : file_(f), method_(m), extra_(ex) {
+    LoggerD("%s: %s(%d) > Enter %s", file_.c_str(), method_.c_str(), l, extra_.c_str());
+  }
+
+  ~ScopeLogger() {
+    LoggerD("%s: %s > Exit %s", file_.c_str(), method_.c_str(), extra_.c_str());
+  }
+
+ private:
+  std::string file_;
+  std::string method_;
+  std::string extra_;
+};
+
+}  // common
+
+#define ScopeLogger(EX) const common::ScopeLogger __sl__{__MODULE__, __func__, __LINE__, EX}
+
 #endif // COMMON_LOGGER_H_

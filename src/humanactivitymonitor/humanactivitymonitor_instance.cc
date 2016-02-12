@@ -58,6 +58,10 @@ HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
                 HumanActivityMonitorManagerSetAccumulativePedometerListener);
   REGISTER_SYNC("HumanActivityMonitorManager_unsetAccumulativePedometerListener",
                 HumanActivityMonitorManagerUnsetAccumulativePedometerListener);
+  REGISTER_SYNC("HumanActivityMonitorManager_addActivityRecognitionListener",
+                HumanActivityMonitorManagerAddActivityRecognitionListener);
+  REGISTER_SYNC("HumanActivityMonitorManager_removeActivityRecognitionListener",
+                HumanActivityMonitorManagerRemoveActivityRecognitionListener);
 #undef REGISTER_SYNC
 }
 
@@ -216,6 +220,67 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerUnsetAccumulativeP
   CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
 
   // TODO(r.galka) implement
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerAddActivityRecognitionListener(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+  CHECK_EXIST(args, "type", out)
+
+  const auto& type = args.get("type").get<std::string>();
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  const auto& listener_id = args.get("listenerId").get<std::string>();
+
+  JsonCallback cb = [this, listener_id](picojson::value* data) -> void {
+    if (!data) {
+      LOGGER(ERROR) << "No data passed to json callback";
+      return;
+    }
+
+    picojson::object& data_o = data->get<picojson::object>();
+    data_o["listenerId"] = picojson::value(listener_id);
+
+    Instance::PostMessage(this, data->serialize().c_str());
+  };
+
+  long watchId = 0;
+
+  result = manager_->AddActivityRecognitionListener(type, cb, args, &watchId);
+  if (result) {
+    out["watchId"] = picojson::value(static_cast<double>(watchId));
+    ReportSuccess(out);
+  } else {
+    LogAndReportError(result, &out, ("Failed: manager_->AddActivityRecognitionListener()"));
+  }
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerRemoveActivityRecognitionListener(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+  CHECK_EXIST(args, "watchId", out)
+
+  const long watchId = static_cast<long>(args.get("watchId").get<double>());
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  result = manager_->RemoveActivityRecognitionListener(watchId);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    LogAndReportError(result, &out, ("Failed: manager_->RemoveActivityRecognitionListener()"));
+  }
 }
 
 #undef CHECK_EXIST

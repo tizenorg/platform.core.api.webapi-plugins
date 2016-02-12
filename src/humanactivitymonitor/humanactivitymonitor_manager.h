@@ -20,6 +20,7 @@
 #include <functional>
 #include <sensor.h>
 #include <gesture_recognition.h>
+#include <activity_recognition.h>
 #include <location_batch.h>
 #include <string>
 
@@ -38,6 +39,13 @@ const std::string kActivityTypeGps = "GPS";
 
 typedef std::function<void(picojson::value*)> JsonCallback;
 
+typedef struct HandleCallbackStr {
+  HandleCallbackStr(long& id, JsonCallback& cb, activity_h& h) : watch_id(id), callback(cb), handle(h) {};
+  long watch_id;
+  JsonCallback callback;
+  activity_h handle;
+} HandleCallback;
+
 class HumanActivityMonitorManager {
  public:
   HumanActivityMonitorManager();
@@ -48,6 +56,10 @@ class HumanActivityMonitorManager {
   common::PlatformResult SetListener(const std::string& type,
       JsonCallback callback, const picojson::value& args);
   common::PlatformResult UnsetListener(const std::string& type);
+
+  common::PlatformResult AddActivityRecognitionListener(const std::string& type,
+      JsonCallback callback, const picojson::value& args, long* watchId);
+  common::PlatformResult RemoveActivityRecognitionListener(const long watchId);
 
   common::PlatformResult GetHumanActivityData(const std::string& type,
                                               picojson::value* data);
@@ -75,6 +87,7 @@ class HumanActivityMonitorManager {
   common::PlatformResult UnsetGpsListener();
   static void OnGpsEvent(int num_of_location, void *user_data);
   common::PlatformResult GetGpsData(picojson::value* data);
+  static void ActivityRecognitionCb(activity_type_e type, const activity_data_h data, double timestamp, activity_error_e callbackError, void *userData);
 
   // common
   std::map<std::string, bool> supported_;
@@ -87,6 +100,9 @@ class HumanActivityMonitorManager {
   // GPS
   location_manager_h location_handle_;
   JsonCallback gps_event_callback_;
+
+  // Activity recognition listeners handle map
+  std::map<long, HandleCallback*> handles_cb_;
 };
 
 } // namespace humanactivitymonitor

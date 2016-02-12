@@ -88,9 +88,8 @@ PlatformResult ZipAddRequest::run()
     m_root_src_file = m_callback->getFileEntry()->getFile();
     m_root_src_file_node = m_root_src_file->getNode();
 
-    //We just need read permission to list files in subdirectories
-    LoggerW("STUB Not setting PERM_READ permissions");
-    //m_root_src_file_node->setPermissions(filesystem::PERM_READ);
+    // We just need read permission to list files in subdirectories
+    m_root_src_file_node->setPermissions(filesystem::PERM_READ);
 
     std::string src_basepath, src_name;
     getBasePathAndName(m_root_src_file_node->getPath()->getFullPath(), src_basepath,
@@ -189,11 +188,14 @@ void ZipAddRequest::addNodeAndSubdirsToList(filesystem::NodePtr src_node,
     out_list_of_child_nodes.push_back(src_node);
 
     if(filesystem::NT_DIRECTORY == src_node->getType()) {
-        LoggerW("STUB Not generating recursive list of files in directory");
-        //auto child_nodes = src_node->getChildNodes();
-        //for(auto it = child_nodes.begin(); it != child_nodes.end(); ++it) {
-        //    addNodeAndSubdirsToList(*it, out_list_of_child_nodes);
-        //}
+        LoggerD("Generating recursive list of files in directory");
+        NodeList child_nodes;
+        auto result = src_node->getChildNodes(&child_nodes);
+        if (result) {
+            for(const auto& it : child_nodes) {
+                addNodeAndSubdirsToList(it, out_list_of_child_nodes);
+            }
+        }
     }
 }
 
