@@ -557,6 +557,39 @@ function State(key, state) {
   });
 }
 
+function prepareResourceInfo(that){
+  var callArgs = {};
+  callArgs.id = that[kIdKey];
+  if (!callArgs.id) {
+    console.log("RemoteResource is not already stored in C++ layer, adding all members");
+    callArgs.hostAddress = that.hostAddress;
+    callArgs.connectivityType = that.connectivityType;
+    callArgs.uriPath = that.uriPath;
+    //properties flags
+    callArgs.isObservable = that.isObservable;
+    callArgs.isDiscoverable = that.isDiscoverable;
+    callArgs.isActive = that.isActive;
+    callArgs.isSlow = that.isSlow;
+    callArgs.isSecure = that.isSecure;
+    callArgs.isExplicitDiscoverable = that.isExplicitDiscoverable;
+    callArgs.resourceTypes = that.resourceTypes;
+    callArgs.resourceInterfaces = that.resourceInterfaces;
+  } else {
+    console.log("Already stored in C++, all needed info is id");
+  }
+  return callArgs;
+}
+
+function manageId(that, result) {
+  if (result.keepId) {
+    that[kIdKey] = result.id;
+    console.log("Keep id of resource: " + that[kIdKey]);
+  } else {
+    console.log("Clear id of resource");
+    delete that[kIdKey];
+  }
+}
+
 function RemoteResource(data) {
   Object.defineProperties(this, {
     cachedRepresentation: {
@@ -598,8 +631,7 @@ RemoteResource.prototype.methodGet = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.query = args.query;
 
   var callback = function(result) {
@@ -636,8 +668,7 @@ RemoteResource.prototype.methodPut = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.representation = args.representation;
   callArgs.query = args.query;
 
@@ -675,8 +706,7 @@ RemoteResource.prototype.methodPost = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.representation = args.representation;
   callArgs.query = args.query;
 
@@ -707,8 +737,7 @@ RemoteResource.prototype.methodDelete = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var callback = function(result) {
     if (native.isFailure(result)) {
@@ -746,8 +775,7 @@ RemoteResource.prototype.setStateChangeListener = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.query = args.query;
   callArgs.observePolicy = args.observePolicy;
   var that = this;
@@ -771,8 +799,7 @@ RemoteResource.prototype.setStateChangeListener = function() {
 };
 
 RemoteResource.prototype.unsetStateChangeListener = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_unsetStateChangeListener', callArgs);
 
@@ -784,8 +811,7 @@ RemoteResource.prototype.unsetStateChangeListener = function() {
 };
 
 RemoteResource.prototype.startCaching = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_startCaching', callArgs);
 
@@ -795,8 +821,7 @@ RemoteResource.prototype.startCaching = function() {
 };
 
 RemoteResource.prototype.stopCaching = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_stopCaching', callArgs);
 
@@ -818,8 +843,7 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var listener = function(result) {
     if (native.isFailure(result)) {
@@ -839,8 +863,7 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
 };
 
 RemoteResource.prototype.unsetConnectionChangeListener = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_unsetConnectionChangeListener', callArgs);
 

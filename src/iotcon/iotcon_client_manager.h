@@ -39,6 +39,9 @@ class IotconClientManager {
                                                const char* resource_type,
                                                PresenceEventPtr presence);
   common::TizenResult RemovePresenceEventListener(long long id);
+  picojson::value StoreRemoteResource(FoundRemoteInfoPtr ptr);
+  picojson::value RemoveRemoteResource(FoundRemoteInfoPtr ptr);
+  common::TizenResult GetRemoteById(long long id, FoundRemoteInfoPtr* res_pointer) const;
 
  private:
   IotconClientManager() = default;
@@ -47,12 +50,14 @@ class IotconClientManager {
   IotconClientManager& operator=(const IotconClientManager&) = delete;
   IotconClientManager& operator=(IotconClientManager&&) = delete;
 
+  picojson::value PrepareManageIdAnswer(bool keep_id, long long id = 0);
   static void PresenceHandler(iotcon_presence_h  resource,
                              iotcon_error_e err,
                              iotcon_presence_response_h response,
                              void *user_data);
 
   PresenceMap presence_map_;
+  FoundRemotesMap remotes_map_;
 };
 
 } // namespace iotcon

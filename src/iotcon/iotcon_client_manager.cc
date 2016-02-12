@@ -31,6 +31,11 @@ long long GetPresenceNextId() {
   return ++id;
 }
 
+long long GetRemoteNextId() {
+  static long long id = 0;
+  return ++id;
+}
+
 }  // namespace
 
 IotconClientManager& IotconClientManager::GetInstance() {
@@ -133,6 +138,54 @@ common::TizenResult IotconClientManager::RemovePresenceEventListener(long long i
 
   return TizenSuccess();
 }
+
+picojson::value IotconClientManager::StoreRemoteResource(FoundRemoteInfoPtr ptr) {
+  ScopeLogger();
+  if (0 == ptr->id) {
+    LoggerD("New remote, needed to be added to map");
+    ptr->id = GetRemoteNextId();
+    remotes_map_.insert(std::make_pair(ptr->id, ptr));
+  } else {
+    LoggerD("Remote is already stored, just increase ref_count");
+    ptr->ref_count++;
+  }
+  return PrepareManageIdAnswer(true, ptr->id);
+}
+
+picojson::value IotconClientManager::RemoveRemoteResource(FoundRemoteInfoPtr ptr) {
+  ScopeLogger();
+  ptr->ref_count--;
+  if (ptr->ref_count <= 0) {
+    LoggerD("Handle not needed anymore, removing from map");
+    remotes_map_.erase(ptr->id);
+    return PrepareManageIdAnswer(false);
+  }
+  return PrepareManageIdAnswer(true, ptr->id);
+}
+
+picojson::value IotconClientManager::PrepareManageIdAnswer(bool keep_id, long long id) {
+  picojson::value answer{picojson::object{}};
+  auto& obj = answer.get<picojson::object>();
+  obj.insert(std::make_pair(kKeepId, picojson::value{keep_id}));
+  if (keep_id) {
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
+  }
+  return answer;
+}
+
+TizenResult IotconClientManager::GetRemoteById(long long id,
+                                               FoundRemoteInfoPtr* res_pointer) const {
+  ScopeLogger();
+
+  auto it = remotes_map_.find(id);
+  if (it == remotes_map_.end()) {
+    return LogAndCreateTizenError(NotFoundError, "Resource with specified ID does not exist");
+  }
+  *res_pointer = it->second;
+
+  return TizenSuccess();
+}
+
 
 }  // namespace iotcon
 }  // namespace extension

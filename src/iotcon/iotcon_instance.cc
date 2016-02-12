@@ -36,24 +36,8 @@ typedef struct {
   common::PostCallback fun;
 } CallbackData;
 
-#define CHECK_EXIST(args, name) \
-  if (args.end() == args.find(name)) { \
-    return common::TypeMismatchError(std::string(name) + " is required argument"); \
-  }
-
 long long GetId(const picojson::object& args) {
   return static_cast<long long>(args.find(kId)->second.get<double>());
-}
-
-const picojson::value& GetArg(const picojson::object& args, const std::string& name) {
-  static const picojson::value kNull;
-
-  auto it = args.find(name);
-  if (args.end() == it) {
-    return kNull;
-  } else {
-    return it->second;
-  }
 }
 
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
@@ -211,13 +195,13 @@ common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args)
     LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
 
-  auto& qos = GetArg(args, kQos);
+  auto& qos = IotconUtils::GetArg(args, kQos);
   if (!qos.is<std::string>()) {
     return common::TypeMismatchError("QOS needs to be a string");
   }
 
   // create observers to notify
-  auto& observer_ids = GetArg(args, kObserverIds);
+  auto& observer_ids = IotconUtils::GetArg(args, kObserverIds);
 
   std::vector<int> observers;
 
@@ -257,7 +241,7 @@ common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args)
   // create representation from resource and states
   iotcon_representation_h representation = nullptr;
 
-  result = IotconUtils::RepresentationFromResource(resource, GetArg(args, kStates), &representation);
+  result = IotconUtils::RepresentationFromResource(resource, IotconUtils::GetArg(args, kStates), &representation);
   if (!result) {
     LogAndReturnTizenError(result, ("RepresentationFromResource() failed"));
   }
@@ -286,7 +270,7 @@ common::TizenResult IotconInstance::ResourceAddResourceType(const picojson::obje
     LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
 
-  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_type(resource->handle, GetArg(args, kType).get<std::string>().c_str()));
+  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_type(resource->handle, IotconUtils::GetArg(args, kType).get<std::string>().c_str()));
   if (!result) {
     LogAndReturnTizenError(result, ("iotcon_resource_bind_type() failed"));
   }
@@ -306,7 +290,7 @@ common::TizenResult IotconInstance::ResourceAddResourceInterface(const picojson:
     LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
 
-  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_interface(resource->handle, IotconUtils::ToInterface(GetArg(args, kInterface).get<std::string>())));
+  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_interface(resource->handle, IotconUtils::ToInterface(IotconUtils::GetArg(args, kInterface).get<std::string>())));
   if (!result) {
     LogAndReturnTizenError(result, ("iotcon_resource_bind_interface() failed"));
   }
@@ -326,7 +310,7 @@ common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::obj
     LogAndReturnTizenError(result, ("GetResourceById() parent failed"));
   }
 
-  long long child_id = static_cast<long long>(GetArg(args, kChildId).get<double>());
+  long long child_id = static_cast<long long>(IotconUtils::GetArg(args, kChildId).get<double>());
   ResourceInfoPtr child;
 
   result = IotconServerManager::GetInstance().GetResourceById(child_id, &child);
@@ -357,7 +341,7 @@ common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::
     LogAndReturnTizenError(result, ("GetResourceById() parent failed"));
   }
 
-  long long child_id = static_cast<long long>(GetArg(args, kChildId).get<double>());
+  long long child_id = static_cast<long long>(IotconUtils::GetArg(args, kChildId).get<double>());
   ResourceInfoPtr child;
 
   result = IotconServerManager::GetInstance().GetResourceById(child_id, &child);
@@ -437,7 +421,7 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
   }
 
   {
-    const auto& js_response_result = GetArg(args, kResult);
+    const auto& js_response_result = IotconUtils::GetArg(args, kResult);
     if (!js_response_result.is<std::string>()) {
       return LogAndCreateTizenError(TypeMismatchError, "ResponseResult should be a string");
     }
@@ -450,7 +434,7 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
   }
 
   {
-    const auto& js_representation = GetArg(args, kRepresentation);
+    const auto& js_representation = IotconUtils::GetArg(args, kRepresentation);
     if (!js_representation.is<picojson::object>()) {
       return LogAndCreateTizenError(TypeMismatchError, "Representation should be an object");
     }
@@ -463,14 +447,16 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
       iotcon_representation_destroy(representation);
     };
 
-    result = IotconUtils::ConvertIotconError(iotcon_response_set_representation(response.get(), IotconUtils::ToInterface(GetArg(args, kInterface).get<std::string>()), representation));
+    result = IotconUtils::ConvertIotconError(
+        iotcon_response_set_representation(response.get(), IotconUtils::ToInterface(
+            IotconUtils::GetArg(args, kInterface).get<std::string>()), representation));
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_response_set_representation() failed"));
     }
   }
 
   {
-    const auto& js_options = GetArg(args, kOptions);
+    const auto& js_options = IotconUtils::GetArg(args, kOptions);
 
     if (js_options.is<picojson::array>()) {
       iotcon_options_h options = nullptr;
@@ -658,7 +644,7 @@ common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojso
     resource_type = const_cast<char*>(args.find(kResourceType)->second.get<std::string>().c_str());
   }
 
-  auto& con_type = GetArg(args, kConnectivityType);
+  auto& con_type = IotconUtils::GetArg(args, kConnectivityType);
   if (!con_type.is<std::string>()) {
     return common::TypeMismatchError("connectivityType needs to be a string");
   }
@@ -794,31 +780,13 @@ common::TizenResult IotconInstance::ServerCreateResource(const picojson::object&
 
   const std::string& uri_path = args.find(kUriPath)->second.get<std::string>();
 
-  const auto& interfaces = GetArg(args, kResourceInterfaces);
+  const auto& interfaces = IotconUtils::GetArg(args, kResourceInterfaces);
   const auto& resource_interfaces = interfaces.is<picojson::array>() ? interfaces.get<picojson::array>() : picojson::array();
 
-  const auto& types = GetArg(args, kResourceTypes);
+  const auto& types = IotconUtils::GetArg(args, kResourceTypes);
   const auto& resource_types = types.is<picojson::array>() ? types.get<picojson::array>() : picojson::array();
 
-  int properties = IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& observable = GetArg(args, kIsObservable);
-  properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& discoverable = GetArg(args, kIsDiscoverable);
-  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : false) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& active = GetArg(args, kIsActive);
-  properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& slow = GetArg(args, kIsSlow);
-  properties |= (slow.is<bool>() ? slow.get<bool>() : false) ? IOTCON_RESOURCE_SLOW : IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& secure = GetArg(args, kIsSecure);
-  properties |= (secure.is<bool>() ? secure.get<bool>() : false) ? IOTCON_RESOURCE_SECURE : IOTCON_RESOURCE_NO_PROPERTY;
-
-  const auto& explicit_discoverable = GetArg(args, kIsExplicitDiscoverable);
-  properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+  int properties = IotconUtils::GetProperties(args);
 
   ResourceInfoPtr resource{new ResourceInfo()};
   auto ret = IotconServerManager::GetInstance().CreateResource(uri_path, resource_interfaces, resource_types,

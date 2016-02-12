@@ -33,6 +33,11 @@
 namespace extension {
 namespace iotcon {
 
+#define CHECK_EXIST(args, name) \
+  if (args.end() == args.find(name)) { \
+    return common::TypeMismatchError(std::string(name) + " is required argument"); \
+  }
+
 extern const std::string kIsDiscoverable;
 extern const std::string kIsObservable;
 extern const std::string kIsActive;
@@ -46,6 +51,7 @@ extern const std::string kResourceChildren;
 extern const std::string kUriPath;
 extern const std::string kStates;
 extern const std::string kId;
+extern const std::string kKeepId;
 extern const std::string kDeviceId;
 extern const std::string kHostAddress;
 extern const std::string kConnectivityType;
@@ -55,11 +61,14 @@ extern const std::string kOptions;
 
 class ResourceInfo;
 class PresenceEvent;
+class FoundRemoteInfo;
 
 typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
 typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
 typedef std::shared_ptr<PresenceEvent> PresenceEventPtr;
 typedef std::map<long long, PresenceEventPtr> PresenceMap;
+typedef std::shared_ptr<FoundRemoteInfo> FoundRemoteInfoPtr;
+typedef std::map<long long, FoundRemoteInfoPtr> FoundRemotesMap;
 
 using ResponsePtr = std::shared_ptr<std::remove_pointer<iotcon_response_h>::type>;
 
@@ -100,6 +109,19 @@ struct RemoteResourceInfo {
   }
 };
 
+struct FoundRemoteInfo {
+  long long id;
+  iotcon_remote_resource_h handle;
+  short ref_count; // counter for registered listeners for this handle
+  //TODO add listeners for each type
+  FoundRemoteInfo() :
+    id(0), handle(nullptr), ref_count(1) {} //initialize with 1 (struct is created, so it
+                                            //mean that some listener would be created)
+  ~FoundRemoteInfo() {
+    iotcon_remote_resource_destroy(handle);
+  }
+};
+
 struct PresenceEvent {
   long long id;
   iotcon_presence_h handle;
@@ -108,6 +130,8 @@ struct PresenceEvent {
 
 class IotconUtils {
  public:
+  static const picojson::value& GetArg(const picojson::object& args, const std::string& name);
+  static int GetProperties(const picojson::object& args);
   static void PropertiesToJson(int properties, picojson::object* res);
   static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
   static picojson::array InterfacesToArray(int interfaces);
@@ -122,6 +146,8 @@ class IotconUtils {
   static common::TizenResult ExtractFromRemoteResource(RemoteResourceInfo* resource);
   static common::TizenResult RemoteResourceToJson(iotcon_remote_resource_h handle,
                                                   picojson::object* res);
+  static common::TizenResult RemoteResourceFromJson(const picojson::object& source,
+                                                    FoundRemoteInfoPtr* ptr);
 
   static common::TizenResult RequestToJson(iotcon_request_h request,
                                            picojson::object* out);

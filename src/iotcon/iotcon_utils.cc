@@ -24,6 +24,7 @@
 #include "common/tools.h"
 
 #include "iotcon/iotcon_server_manager.h"
+#include "iotcon/iotcon_client_manager.h"
 
 namespace extension {
 namespace iotcon {
@@ -99,6 +100,7 @@ const std::string kResourceChildren = "resources";
 const std::string kUriPath = "uriPath";
 const std::string kStates = "states";
 const std::string kId = "id";
+const std::string kKeepId = "keepId";
 const std::string kDeviceId = "deviceId";
 const std::string kHostAddress = "hostAddress";
 const std::string kConnectivityType = "connectivityType";
@@ -143,6 +145,40 @@ const std::string kTriggerType = "triggerType";
 using common::TizenResult;
 using common::TizenSuccess;
 
+const picojson::value& IotconUtils::GetArg(const picojson::object& args, const std::string& name) {
+  static const picojson::value kNull;
+
+  auto it = args.find(name);
+  if (args.end() == it) {
+    return kNull;
+  } else {
+    return it->second;
+  }
+}
+
+int IotconUtils::GetProperties(const picojson::object& args) {
+  int properties = IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& observable = IotconUtils::GetArg(args, kIsObservable);
+  properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& discoverable = IotconUtils::GetArg(args, kIsDiscoverable);
+  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : false) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& active = IotconUtils::GetArg(args, kIsActive);
+  properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& slow = IotconUtils::GetArg(args, kIsSlow);
+  properties |= (slow.is<bool>() ? slow.get<bool>() : false) ? IOTCON_RESOURCE_SLOW : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& secure = IotconUtils::GetArg(args, kIsSecure);
+  properties |= (secure.is<bool>() ? secure.get<bool>() : false) ? IOTCON_RESOURCE_SECURE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  const auto& explicit_discoverable = IotconUtils::GetArg(args, kIsExplicitDiscoverable);
+  properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+
+  return properties;
+}
 
 void IotconUtils::PropertiesToJson(int properties, picojson::object* res) {
   bool value = properties & IOTCON_RESOURCE_OBSERVABLE;
@@ -407,6 +443,66 @@ TizenResult IotconUtils::RemoteResourceToJson(iotcon_remote_resource_h handle,
       LogAndReturnTizenError(result, ("RepresentationToJson() failed"));
     }
     res->insert(std::make_pair(kRepresentation, repr_json));
+  }
+
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::RemoteResourceFromJson(const picojson::object& source,
+                                                        FoundRemoteInfoPtr* ptr) {
+  ScopeLogger();
+  //checking if resource has id
+  long long id = 0;
+  if (source.find(kId)->second.is<double>()) {
+    id = static_cast<long long>(source.find(kId)->second.get<double>());
+  }
+  if (id > 0) {
+    LoggerD("Resource stored, getting it from IotconClientManager");
+    return IotconClientManager::GetInstance().GetRemoteById(id, ptr);
+  } else {
+    LoggerD("Id is not defined, creating handle using resource info");
+  }
+
+  (*ptr).reset(new FoundRemoteInfo{});
+  CHECK_EXIST(source, kHostAddress);
+  char* host_address = nullptr;
+  if (source.find(kHostAddress)->second.is<std::string>()) {
+    host_address = const_cast<char*>(source.find(kHostAddress)->second.get<std::string>().c_str());
+  }
+
+  CHECK_EXIST(source, kConnectivityType);
+  iotcon_connectivity_type_e connectivity_type = IotconUtils::ToConnectivityType(
+      source.find(kConnectivityType)->second.get<std::string>());
+
+  CHECK_EXIST(source, kUriPath);
+  char* uri_path = nullptr;
+  if (source.find(kUriPath)->second.is<std::string>()) {
+    uri_path = const_cast<char*>(source.find(kUriPath)->second.get<std::string>().c_str());
+  }
+
+  int properties = IotconUtils::GetProperties(source);
+
+  CHECK_EXIST(source, kResourceTypes);
+  const auto& types_array = source.find(kResourceTypes)->second.get<picojson::array>();
+  iotcon_resource_types_h resource_types = nullptr;
+  auto res = IotconUtils::ArrayToTypes(types_array, &resource_types);
+  if (!res) {
+    return res;
+  }
+
+  CHECK_EXIST(source, kResourceInterfaces);
+  const auto& interfaces_array = source.find(kResourceInterfaces)->second.get<picojson::array>();
+  int interfaces = IOTCON_INTERFACE_NONE;
+  res = IotconUtils::ArrayToInterfaces(interfaces_array, &interfaces);
+  if (!res) {
+    return res;
+  }
+
+  res = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_create(host_address, connectivity_type, uri_path,
+                                    properties, resource_types, interfaces, &((*ptr)->handle)));
+  if (!res) {
+    LogAndReturnTizenError(res, ("creating handle failed"));
   }
 
   return TizenSuccess();
