@@ -443,12 +443,16 @@ common::TizenResult IotconUtils::RequestToJson(iotcon_request_h request,
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_request_get_representation() failed"));
     }
-    picojson::value v{picojson::object{}};
-    result = RepresentationToJson(representation, &v.get<picojson::object>());
-    if (!result) {
-      LogAndReturnTizenError(result, ("RepresentationToJson() failed"));
+    if (representation) {
+      picojson::value v{picojson::object{}};
+      result = RepresentationToJson(representation, &v.get<picojson::object>());
+      if (!result) {
+        LogAndReturnTizenError(result, ("RepresentationToJson() failed"));
+      }
+      out->insert(std::make_pair(kRepresentation, v));
+    } else {
+      LoggerD("Request doesn't have representation.");
     }
-    out->insert(std::make_pair(kRepresentation, v));
   }
 
   {

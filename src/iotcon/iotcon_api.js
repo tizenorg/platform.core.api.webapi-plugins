@@ -266,6 +266,8 @@ function Request(data) {
 
   if (data.representation) {
     data.representation = createRepresentation(data.representation);
+  } else {
+    data.representation = null;
   }
 
   if (data.options) {
