@@ -817,6 +817,8 @@ RemoteResource.prototype.startCaching = function() {
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -827,6 +829,8 @@ RemoteResource.prototype.stopCaching = function() {
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 

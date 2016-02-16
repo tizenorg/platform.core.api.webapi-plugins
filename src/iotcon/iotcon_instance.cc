@@ -486,7 +486,27 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
 
 common::TizenResult IotconInstance::RemoteResourceGetCachedRepresentation(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  FoundRemoteInfoPtr ptr;
+  auto res = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!res) {
+    LogAndReturnTizenError(res, ("Failed to build resource using json data"));
+  }
+  iotcon_representation_h representation = nullptr;
+  res = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_get_cached_representation(ptr->handle, &representation));
+  if (!res) {
+    LogAndReturnTizenError(res, ("Gathering cached representation failed"));
+  }
+  if (representation) {
+    picojson::value repr_json{picojson::object{}};
+    res = IotconUtils::RepresentationToJson(representation, &repr_json.get<picojson::object>());
+    if (!res) {
+      LogAndReturnTizenError(res, ("RepresentationToJson() failed"));
+    }
+    return common::TizenSuccess{repr_json};
+  }
+  return common::UnknownError("Failed to gather cached representation");
 }
 
 common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::object& args,
@@ -523,14 +543,41 @@ common::TizenResult IotconInstance::RemoteResourceUnsetStateChangeListener(const
   return common::UnknownError("Not implemented");
 }
 
+static void RepresentationChangedCallback(iotcon_remote_resource_h resource,
+                                          iotcon_representation_h representation,
+                                          void *user_data) {
+  LoggerD("Entered");
+  //TODO probably should be handled
+}
+
 common::TizenResult IotconInstance::RemoteResourceStartCaching(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+  result = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_start_caching(ptr->handle, RepresentationChangedCallback, nullptr));
+  if (!result) {
+    return result;
+  }
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(ptr)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceStopCaching(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+  result = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_stop_caching(ptr->handle));
+  if (!result) {
+    return result;
+  }
+  return common::TizenSuccess{IotconClientManager::GetInstance().RemoveRemoteResource(ptr)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(const picojson::object& args) {
