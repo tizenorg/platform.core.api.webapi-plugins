@@ -19,7 +19,7 @@
 
 #include "common/tizen_instance.h"
 
-#include "iotcon/iotcon_server_manager.h"
+#include <iotcon.h>
 
 namespace extension {
 namespace iotcon {

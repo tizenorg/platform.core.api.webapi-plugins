@@ -899,7 +899,7 @@ Client.prototype.findResource = function() {
 };
 
 var presenceEventListener = createListener('PresenceEventListener', function(response) {
-  return new PresenceResponse(native.getResultObject(response));
+  return new PresenceResponse(response.data);
 });
 
 Client.prototype.addPresenceEventListener = function() {
@@ -909,7 +909,8 @@ Client.prototype.addPresenceEventListener = function() {
     nullable: true
   }, {
     name: 'resourceType',
-    type: types.STRING
+    type: types.STRING,
+    nullable: true
   }, {
     name: 'connectivityType',
     type: types.ENUM,

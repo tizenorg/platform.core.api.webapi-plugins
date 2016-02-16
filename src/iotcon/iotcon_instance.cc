@@ -17,12 +17,15 @@
 #include "iotcon/iotcon_instance.h"
 
 #include <thread>
+#include <iotcon-internal.h>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
 #include "common/tools.h"
 
 #include "iotcon/iotcon_utils.h"
+#include "iotcon/iotcon_server_manager.h"
+#include "iotcon/iotcon_client_manager.h"
 
 namespace extension {
 namespace iotcon {
@@ -32,8 +35,6 @@ namespace {
 typedef struct {
   common::PostCallback fun;
 } CallbackData;
-
-const std::string kTimeout = "timeout";
 
 #define CHECK_EXIST(args, name) \
   if (args.end() == args.find(name)) { \
@@ -57,6 +58,7 @@ const picojson::value& GetArg(const picojson::object& args, const std::string& n
 
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
 const common::ListenerToken kFindResourceListenerToken{"FindResourceListener"};
+const common::ListenerToken kPresenceEventListenerToken{"PresenceEventListener"};
 
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
@@ -64,6 +66,7 @@ const std::string kChildId = "childId";
 const std::string kType = "type";
 const std::string kInterface = "iface";
 
+const std::string kTimeout = "timeout";
 }  // namespace
 
 IotconInstance::IotconInstance() {
@@ -126,6 +129,14 @@ IotconInstance::IotconInstance() {
     } else {
       LoggerD("Iotcon connection changed callback is registered");
     }
+
+    ret = iotcon_start_presence(0);
+    if (IOTCON_ERROR_NONE != ret) {
+      LoggerE("Could not start presence: %s",
+                  get_error_message(ret));
+    } else {
+      LoggerD("Iotcon iotcon_start_presence");
+    }
   }
 }
 
@@ -146,12 +157,18 @@ void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_dat
     if (!ret) {
       LoggerD("Connection recovered, but restoring handles failed");
     }
+
+    ret = IotconClientManager::GetInstance().RestoreHandles();
+    if (!ret) {
+      LoggerD("Connection recovered, but restoring presence failed");
+    }
   }
 }
 
 IotconInstance::~IotconInstance() {
   ScopeLogger();
 
+  iotcon_stop_presence();
   iotcon_remove_connection_changed_cb(ConnectionChangedCallback, this);
   iotcon_disconnect();
 }
@@ -553,15 +570,65 @@ common::TizenResult IotconInstance::ClientFindResource(const picojson::object& a
 
 common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kHostAddress);
+  CHECK_EXIST(args, kResourceType);
+  CHECK_EXIST(args, kConnectivityType);
+
+  char* host = nullptr;
+  if (args.find(kHostAddress)->second.is<std::string>()) {
+    host = const_cast<char*>(args.find(kHostAddress)->second.get<std::string>().c_str());
+  }
+
+  char* resource_type = nullptr;
+  if (args.find(kResourceType)->second.is<std::string>()) {
+    resource_type = const_cast<char*>(args.find(kResourceType)->second.get<std::string>().c_str());
+  }
+
+  auto& con_type = GetArg(args, kConnectivityType);
+  if (!con_type.is<std::string>()) {
+    return common::TypeMismatchError("connectivityType needs to be a string");
+  }
+  iotcon_connectivity_type_e con_type_e = IotconUtils::ToConnectivityType(
+      con_type.get<std::string>());
+
+  PresenceEventPtr presence{new PresenceEvent()};
+  auto ret = IotconClientManager::GetInstance().AddPresenceEventListener(
+      host, con_type_e, resource_type, presence);
+  if (!ret) {
+    return ret;
+  }
+
+  long long id = presence->id;
+
+  presence->presence_listener = [this, id](const common::TizenResult&, const picojson::value& v) {
+    picojson::value response{picojson::object{}};
+    auto& obj = response.get<picojson::object>();
+
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
+    obj.insert(std::make_pair("data", v));
+
+    Post(kPresenceEventListenerToken, common::TizenSuccess{response});
+  };
+
+  return common::TizenSuccess(picojson::value{static_cast<double>(id)});
 }
 
 common::TizenResult IotconInstance::ClientRemovePresenceEventListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kId);
+
+  auto ret = IotconClientManager::GetInstance().RemovePresenceEventListener(GetId(args));
+
+  if (!ret) {
+    return ret;
+  }
+
+  return common::TizenSuccess();
 }
 
-void IotconPDeviceInfoCb(iotcon_device_info_h device_info,
+void IotconDeviceInfoCb(iotcon_device_info_h device_info,
                           iotcon_error_e result, void *user_data) {
   ScopeLogger();
 
@@ -572,7 +639,7 @@ void IotconPDeviceInfoCb(iotcon_device_info_h device_info,
   if (IOTCON_ERROR_NONE != result) {
     ret = IotconUtils::ConvertIotconError(result);
   } else {
-    auto ret = IotconUtils::DeviceInfoToJson(device_info,&v.get<picojson::object>());
+    ret = IotconUtils::DeviceInfoToJson(device_info,&v.get<picojson::object>());
   }
 
   data->fun(ret, v);
@@ -593,7 +660,7 @@ common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& 
   CallbackData* data = new CallbackData{SimplePost(token)};
 
   auto result = IotconUtils::ConvertIotconError(
-       iotcon_get_device_info(host.c_str(), con_type_e, IotconPDeviceInfoCb,
+       iotcon_get_device_info(host.c_str(), con_type_e, IotconDeviceInfoCb,
                                 data));
 
   if (!result) {

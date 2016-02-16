@@ -40,6 +40,7 @@ extern const std::string kIsSlow;
 extern const std::string kIsSecure;
 extern const std::string kIsExplicitDiscoverable;
 extern const std::string kResourceTypes;
+extern const std::string kResourceType;
 extern const std::string kResourceInterfaces;
 extern const std::string kResourceChildren;
 extern const std::string kUriPath;
@@ -51,8 +52,12 @@ extern const std::string kConnectivityType;
 extern const std::string kResourceType;
 
 class ResourceInfo;
+class PresenceEvent;
+
 typedef std::shared_ptr<ResourceInfo> ResourceInfoPtr;
 typedef std::map<long long, ResourceInfoPtr> ResourceInfoMap;
+typedef std::shared_ptr<PresenceEvent> PresenceEventPtr;
+typedef std::map<long long, PresenceEventPtr> PresenceMap;
 
 struct ResourceInfo {
   long long id;
@@ -94,6 +99,12 @@ struct RemoteResourceInfo {
   }
 };
 
+struct PresenceEvent {
+  long long id;
+  iotcon_presence_h handle;
+  common::PostCallback presence_listener;
+};
+
 class IotconUtils {
  public:
   static void PropertiesToJson(int properties, picojson::object* res);
@@ -123,6 +134,12 @@ class IotconUtils {
                                            picojson::array* out);
   static common::TizenResult QueryToJson(iotcon_query_h query,
                                          picojson::object* out);
+  static common::TizenResult PresenceResponseToJson(iotcon_presence_response_h presence,
+                                                picojson::object* out);
+  static common::TizenResult ExtractFromPresenceEvent(const PresenceEventPtr& pointer,
+                                                 char** host,
+                                                 iotcon_connectivity_type_e* con_type,
+                                                 char** resource_type);
   static common::TizenResult PlatformInfoToJson(iotcon_platform_info_h platform,
                                                 picojson::object* out);
   static common::TizenResult PlatformInfoGetProperty(iotcon_platform_info_h platform,
@@ -150,6 +167,8 @@ class IotconUtils {
   static std::string FromRequestType(iotcon_request_type_e e);
   static std::string FromObserveType(iotcon_observe_type_e e);
   static std::string FromInterface(iotcon_interface_e e);
+  static std::string FromPresenceResponseResultType(iotcon_presence_result_e e);
+  static std::string FromPresenceTriggerType(iotcon_presence_trigger_e e);
 
   static iotcon_interface_e ToInterface(const std::string& e);
   static iotcon_connectivity_type_e ToConnectivityType(const std::string& e);

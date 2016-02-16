@@ -66,6 +66,16 @@ namespace {
   X(IOTCON_QOS_HIGH, "HIGH") \
   XD(IOTCON_QOS_LOW, "unknown")
 
+#define IOTCON_PRESENCE_RESULT_E \
+  X(IOTCON_PRESENCE_OK, "OK") \
+  X(IOTCON_PRESENCE_STOPPED, "STOPPED") \
+  XD(IOTCON_PRESENCE_TIMEOUT, "TIMEOUT")
+
+#define IOTCON_PRESENCE_TRIGGER_E \
+  X(IOTCON_PRESENCE_RESOURCE_CREATED, "CREATED") \
+  X(IOTCON_PRESENCE_RESOURCE_UPDATED, "UPDATED") \
+  XD(IOTCON_PRESENCE_RESOURCE_DESTROYED, "DESTROYED")
+
 }  // namespace
 
 const std::string kIsDiscoverable = "isDiscoverable";
@@ -117,6 +127,9 @@ const std::string kDeviceName = "deviceName";
 const std::string kSpecVersion = "specVersion";
 const std::string kOicDeviceId = "oicDeviceId";
 const std::string kDataModelVersion = "dataModelVersion";
+
+const std::string kResultType = "resultType";
+const std::string kTriggerType = "triggerType";
 
 using common::TizenResult;
 using common::TizenSuccess;
@@ -1223,6 +1236,108 @@ common::TizenResult IotconUtils::StateListFromJson(const picojson::array& l,
   return TizenSuccess();
 }
 
+common::TizenResult IotconUtils::PresenceResponseToJson(
+    iotcon_presence_response_h presence, picojson::object* out) {
+  ScopeLogger();
+
+  {
+    // hostAddress
+    char* host = nullptr;
+    auto result = ConvertIotconError(iotcon_presence_response_get_host_address(presence,
+                                                                       &host));
+    if (!result || !host) {
+      LogAndReturnTizenError(result, ("iotcon_presence_response_get_host_address() failed"));
+    }
+    out->insert(std::make_pair(kHostAddress, picojson::value{std::string(host)}));
+  }
+
+  {
+    // connectivityType
+    iotcon_connectivity_type_e con_type = IOTCON_CONNECTIVITY_IPV4;
+    auto result = ConvertIotconError(iotcon_presence_response_get_connectivity_type(presence,
+                                                                       &con_type));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_presence_response_get_connectivity_type() failed"));
+    }
+    out->insert(std::make_pair(kConnectivityType, picojson::value{
+      FromConnectivityType(con_type)}));
+  }
+
+  {
+    // resourceType
+    char* resource_type = nullptr;
+    auto result = ConvertIotconError(iotcon_presence_response_get_resource_type(presence,
+                                                                       &resource_type));
+    if (!result || !resource_type) {
+      LoggerE("iotcon_presence_response_get_resource_type() failed");
+      out->insert(std::make_pair(kResourceType, picojson::value()));
+    } else {
+      out->insert(std::make_pair(kResourceType, picojson::value{std::string(resource_type)}));
+    }
+  }
+
+  // resultType
+  iotcon_presence_result_e result_type = IOTCON_PRESENCE_OK;
+  {
+    auto result = ConvertIotconError(iotcon_presence_response_get_result(presence,
+                                                                       &result_type));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_presence_response_get_result() failed"));
+    }
+
+    out->insert(std::make_pair(kResultType, picojson::value{
+      FromPresenceResponseResultType(result_type)}));
+  }
+
+  {
+    // triggerType
+    iotcon_presence_trigger_e trigger_type = IOTCON_PRESENCE_RESOURCE_CREATED;
+    if (IOTCON_PRESENCE_OK == result_type) {
+      auto result = ConvertIotconError(iotcon_presence_response_get_trigger(presence,
+                                                                         &trigger_type));
+      if (!result) {
+        LoggerE("iotcon_presence_response_get_trigger() failed");
+        out->insert(std::make_pair(kTriggerType, picojson::value()));
+      } else {
+        out->insert(std::make_pair(kTriggerType, picojson::value{FromPresenceTriggerType(
+            trigger_type)}));
+      }
+    } else {
+      out->insert(std::make_pair(kTriggerType, picojson::value()));
+    }
+
+  }
+
+  return TizenSuccess();
+}
+
+common::TizenResult IotconUtils::ExtractFromPresenceEvent(const PresenceEventPtr& pointer,
+                                                          char** host,
+                                                          iotcon_connectivity_type_e* con_type,
+                                                          char** resource_type) {
+  ScopeLogger();
+
+  auto result = ConvertIotconError(iotcon_presence_get_host_address(pointer->handle,
+                                                                    host));
+  if (!result) {
+   LogAndReturnTizenError(result, ("Gathering presence host address failed"));
+  }
+
+  result = ConvertIotconError(iotcon_presence_get_connectivity_type(pointer->handle,
+                                                                    con_type));
+  if (!result) {
+   LogAndReturnTizenError(result, ("Gathering presence connectivity type failed"));
+  }
+
+  result = ConvertIotconError(iotcon_presence_get_resource_type(pointer->handle,
+                                                                resource_type));
+  if (!result) {
+   LogAndReturnTizenError(result, ("Gathering presence resource type failed"));
+  }
+
+  return TizenSuccess();
+}
+
 common::TizenResult IotconUtils::PlatformInfoGetProperty(iotcon_platform_info_h platform,
                                                          iotcon_platform_info_e property_e,
                                                          const std::string& name,
@@ -1481,6 +1596,22 @@ std::string IotconUtils::FromInterface(iotcon_interface_e e) {
 
   switch (e) {
     IOTCON_INTERFACE_E
+  }
+}
+
+std::string IotconUtils::FromPresenceResponseResultType(iotcon_presence_result_e e) {
+  ScopeLogger();
+
+  switch (e) {
+    IOTCON_PRESENCE_RESULT_E
+  }
+}
+
+std::string IotconUtils::FromPresenceTriggerType(iotcon_presence_trigger_e e) {
+  ScopeLogger();
+
+  switch (e) {
+    IOTCON_PRESENCE_TRIGGER_E
   }
 }
 
