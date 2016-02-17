@@ -58,6 +58,8 @@ extern const std::string kConnectivityType;
 extern const std::string kResourceType;
 extern const std::string kRepresentation;
 extern const std::string kOptions;
+extern const std::string kQuery;
+extern const std::string kObservePolicy;
 
 class ResourceInfo;
 class PresenceEvent;
@@ -115,6 +117,7 @@ struct FoundRemoteInfo {
   short ref_count; // counter for registered listeners for this handle
   //TODO add listeners for each type
   common::PostCallback connection_listener;
+  common::PostCallback observe_listener;
   FoundRemoteInfo() :
     id(0), handle(nullptr), ref_count(1) {} //initialize with 1 (struct is created, so it
                                             //mean that some listener would be created)
@@ -162,6 +165,9 @@ class IotconUtils {
                                            picojson::array* out);
   static common::TizenResult QueryToJson(iotcon_query_h query,
                                          picojson::object* out);
+  static common::TizenResult QueryFromJson(const picojson::object& source, iotcon_query_h* res);
+  static common::TizenResult ResponseToJson(iotcon_response_h handle,
+                                            picojson::object* res);
   static common::TizenResult PresenceResponseToJson(iotcon_presence_response_h presence,
                                                 picojson::object* out);
   static common::TizenResult ExtractFromPresenceEvent(const PresenceEventPtr& pointer,
@@ -201,9 +207,11 @@ class IotconUtils {
   static std::string FromInterface(iotcon_interface_e e);
   static std::string FromPresenceResponseResultType(iotcon_presence_result_e e);
   static std::string FromPresenceTriggerType(iotcon_presence_trigger_e e);
+  static std::string FromResponseResultType(iotcon_response_result_e e);
 
   static iotcon_interface_e ToInterface(const std::string& e);
   static iotcon_connectivity_type_e ToConnectivityType(const std::string& e);
+  static iotcon_observe_policy_e ToObservePolicy(const std::string& e);
   static iotcon_qos_e ToQos(const std::string& e);
   static iotcon_response_result_e ToResponseResult(const std::string& e);
 };

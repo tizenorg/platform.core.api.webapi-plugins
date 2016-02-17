@@ -45,6 +45,8 @@ const common::ListenerToken kFindResourceListenerToken{"FindResourceListener"};
 const common::ListenerToken kPresenceEventListenerToken{"PresenceEventListener"};
 const common::ListenerToken kRemoteResourceConnectionChangeListener
                                 {"RemoteResourceConnectionChangeListener"};
+const common::ListenerToken kRemoteResourceStateChangeListener
+                                {"RemoteResourceStateChangeListener"};
 
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
@@ -535,14 +537,77 @@ common::TizenResult IotconInstance::RemoteResourceMethodDelete(const picojson::o
   return common::UnknownError("Not implemented");
 }
 
+static void ObserveCallback(iotcon_remote_resource_h resource, iotcon_error_e err,
+                            int sequence_number, iotcon_response_h response, void *user_data) {
+  ScopeLogger();
+  FoundRemoteInfo* ptr = static_cast<FoundRemoteInfo*>(user_data);
+  if (ptr->observe_listener) {
+    picojson::value json_result = picojson::value(picojson::object());
+
+    auto result = IotconUtils::ResponseToJson(response, &json_result.get<picojson::object>());
+    if (result) {
+      ptr->observe_listener(common::TizenSuccess(), json_result);
+    } else {
+      LoggerD("Ignoring callback");
+    }
+  }
+}
+
 common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  CHECK_EXIST(args, kQuery);
+  CHECK_EXIST(args, kObservePolicy);
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+
+  iotcon_query_h query = nullptr;
+  auto query_obj = args.find(kQuery)->second.get<picojson::object>();
+  result = IotconUtils::QueryFromJson(query_obj, &query);
+  if (!result){
+    return result;
+  }
+  SCOPE_EXIT {
+    iotcon_query_destroy(query);
+  };
+
+  iotcon_observe_policy_e observe_policy = IotconUtils::ToObservePolicy(
+      args.find(kObservePolicy)->second.get<std::string>().c_str());
+
+  ptr->observe_listener = [this, ptr](const common::TizenResult& res, const picojson::value& v) {
+    picojson::value response{picojson::object{}};
+    auto& obj = response.get<picojson::object>();
+
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(ptr->id)}));
+    obj.insert(std::make_pair("data", v));
+
+    Post(kRemoteResourceStateChangeListener, common::TizenSuccess{response});
+  };
+
+  result = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_observe_register(ptr->handle, observe_policy, query,
+                                              ObserveCallback, ptr.get()));
+  if (!result) {
+    return result;
+  }
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(ptr)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceUnsetStateChangeListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+  result = IotconUtils::ConvertIotconError(iotcon_remote_resource_observe_deregister(ptr->handle));
+  if (!result) {
+    return result;
+  }
+  ptr->observe_listener = nullptr;
+  return common::TizenSuccess{IotconClientManager::GetInstance().RemoveRemoteResource(ptr)};
 }
 
 static void RepresentationChangedCallback(iotcon_remote_resource_h resource,

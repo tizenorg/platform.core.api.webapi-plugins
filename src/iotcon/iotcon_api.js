@@ -518,26 +518,22 @@ Response.prototype.send = function() {
   }
 };
 
-function RemoteResponse(request) {
-  validator.isConstructorCall(this, tizen.RemoteResponse);
+function RemoteResponse(data) {
+  if (data.representation) {
+    data.representation = createRepresentation(data.representation);
+  } else {
+    data.representation = null;
+  }
 
-  Object.defineProperties(this, {
-    result: {
-      value: null,
-      writable: false,
-      enumerable: true
-    },
-    representation: {
-      value: null,
-      writable: false,
-      enumerable: true
-    },
-    options: {
-      value: null,
-      writable: false,
-      enumerable: true
+  if (data.options) {
+    var options = [];
+    for (var i = 0; i < data.options.length; ++i) {
+      options.push(new IotconOption(data.options[i].id, data.options[i].data));
     }
-  });
+    data.options = options;
+  }
+
+  decorateWithData(data, this);
 }
 
 function State(key, state) {
@@ -768,11 +764,6 @@ RemoteResource.prototype.setStateChangeListener = function() {
   }, {
     name: 'successCallback',
     type: types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: types.FUNCTION,
-    optional: true,
-    nullable: true
   }]);
 
   var callArgs = prepareResourceInfo(this);
@@ -781,12 +772,9 @@ RemoteResource.prototype.setStateChangeListener = function() {
   var that = this;
 
   var listener = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      updateWithInternalData(native.getResultObject(result), that);
-      args.successCallback(that);
-    }
+    //TODO check what should be updated
+    //updateWithInternalData(result, that);
+    args.successCallback(new RemoteResponse(result.data));
   };
 
   var result = native.callSync('IotconRemoteResource_setStateChangeListener', callArgs);
@@ -794,6 +782,7 @@ RemoteResource.prototype.setStateChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     stateChangeListener.addListener(this[kIdKey], listener);
   }
 };
@@ -806,6 +795,7 @@ RemoteResource.prototype.unsetStateChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     stateChangeListener.removeListener(this[kIdKey]);
   }
 };
