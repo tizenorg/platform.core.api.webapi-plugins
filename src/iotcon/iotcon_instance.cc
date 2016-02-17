@@ -43,6 +43,8 @@ long long GetId(const picojson::object& args) {
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
 const common::ListenerToken kFindResourceListenerToken{"FindResourceListener"};
 const common::ListenerToken kPresenceEventListenerToken{"PresenceEventListener"};
+const common::ListenerToken kRemoteResourceConnectionChangeListener
+                                {"RemoteResourceConnectionChangeListener"};
 
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
@@ -580,14 +582,56 @@ common::TizenResult IotconInstance::RemoteResourceStopCaching(const picojson::ob
   return common::TizenSuccess{IotconClientManager::GetInstance().RemoveRemoteResource(ptr)};
 }
 
+static void MonitoringCallback(iotcon_remote_resource_h resource,
+                                 iotcon_remote_resource_state_e state, void *user_data) {
+  ScopeLogger();
+  FoundRemoteInfo* ptr = static_cast<FoundRemoteInfo*>(user_data);
+  if (ptr->connection_listener) {
+    picojson::value json_result = picojson::value(IOTCON_REMOTE_RESOURCE_ALIVE == state);
+    ptr->connection_listener(common::TizenSuccess(), json_result);
+  } else {
+    LoggerD("Post function not present, just ignoring");
+  }
+}
+
 common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+  result = IotconUtils::ConvertIotconError(
+      iotcon_remote_resource_start_monitoring(ptr->handle, MonitoringCallback, ptr.get()));
+  if (!result) {
+    return result;
+  }
+  ptr->connection_listener = [this, ptr](const common::TizenResult& res, const picojson::value& v) {
+    picojson::value response{picojson::object{}};
+    auto& obj = response.get<picojson::object>();
+
+    obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(ptr->id)}));
+    obj.insert(std::make_pair("data", v));
+
+    Post(kRemoteResourceConnectionChangeListener, common::TizenSuccess{response});
+  };
+
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(ptr)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceUnsetConnectionChangeListener(const picojson::object& args) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+  FoundRemoteInfoPtr ptr;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
+  if (!result) {
+    LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
+  }
+  result = IotconUtils::ConvertIotconError(iotcon_remote_resource_stop_monitoring(ptr->handle));
+  if (!result) {
+    return result;
+  }
+  ptr->connection_listener = nullptr;
+  return common::TizenSuccess{IotconClientManager::GetInstance().RemoveRemoteResource(ptr)};
 }
 
 void IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,

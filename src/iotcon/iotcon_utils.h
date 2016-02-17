@@ -114,6 +114,7 @@ struct FoundRemoteInfo {
   iotcon_remote_resource_h handle;
   short ref_count; // counter for registered listeners for this handle
   //TODO add listeners for each type
+  common::PostCallback connection_listener;
   FoundRemoteInfo() :
     id(0), handle(nullptr), ref_count(1) {} //initialize with 1 (struct is created, so it
                                             //mean that some listener would be created)

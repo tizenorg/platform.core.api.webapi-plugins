@@ -840,21 +840,12 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'successCallback',
     type: types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: types.FUNCTION,
-    optional: true,
-    nullable: true
   }]);
 
   var callArgs = prepareResourceInfo(this);
 
   var listener = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      args.successCallback(native.getResultObject(result));
-    }
+    args.successCallback(result.data);
   };
 
   var result = native.callSync('IotconRemoteResource_setConnectionChangeListener', callArgs);
@@ -862,6 +853,7 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     connectionChangeListener.addListener(this[kIdKey], listener);
   }
 };
@@ -874,6 +866,7 @@ RemoteResource.prototype.unsetConnectionChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     connectionChangeListener.removeListener(this[kIdKey]);
   }
 };
