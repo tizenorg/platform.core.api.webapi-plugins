@@ -584,6 +584,8 @@ function manageId(that, result) {
     console.log("Clear id of resource");
     delete that[kIdKey];
   }
+  delete result.keepId;
+  delete result.id;
 }
 
 function RemoteResource(data) {
@@ -631,18 +633,21 @@ RemoteResource.prototype.methodGet = function() {
   callArgs.query = args.query;
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodGet', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 

@@ -32,12 +32,40 @@ namespace iotcon {
 
 namespace {
 
-typedef struct {
+struct CallbackData {
   common::PostCallback fun;
-} CallbackData;
+};
 
 long long GetId(const picojson::object& args) {
   return static_cast<long long>(args.find(kId)->second.get<double>());
+}
+
+void RemoteResourceResponseCallback(iotcon_remote_resource_h resource,
+                                    iotcon_error_e err,
+                                    iotcon_request_type_e request_type,
+                                    iotcon_response_h response,
+                                    void* user_data) {
+  ScopeLogger();
+
+  std::unique_ptr<CallbackData> data{static_cast<CallbackData*>(user_data)};
+
+  if (data) {
+    picojson::value value{picojson::object{}};
+    auto result = IotconUtils::ConvertIotconError(err);
+
+    if (result) {
+      result = IotconUtils::ResponseToJson(response, &value.get<picojson::object>());
+      if (!result) {
+        LoggerE("ResponseToJson() failed");
+      }
+    } else {
+      LoggerE("RemoteResourceResponseCallback() reports error");
+    }
+
+    data->fun(result, value);
+  } else {
+    LoggerE("Native callback data is null");
+  }
 }
 
 const common::ListenerToken kResourceRequestListenerToken{"ResourceRequestListener"};
@@ -54,8 +82,9 @@ const std::string kChildId = "childId";
 const std::string kType = "type";
 const std::string kInterface = "iface";
 const std::string kResult = "result";
-
 const std::string kTimeout = "timeout";
+const std::string kData = "data";
+
 }  // namespace
 
 IotconInstance::IotconInstance() {
@@ -383,7 +412,7 @@ common::TizenResult IotconInstance::ResourceSetRequestListener(const picojson::o
       auto& obj = response.get<picojson::object>();
 
       obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
-      obj.insert(std::make_pair("data", v));
+      obj.insert(std::make_pair(kData, v));
 
       Post(kResourceRequestListenerToken, common::TizenSuccess{response});
     };
@@ -516,7 +545,35 @@ common::TizenResult IotconInstance::RemoteResourceGetCachedRepresentation(const 
 common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::object& args,
                                                             const common::AsyncToken& token) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kQuery);
+
+  FoundRemoteInfoPtr resource;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &resource);
+  if (!result) {
+    LogAndReturnTizenError(result, ("RemoteResourceFromJson() failed"));
+  }
+
+  iotcon_query_h query = nullptr;
+  result = IotconUtils::QueryFromJson(IotconUtils::GetArg(args, kQuery).get<picojson::object>(), &query);
+  if (!result) {
+    LogAndReturnTizenError(result, ("QueryFromJson() failed"));
+  }
+  SCOPE_EXIT {
+    iotcon_query_destroy(query);
+  };
+
+  std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
+
+  result = IotconUtils::ConvertIotconError(iotcon_remote_resource_get(resource->handle, query, RemoteResourceResponseCallback, data.get()));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_remote_resource_get() failed"));
+  }
+
+  // release memory ownership
+  data.release();
+
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(resource)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceMethodPut(const picojson::object& args,
@@ -581,7 +638,7 @@ common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const p
     auto& obj = response.get<picojson::object>();
 
     obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(ptr->id)}));
-    obj.insert(std::make_pair("data", v));
+    obj.insert(std::make_pair(kData, v));
 
     Post(kRemoteResourceStateChangeListener, common::TizenSuccess{response});
   };
@@ -676,7 +733,7 @@ common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(co
     auto& obj = response.get<picojson::object>();
 
     obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(ptr->id)}));
-    obj.insert(std::make_pair("data", v));
+    obj.insert(std::make_pair(kData, v));
 
     Post(kRemoteResourceConnectionChangeListener, common::TizenSuccess{response});
   };
@@ -821,7 +878,7 @@ common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojso
     auto& obj = response.get<picojson::object>();
 
     obj.insert(std::make_pair(kId, picojson::value{static_cast<double>(id)}));
-    obj.insert(std::make_pair("data", v));
+    obj.insert(std::make_pair(kData, v));
 
     Post(kPresenceEventListenerToken, common::TizenSuccess{response});
   };
@@ -996,6 +1053,23 @@ common::TizenResult IotconInstance::SetTimeout(const picojson::object& args) {
   }
 
   return common::TizenSuccess();
+}
+
+common::PostCallback IotconInstance::PostForMethodCall(const common::AsyncToken& token, const FoundRemoteInfoPtr& resource) {
+  ScopeLogger();
+
+  return [this, token, resource](const common::TizenResult& result, const picojson::value& v) {
+    auto value = IotconClientManager::GetInstance().RemoveRemoteResource(resource);
+    auto& obj = value.get<picojson::object>();
+
+    if (result) {
+      obj.insert(std::make_pair(kData, v));
+    } else {
+      result.ToJson(&obj);
+    }
+
+    Post(token, common::TizenSuccess{value});
+  };
 }
 
 }  // namespace iotcon

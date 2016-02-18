@@ -21,6 +21,8 @@
 
 #include <iotcon.h>
 
+#include "iotcon/iotcon_utils.h"
+
 namespace extension {
 namespace iotcon {
 
@@ -68,6 +70,8 @@ class IotconInstance : public common::TizenInstance {
   common::TizenResult ServerRemoveResource(const picojson::object& args);
   common::TizenResult GetTimeout(const picojson::object& args);
   common::TizenResult SetTimeout(const picojson::object& args);
+
+  common::PostCallback PostForMethodCall(const common::AsyncToken& token, const FoundRemoteInfoPtr& resource);
 };
 
 }  // namespace iotcon
