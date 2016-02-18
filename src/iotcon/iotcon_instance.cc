@@ -579,7 +579,45 @@ common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::obje
 common::TizenResult IotconInstance::RemoteResourceMethodPut(const picojson::object& args,
                                                             const common::AsyncToken& token) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  CHECK_EXIST(args, kRepresentation);
+  CHECK_EXIST(args, kQuery);
+
+  FoundRemoteInfoPtr resource;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &resource);
+  if (!result) {
+    LogAndReturnTizenError(result, ("RemoteResourceFromJson() failed"));
+  }
+
+  iotcon_representation_h representation = nullptr;
+  result = IotconUtils::RepresentationFromJson(IotconUtils::GetArg(args, kRepresentation).get<picojson::object>(), &representation);
+  if (!result) {
+    LogAndReturnTizenError(result, ("RepresentationFromJson() failed"));
+  }
+  SCOPE_EXIT {
+    iotcon_representation_destroy(representation);
+  };
+
+  iotcon_query_h query = nullptr;
+  result = IotconUtils::QueryFromJson(IotconUtils::GetArg(args, kQuery).get<picojson::object>(), &query);
+  if (!result) {
+    LogAndReturnTizenError(result, ("QueryFromJson() failed"));
+  }
+  SCOPE_EXIT {
+    iotcon_query_destroy(query);
+  };
+
+  std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
+
+  result = IotconUtils::ConvertIotconError(iotcon_remote_resource_put(resource->handle, representation, query, RemoteResourceResponseCallback, data.get()));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_remote_resource_put() failed"));
+  }
+
+  // release memory ownership
+  data.release();
+
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(resource)};
 }
 
 common::TizenResult IotconInstance::RemoteResourceMethodPost(const picojson::object& args,
