@@ -715,18 +715,21 @@ RemoteResource.prototype.methodPost = function() {
   callArgs.query = args.query;
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodPost', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
