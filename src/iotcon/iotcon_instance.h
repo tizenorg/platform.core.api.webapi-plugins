@@ -37,7 +37,7 @@ class IotconInstance : public common::TizenInstance {
 
   common::TizenResult ResourceGetObserverIds(const picojson::object& args);
   common::TizenResult ResourceNotify(const picojson::object& args);
-  common::TizenResult ResourceAddResourceType(const picojson::object& args);
+  common::TizenResult ResourceAddResourceTypes(const picojson::object& args);
   common::TizenResult ResourceAddResourceInterface(const picojson::object& args);
   common::TizenResult ResourceAddChildResource(const picojson::object& args);
   common::TizenResult ResourceRemoveChildResource(const picojson::object& args);

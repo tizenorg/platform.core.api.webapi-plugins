@@ -340,23 +340,24 @@ Resource.prototype.notify = function() {
   }
 };
 
-Resource.prototype.addResourceType = function() {
+Resource.prototype.addResourceTypes = function() {
   var args = validator.validateMethod(arguments, [{
-    name: 'type',
-    type: types.STRING
+    name: 'types',
+    type: types.ARRAY,
+    values: types.STRING
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.type = args.type;
+  callArgs.types = args.types;
 
-  var result = native.callSync('IotconResource_addResourceType', callArgs);
+  var result = native.callSync('IotconResource_addResourceTypes', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
     var t = this.resourceTypes;
-    t.push(args.type);
+    t = t.concat(args.types);
     updateWithInternalData({ resourceTypes: t }, this);
   }
 };
@@ -597,10 +598,9 @@ function RemoteResource(data) {
         var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
         if (native.isSuccess(result)) {
           return createRepresentation(native.getResultObject(result));
+        } else {
+          return null;
         }
-        // TODO check what should be returned
-        console.log("returning empty Object");
-        return {};
       }.bind(this),
       set: function() {},
       enumerable: true

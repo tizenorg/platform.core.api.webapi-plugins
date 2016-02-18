@@ -79,7 +79,7 @@ const common::ListenerToken kRemoteResourceStateChangeListener
 const std::string kObserverIds = "observerIds";
 const std::string kQos = "qos";
 const std::string kChildId = "childId";
-const std::string kType = "type";
+const std::string kTypes = "types";
 const std::string kInterface = "iface";
 const std::string kResult = "result";
 const std::string kTimeout = "timeout";
@@ -98,7 +98,7 @@ IotconInstance::IotconInstance() {
 
   REGISTER_SYNC("IotconResource_getObserverIds", ResourceGetObserverIds);
   REGISTER_SYNC("IotconResource_notify", ResourceNotify);
-  REGISTER_SYNC("IotconResource_addResourceType", ResourceAddResourceType);
+  REGISTER_SYNC("IotconResource_addResourceTypes", ResourceAddResourceTypes);
   REGISTER_SYNC("IotconResource_addResourceInterface", ResourceAddResourceInterface);
   REGISTER_SYNC("IotconResource_addChildResource", ResourceAddChildResource);
   REGISTER_SYNC("IotconResource_removeChildResource", ResourceRemoveChildResource);
@@ -291,11 +291,11 @@ common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args)
   return common::TizenSuccess();
 }
 
-common::TizenResult IotconInstance::ResourceAddResourceType(const picojson::object& args) {
+common::TizenResult IotconInstance::ResourceAddResourceTypes(const picojson::object& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kId);
-  CHECK_EXIST(args, kType);
+  CHECK_EXIST(args, kTypes);
 
   ResourceInfoPtr resource;
   auto result = IotconServerManager::GetInstance().GetResourceById(GetId(args), &resource);
@@ -303,9 +303,13 @@ common::TizenResult IotconInstance::ResourceAddResourceType(const picojson::obje
     LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
 
-  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_type(resource->handle, IotconUtils::GetArg(args, kType).get<std::string>().c_str()));
-  if (!result) {
-    LogAndReturnTizenError(result, ("iotcon_resource_bind_type() failed"));
+  const auto& types = IotconUtils::GetArg(args, kTypes).get<picojson::array>();
+
+  for (const auto& type : types) {
+    result = IotconUtils::ConvertIotconError(iotcon_resource_bind_type(resource->handle, type.get<std::string>().c_str()));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_resource_bind_type() failed"));
+    }
   }
 
   return common::TizenSuccess();
