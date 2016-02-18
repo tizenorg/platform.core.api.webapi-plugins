@@ -667,7 +667,24 @@ common::TizenResult IotconInstance::RemoteResourceMethodPost(const picojson::obj
 common::TizenResult IotconInstance::RemoteResourceMethodDelete(const picojson::object& args,
                                                                const common::AsyncToken& token) {
   ScopeLogger();
-  return common::UnknownError("Not implemented");
+
+  FoundRemoteInfoPtr resource;
+  auto result = IotconUtils::RemoteResourceFromJson(args, &resource);
+  if (!result) {
+    LogAndReturnTizenError(result, ("RemoteResourceFromJson() failed"));
+  }
+
+  std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
+
+  result = IotconUtils::ConvertIotconError(iotcon_remote_resource_delete(resource->handle, RemoteResourceResponseCallback, data.get()));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_remote_resource_delete() failed"));
+  }
+
+  // release memory ownership
+  data.release();
+
+  return common::TizenSuccess{IotconClientManager::GetInstance().StoreRemoteResource(resource)};
 }
 
 static void ObserveCallback(iotcon_remote_resource_h resource, iotcon_error_e err,
