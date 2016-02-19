@@ -61,6 +61,7 @@ static std::string GetAccuracyString(int accuracy) {
 }
 
 static const std::string kSensorTypeTag = "sensorType";
+static const std::string kInterval = "interval";
 static const std::string kListenerId = "listenerId";
 static const std::string kSensorChangedListener = "SensorChangedListener";
 
@@ -168,7 +169,7 @@ class SensorData {
   PlatformResult IsSupported(bool* supported);
   virtual PlatformResult Start();
   virtual PlatformResult Stop();
-  virtual PlatformResult SetChangeListener(unsigned int interval = 100);
+  virtual PlatformResult SetChangeListener(unsigned int interval);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
 
@@ -192,8 +193,6 @@ class SensorData {
   sensor_event_s previous_event_;
   common::optional<bool> is_supported_;
   SensorInstance& instance_;
-  unsigned int interval_; // an interval capping the maximum frequency of callback events.
-                          // valid values: from 10 to 1000 [milliseconds].
 };
 
 SensorData::SensorData(SensorInstance& instance, sensor_type_e type_enum,
@@ -203,8 +202,7 @@ SensorData::SensorData(SensorInstance& instance, sensor_type_e type_enum,
       handle_(nullptr),
       listener_(nullptr),
       previous_event_(),
-      instance_(instance),
-      interval_(0) {
+      instance_(instance) {
   type_to_string_map.insert(std::make_pair(type_enum, name));
   string_to_type_map.insert(std::make_pair(name, type_enum));
 
@@ -318,35 +316,14 @@ bool SensorData::is_supported() {
 
 bool SensorData::UpdateEvent(sensor_event_s* event) {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
-  /*
-  bool isThisEventDifferent = false;
 
-  if(this->interval_ > 0) {
-    // an interval has been specified, so this event should be considered
-    // different from the previous one and invoked:
-    isThisEventDifferent = true;
-  }
-  else {
-    // an interval has been set to 0, so this event should be invoked iff
-    // its payload is different that the one carried by a former event:
-    if (comparator_(&previous_event_, event)) {
-      // previous and current events are the same -> no update
-    } else {
-      isThisEventDifferent = true;
-    }
-  }
-
-  if(isThisEventDifferent) {
+  if (comparator_(&previous_event_, event)) {
+    // previous and current events are the same -> no update
+    return false;
+  } else {
     previous_event_ = *event;
+    return true;
   }
-
-  return isThisEventDifferent;
-  */
-
-  // since the events' frequency is capped by the interval value (always greater than 0),
-  // and the event should be send regardless of whether sensor's value has changed or not,
-  // send this event notification without checking any conditions:
-  return true;
 }
 
 PlatformResult SensorData::Start() {
@@ -398,19 +375,10 @@ PlatformResult SensorData::SetChangeListener(unsigned int interval) {
     return res;
   }
 
-  // if the user has not provided interval value, apply the default (100 ms):
-  if(interval == 0) {
-    interval = 100;
-  }
-
   int ret = sensor_listener_set_event_cb(listener_, interval, SensorCallback, this);
   if (SENSOR_ERROR_NONE != ret) {
     LoggerE("sensor_listener_set_event_cb : %d", ret);
     return GetSensorPlatformResult(ret, "sensor_listener_set_event_cb");
-  } else {
-    // sensor callback method has been updated correctly,
-    // so remember the new settings for callback interval:
-    this->interval_ = interval;
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -464,7 +432,7 @@ class HrmSensorData : public SensorData {
 
   virtual PlatformResult Start();
   virtual PlatformResult Stop();
-  virtual PlatformResult SetChangeListener(unsigned int interval = 100);
+  virtual PlatformResult SetChangeListener(unsigned int interval);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
 
@@ -546,7 +514,7 @@ PlatformResult HrmSensorData::SetChangeListener(unsigned int interval) {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
   for (const auto& sensor : hrm_sensors_) {
     if (sensor.second->is_supported()) {
-      auto res = sensor.second.get()->SetChangeListener(interval);
+      auto res = sensor.second->SetChangeListener(interval);
       if (!res) {
         return res;
       }
@@ -687,8 +655,9 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
   LoggerD("Entered");
   const std::string type_str =
       args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
-  const double interval = args.contains("interval") ? args.get("interval").get<double>() : 100.0;
-  LoggerD("input type: %s %f" , type_str.c_str(), interval);
+  const auto interval = args.contains(kInterval) ? args.get(kInterval).get<double>() : 100.0;
+  LoggerD("input type: %s" , type_str.c_str());
+  LoggerD("interval: %f" , interval);
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
