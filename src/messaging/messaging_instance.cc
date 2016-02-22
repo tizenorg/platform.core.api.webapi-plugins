@@ -401,7 +401,7 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
-    CHECK_EXIST(args, JSON_CALLBACK_ID, out);
+    CHECK_EXIST(args, STOP_SYNC_ARGS_OPID, out);
 
     picojson::object data = args.get<picojson::object>();
 

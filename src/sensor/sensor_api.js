@@ -249,18 +249,17 @@ Sensor.prototype.setChangeListener = function() {
        {
            name : 'interval',
            type: types_.LONG,
-           optional: true
+           optional: true,
+           nullable: true
        }
     ]);
-    var tmp_interval = args.interval;
-    if(tmp_interval === 0) {
-      tmp_interval = 100;
-    } else {
+
+    var interval = args.interval || 100;
+    if (interval < 10 || interval > 1000) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Interval should be in range [10, 1000] milliseconds.');
     }
-    
 
-    _sensorListeners[this.sensorType].setListener(args.successCallback, args.interval);
+    _sensorListeners[this.sensorType].setListener(args.successCallback, interval);
 };
 
 Sensor.prototype.unsetChangeListener = function() {

@@ -17,6 +17,8 @@
         'iotcon_instance.h',
         'iotcon_server_manager.cc',
         'iotcon_server_manager.h',
+        'iotcon_client_manager.cc',
+        'iotcon_client_manager.h',
         'iotcon_utils.cc',
         'iotcon_utils.h',
       ],

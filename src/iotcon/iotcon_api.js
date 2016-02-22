@@ -266,6 +266,8 @@ function Request(data) {
 
   if (data.representation) {
     data.representation = createRepresentation(data.representation);
+  } else {
+    data.representation = null;
   }
 
   if (data.options) {
@@ -284,10 +286,10 @@ function Resource(data) {
     observerIds: {
       get: function() {
         var callArgs = {};
-        callArgs.id = data.id;
+        callArgs.id = this[kIdKey];
         var result = native.callSync('IotconResource_getObserverIds', callArgs);
         return native.getResultObject(result);
-      },
+      }.bind(this),
       set: function() {},
       enumerable: true
     }
@@ -342,79 +344,90 @@ Resource.prototype.addResourceTypes = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'types',
     type: types.ARRAY,
-    values: types.STRING,
-    optional: false,
-    nullable: false
+    values: types.STRING
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
   callArgs.types = args.types;
 
-  var result = native.call('IotconResource_addResourceTypes', callArgs);
+  var result = native.callSync('IotconResource_addResourceTypes', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var t = this.resourceTypes;
+    t = t.concat(args.types);
+    updateWithInternalData({ resourceTypes: t }, this);
   }
 };
 
-Resource.prototype.addResourceInterfaces = function() {
+Resource.prototype.addResourceInterface = function() {
   var args = validator.validateMethod(arguments, [{
-    name: 'interfaces',
-    type: types.ARRAY,
-    values: ResourceInterface,
-    optional: false,
-    nullable: false
+    name: 'iface',
+    type: types.ENUM,
+    values: T.getValues(ResourceInterface)
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.interfaces = args.interfaces;
+  callArgs.iface = args.iface;
 
-  var result = native.call('IotconResource_addResourceInterfaces', callArgs);
+  var result = native.callSync('IotconResource_addResourceInterface', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var interfaces = this.resourceInterfaces;
+    interfaces.push(args.iface);
+    updateWithInternalData({ resourceInterfaces: interfaces }, this);
   }
 };
 
 Resource.prototype.addChildResource = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'resource',
-    type: types_.PLATFORM_OBJECT,
-    values: Resource,
-    optional: false,
-    nullable: false
+    type: types.PLATFORM_OBJECT,
+    values: Resource
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.resource = args.resource;
+  callArgs.childId = args.resource[kIdKey];
 
-  var result = native.call('IotconResource_addChildResource', callArgs);
+  var result = native.callSync('IotconResource_addChildResource', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var children = this.resources;
+    children.push(args.resource);
+    updateWithInternalData({ resources: children }, this);
   }
 };
 
 Resource.prototype.removeChildResource = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'resource',
-    type: types_.PLATFORM_OBJECT,
-    values: Resource,
-    optional: false,
-    nullable: false
+    type: types.PLATFORM_OBJECT,
+    values: Resource
   }]);
 
   var callArgs = {};
   callArgs.id = this[kIdKey];
-  callArgs.resource = args.resource;
+  callArgs.childId = args.resource[kIdKey];
 
-  var result = native.call('IotconResource_removeChildResource', callArgs);
+  var result = native.callSync('IotconResource_removeChildResource', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    var children = this.resources;
+    var position = children.indexOf(args.resource);
+    if (-1 !== position) {
+      children.splice(position, 1);
+      updateWithInternalData({ resources: children }, this);
+    }
   }
 };
 
@@ -486,11 +499,18 @@ function Response(request) {
 }
 
 Response.prototype.send = function() {
+  var args = validator.validateMethod(arguments, [{
+    name: 'iface',
+    type: types.ENUM,
+    values: T.getValues(ResourceInterface)
+  }]);
+
   var callArgs = {};
   callArgs.id = this.request[kIdKey];
   callArgs.result = this.result;
   callArgs.representation = this.representation;
   callArgs.options = this.options;
+  callArgs.iface = args.iface;
 
   var result = native.callSync('IotconResponse_send', callArgs);
 
@@ -499,26 +519,22 @@ Response.prototype.send = function() {
   }
 };
 
-function RemoteResponse(request) {
-  validator.isConstructorCall(this, tizen.RemoteResponse);
+function RemoteResponse(data) {
+  if (data.representation) {
+    data.representation = createRepresentation(data.representation);
+  } else {
+    data.representation = null;
+  }
 
-  Object.defineProperties(this, {
-    result: {
-      value: null,
-      writable: false,
-      enumerable: true
-    },
-    representation: {
-      value: null,
-      writable: false,
-      enumerable: true
-    },
-    options: {
-      value: null,
-      writable: false,
-      enumerable: true
+  if (data.options) {
+    var options = [];
+    for (var i = 0; i < data.options.length; ++i) {
+      options.push(new IotconOption(data.options[i].id, data.options[i].data));
     }
-  });
+    data.options = options;
+  }
+
+  decorateWithData(data, this);
 }
 
 function State(key, state) {
@@ -538,15 +554,54 @@ function State(key, state) {
   });
 }
 
+function prepareResourceInfo(that){
+  var callArgs = {};
+  callArgs.id = that[kIdKey];
+  if (!callArgs.id) {
+    console.log("RemoteResource is not already stored in C++ layer, adding all members");
+    callArgs.hostAddress = that.hostAddress;
+    callArgs.connectivityType = that.connectivityType;
+    callArgs.uriPath = that.uriPath;
+    //properties flags
+    callArgs.isObservable = that.isObservable;
+    callArgs.isDiscoverable = that.isDiscoverable;
+    callArgs.isActive = that.isActive;
+    callArgs.isSlow = that.isSlow;
+    callArgs.isSecure = that.isSecure;
+    callArgs.isExplicitDiscoverable = that.isExplicitDiscoverable;
+    callArgs.resourceTypes = that.resourceTypes;
+    callArgs.resourceInterfaces = that.resourceInterfaces;
+  } else {
+    console.log("Already stored in C++, all needed info is id");
+  }
+  return callArgs;
+}
+
+function manageId(that, result) {
+  if (result.keepId) {
+    that[kIdKey] = result.id;
+    console.log("Keep id of resource: " + that[kIdKey]);
+  } else {
+    console.log("Clear id of resource");
+    delete that[kIdKey];
+  }
+  delete result.keepId;
+  delete result.id;
+}
+
 function RemoteResource(data) {
   Object.defineProperties(this, {
     cachedRepresentation: {
       get: function() {
         var callArgs = {};
-        callArgs.id = data.id;
+        callArgs.id = this[kIdKey];
         var result = native.callSync('IotconRemoteResource_getCachedRepresentation', callArgs);
-        return createRepresentation(native.getResultObject(result));
-      },
+        if (native.isSuccess(result)) {
+          return createRepresentation(native.getResultObject(result));
+        } else {
+          return null;
+        }
+      }.bind(this),
       set: function() {},
       enumerable: true
     }
@@ -574,23 +629,25 @@ RemoteResource.prototype.methodGet = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.query = args.query;
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodGet', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -612,24 +669,26 @@ RemoteResource.prototype.methodPut = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.representation = args.representation;
   callArgs.query = args.query;
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodPut', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -651,24 +710,26 @@ RemoteResource.prototype.methodPost = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.representation = args.representation;
   callArgs.query = args.query;
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodPost', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -683,22 +744,24 @@ RemoteResource.prototype.methodDelete = function() {
     nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var callback = function(result) {
-    if (native.isFailure(result)) {
+    result = native.getResultObject(result);
+    manageId(this, result);
+    if (!result.data) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      // TODO: implement
-      args.responseCallback();
+      args.responseCallback(new RemoteResponse(result.data));
     }
-  };
+  }.bind(this);
 
   var result = native.call('IotconRemoteResource_methodDelete', callArgs, callback);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -715,26 +778,17 @@ RemoteResource.prototype.setStateChangeListener = function() {
   }, {
     name: 'successCallback',
     type: types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: types.FUNCTION,
-    optional: true,
-    nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
   callArgs.query = args.query;
   callArgs.observePolicy = args.observePolicy;
   var that = this;
 
   var listener = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      updateWithInternalData(native.getResultObject(result), that);
-      args.successCallback(that);
-    }
+    //TODO check what should be updated
+    //updateWithInternalData(result, that);
+    args.successCallback(new RemoteResponse(result.data));
   };
 
   var result = native.callSync('IotconRemoteResource_setStateChangeListener', callArgs);
@@ -742,42 +796,45 @@ RemoteResource.prototype.setStateChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     stateChangeListener.addListener(this[kIdKey], listener);
   }
 };
 
 RemoteResource.prototype.unsetStateChangeListener = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_unsetStateChangeListener', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     stateChangeListener.removeListener(this[kIdKey]);
   }
 };
 
 RemoteResource.prototype.startCaching = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_startCaching', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
 RemoteResource.prototype.stopCaching = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_stopCaching', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    manageId(this, native.getResultObject(result));
   }
 };
 
@@ -787,22 +844,12 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'successCallback',
     type: types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: types.FUNCTION,
-    optional: true,
-    nullable: true
   }]);
 
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var listener = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      args.successCallback(native.getResultObject(result));
-    }
+    args.successCallback(result.data);
   };
 
   var result = native.callSync('IotconRemoteResource_setConnectionChangeListener', callArgs);
@@ -810,25 +857,29 @@ RemoteResource.prototype.setConnectionChangeListener = function() {
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     connectionChangeListener.addListener(this[kIdKey], listener);
   }
 };
 
 RemoteResource.prototype.unsetConnectionChangeListener = function() {
-  var callArgs = {};
-  callArgs.id = this[kIdKey];
+  var callArgs = prepareResourceInfo(this);
 
   var result = native.callSync('IotconRemoteResource_unsetConnectionChangeListener', callArgs);
 
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   } else {
+    manageId(this, native.getResultObject(result));
     connectionChangeListener.removeListener(this[kIdKey]);
   }
 };
 
 function Client() {
 }
+
+var findResourceListener = createListener('FindResourceListener');
+var globalFindResourceId = 0;
 
 Client.prototype.findResource = function() {
   var args = validator.validateMethod(arguments, [{
@@ -851,12 +902,17 @@ Client.prototype.findResource = function() {
     type: types.FUNCTION,
     optional: true,
     nullable: true
+  }, {
+    name: 'isSecure',
+    type: types.BOOLEAN
   }]);
 
   var callArgs = {};
+  callArgs.id = ++globalFindResourceId;
   callArgs.hostAddress = args.hostAddress;
   callArgs.resourceType = args.resourceType;
   callArgs.connectivityType = args.connectivityType;
+  callArgs.isSecure = args.isSecure;
 
   var callback = function(result) {
     if (native.isFailure(result)) {
@@ -867,15 +923,16 @@ Client.prototype.findResource = function() {
     }
   };
 
-  var result = native.call('IotconClient_findResource', callArgs, callback);
-
+  var result = native.callSync('IotconClient_findResource', callArgs);
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  } else {
+    findResourceListener.addListener(callArgs.id, callback);
   }
 };
 
 var presenceEventListener = createListener('PresenceEventListener', function(response) {
-  return new PresenceResponse(native.getResultObject(response));
+  return new PresenceResponse(response.data);
 });
 
 Client.prototype.addPresenceEventListener = function() {
@@ -885,7 +942,8 @@ Client.prototype.addPresenceEventListener = function() {
     nullable: true
   }, {
     name: 'resourceType',
-    type: types.STRING
+    type: types.STRING,
+    nullable: true
   }, {
     name: 'connectivityType',
     type: types.ENUM,
