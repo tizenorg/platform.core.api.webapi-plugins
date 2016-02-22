@@ -1192,6 +1192,12 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
     return status;
   }
 
+  calendar_range_type_e range_type = CALENDAR_RANGE_NONE;
+  // recurrence rule can have either NONE, COUNT or UNTIL type
+  // following code assumes, that if both 'occurrenceCount' and 'untilDate'
+  // are set, recurrence rule's type will be UNTIL
+  // TODO: specify the correct behavior in WIDL, update the code accordingly
+
   const long occurrence_count =
       common::FromJson<double>(rrule, "occurrenceCount");
   if (-1 != occurrence_count) {
@@ -1201,11 +1207,7 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
       return status;
     }
 
-    status = CalendarRecord::SetInt(rec, _calendar_event.range_type,
-                                    CALENDAR_RANGE_COUNT);
-    if (status.IsError()) {
-      return status;
-    }
+    range_type = CALENDAR_RANGE_COUNT;
   }
 
   if (!common::IsNull(rrule, "untilDate")) {
@@ -1216,11 +1218,13 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
       return status;
     }
 
-    status = CalendarRecord::SetInt(rec, _calendar_event.range_type,
-                                    CALENDAR_RANGE_UNTIL);
-    if (status.IsError()) {
-      return status;
-    }
+    range_type = CALENDAR_RANGE_UNTIL;
+  }
+
+  status = CalendarRecord::SetInt(rec, _calendar_event.range_type,
+                                  range_type);
+  if (status.IsError()) {
+    return status;
   }
 
   const picojson::array& byday_array =
@@ -1307,13 +1311,40 @@ PlatformResult CalendarItem::RecurrenceRuleToJson(calendar_record_h rec,
   }
   out["interval"] = picojson::value(static_cast<double>(interval));
 
-  calendar_time_s cal = {CALENDAR_TIME_UTIME, {0}};
-  calendar_record_get_caltime(rec, _calendar_event.until_time, &cal);
-  if (cal.time.utime > 0 && CALENDAR_RECORD_NO_UNTIL != cal.time.utime) {
-    Date until = {cal.time.utime, 0, 0, 0, ""};
-    out["untilDate"] = DateToJson(&until);
-  } else {
-    out["untilDate"] = picojson::value();
+  int range_type = CALENDAR_RANGE_NONE;
+  status = CalendarRecord::GetInt(rec, _calendar_event.range_type, &range_type);
+  if (status.IsError()) {
+    return status;
+  }
+
+  {
+    int occurrence_count = -1;
+    if (CALENDAR_RANGE_COUNT == range_type) {
+      status = CalendarRecord::GetInt(rec, _calendar_event.count, &occurrence_count);
+      if (status.IsError()) {
+        return status;
+      }
+    }
+    out["occurrenceCount"] = picojson::value(static_cast<double>(occurrence_count));
+  }
+
+  {
+    picojson::value until_date;
+    if (CALENDAR_RANGE_UNTIL == range_type) {
+      calendar_time_s cal = {CALENDAR_TIME_UTIME, {0}};
+      int ret = calendar_record_get_caltime(rec, _calendar_event.until_time, &cal);
+
+      if (CALENDAR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Get caltime from record failed.");
+      }
+
+      if (cal.time.utime > 0 && CALENDAR_RECORD_NO_UNTIL != cal.time.utime) {
+        Date until = {cal.time.utime, 0, 0, 0, ""};
+        until_date = DateToJson(&until);
+      }
+    }
+    out["untilDate"] = until_date;
   }
 
   std::string value_str;
@@ -1735,21 +1766,23 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
     }
     out["availability"] = picojson::value(enum_str);
 
-    //check if reccurence count is greater than 0
-    int occurrence_count;
-    status = CalendarRecord::GetInt(rec, _calendar_event.count, &occurrence_count);
+    // check if frequency is not CALENDAR_RECURRENCE_NONE
+    // platform implementation uses the same field to determine if recurrence
+    // rule is present
+    int frequency = 0;
+    status = CalendarRecord::GetInt(rec, _calendar_event.freq, &frequency);
     if (status.IsError()) {
       return status;
     }
 
-    if (occurrence_count) {
+    if (CALENDAR_RECURRENCE_NONE != frequency) {
       picojson::object rec_rule = picojson::object();
-      rec_rule["occurrenceCount"] = picojson::value(static_cast<double>(occurrence_count));
 
       status = RecurrenceRuleToJson(rec, &rec_rule);
       if (status.IsError()) {
         return status;
       }
+
       out["recurrenceRule"] = picojson::value(rec_rule);
     }
   } else {
