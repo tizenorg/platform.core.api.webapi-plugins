@@ -327,7 +327,7 @@ common::TizenResult IotconInstance::ResourceAddResourceInterface(const picojson:
     LogAndReturnTizenError(result, ("GetResourceById() failed"));
   }
 
-  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_interface(resource->handle, IotconUtils::ToInterface(IotconUtils::GetArg(args, kInterface).get<std::string>())));
+  result = IotconUtils::ConvertIotconError(iotcon_resource_bind_interface(resource->handle, IotconUtils::GetArg(args, kInterface).get<std::string>().c_str()));
   if (!result) {
     LogAndReturnTizenError(result, ("iotcon_resource_bind_interface() failed"));
   }
@@ -485,8 +485,10 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
     };
 
     result = IotconUtils::ConvertIotconError(
-        iotcon_response_set_representation(response.get(), IotconUtils::ToInterface(
-            IotconUtils::GetArg(args, kInterface).get<std::string>()), representation));
+        iotcon_response_set_representation(
+            response.get(),
+            IotconUtils::GetArg(args, kInterface).get<std::string>().c_str(),
+            representation));
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_response_set_representation() failed"));
     }

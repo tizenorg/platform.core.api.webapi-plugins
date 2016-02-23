@@ -97,7 +97,7 @@ struct RemoteResourceInfo {
   char* host_address;
   char* device_id;
   iotcon_resource_types_h types;
-  int ifaces;
+  iotcon_resource_interfaces_h ifaces;
   int properties;  // to check if observable
   iotcon_options_h options;
   iotcon_representation_h representation;
@@ -137,13 +137,13 @@ class IotconUtils {
   static const picojson::value& GetArg(const picojson::object& args, const std::string& name);
   static int GetProperties(const picojson::object& args);
   static void PropertiesToJson(int properties, picojson::object* res);
-  static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, int* res);
-  static picojson::array InterfacesToArray(int interfaces);
+  static common::TizenResult ArrayToInterfaces(const picojson::array& interfaces, iotcon_resource_interfaces_h* res);
+  static common::TizenResult InterfacesToArray(iotcon_resource_interfaces_h interfaces, picojson::array* arr);
   static common::TizenResult ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res);
   static common::TizenResult ExtractFromResource(const ResourceInfoPtr& pointer,
                                                  char** uri_path,
                                                  iotcon_resource_types_h* res_types,
-                                                 int* ifaces,
+                                                 iotcon_resource_interfaces_h* ifaces,
                                                  int* properties);
   static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
                                             picojson::object* res);
@@ -204,12 +204,10 @@ class IotconUtils {
   static std::string FromConnectivityType(iotcon_connectivity_type_e e);
   static std::string FromRequestType(iotcon_request_type_e e);
   static std::string FromObserveType(iotcon_observe_type_e e);
-  static std::string FromInterface(iotcon_interface_e e);
   static std::string FromPresenceResponseResultType(iotcon_presence_result_e e);
   static std::string FromPresenceTriggerType(iotcon_presence_trigger_e e);
   static std::string FromResponseResultType(iotcon_response_result_e e);
 
-  static iotcon_interface_e ToInterface(const std::string& e);
   static iotcon_connectivity_type_e ToConnectivityType(const std::string& e);
   static iotcon_observe_policy_e ToObservePolicy(const std::string& e);
   static iotcon_qos_e ToQos(const std::string& e);
