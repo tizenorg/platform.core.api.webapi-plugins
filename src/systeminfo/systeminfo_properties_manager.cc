@@ -571,7 +571,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
     case CONNECTION_TYPE_ETHERNET :
       type =  kEthernet;
       break;
-    case CONNECTION_TYPE_PROXY :
+    case CONNECTION_TYPE_NET_PROXY :
       type =  kProxy;
       break;
     default:
@@ -1143,7 +1143,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetProxyNetwork(picojson::obje
               ("Failed to get connection type: %d (%s)", error, get_error_message(error)));
   }
 
-  if (CONNECTION_TYPE_PROXY == connection_type) {
+  if (CONNECTION_TYPE_NET_PROXY == connection_type) {
     result_status = kConnectionOn;
   } else {
     result_status = kConnectionOff;
