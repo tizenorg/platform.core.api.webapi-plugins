@@ -16,6 +16,7 @@
 
 #include "archive_callback_data.h"
 
+#include "common/filesystem/filesystem_provider.h"
 #include "common/logger.h"
 #include "common/tools.h"
 
@@ -527,7 +528,7 @@ void AddProgressCallback::setBasePath(const std::string& path)
 {
     LoggerD("Entered");
     m_base_path = path;
-    m_base_virt_path = filesystem::External::cutVirtualRoot(m_base_path);
+    m_base_virt_path = common::FilesystemProvider::Create().GetVirtualPath(m_base_path);
     std::string::size_type pos = m_base_virt_path.find(filesystem::Path::getSeparator());
     if (pos != std::string::npos)
     {
