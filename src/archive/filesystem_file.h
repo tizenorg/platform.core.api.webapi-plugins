@@ -56,12 +56,6 @@ private:
     std::string m_original_fullpath;
 };
 
-class External {
-public:
-    static std::string cutVirtualRoot(const std::string& path);
-};
-
-
 } // filesystem
 } // extension
 

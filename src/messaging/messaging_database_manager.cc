@@ -24,6 +24,7 @@
 
 #include <msg_storage.h>
 #include <email-api.h>
+#include <tzplatform_config.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -204,7 +205,11 @@ msg_error_t MessagingDatabaseManager::connect()
         char strDBName[64];
 
         memset(strDBName, 0x00, sizeof(strDBName));
-        snprintf(strDBName, sizeof(strDBName), "%s", MSG_DB_NAME);
+        snprintf(strDBName, sizeof(strDBName), "%s/%s",
+                 tzplatform_getenv(TZ_SYS_DB), MSG_DB_NAME);
+
+        // this should match MSGFW_DB_NAME defined in msg-service/include/utils/MsgSqliteWrapper.h
+        SLoggerD("Using database: [%s]", strDBName);
 
         int err = db_util_open(strDBName, &sqlHandle, DB_UTIL_REGISTER_HOOK_METHOD);
 
