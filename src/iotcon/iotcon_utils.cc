@@ -53,15 +53,6 @@ namespace {
   X(IOTCON_OBSERVE_DEREGISTER, "DEREGISTER") \
   XD(IOTCON_OBSERVE_NO_TYPE, "unknown")
 
-#define IOTCON_INTERFACE_E \
-  X(IOTCON_INTERFACE_NONE, "NONE") \
-  X(IOTCON_INTERFACE_DEFAULT, "DEFAULT") \
-  X(IOTCON_INTERFACE_LINK, "LINK") \
-  X(IOTCON_INTERFACE_BATCH, "BATCH") \
-  X(IOTCON_INTERFACE_GROUP, "GROUP") \
-  X(IOTCON_INTERFACE_READONLY, "READONLY") \
-  XD(IOTCON_INTERFACE_NONE, "unknown")
-
 #define IOTCON_QOS_E \
   X(IOTCON_QOS_LOW, "LOW") \
   X(IOTCON_QOS_HIGH, "HIGH") \
@@ -201,43 +192,52 @@ void IotconUtils::PropertiesToJson(int properties, picojson::object* res) {
   res->insert(std::make_pair(kIsExplicitDiscoverable, picojson::value(value)));
 }
 
-TizenResult IotconUtils::ArrayToInterfaces(const picojson::array& interfaces, int* res) {
+TizenResult IotconUtils::ArrayToInterfaces(const picojson::array& i, iotcon_resource_interfaces_h* out) {
   ScopeLogger();
 
-  int result_value = IOTCON_INTERFACE_NONE;
+  iotcon_resource_interfaces_h interfaces = nullptr;
 
-  for (auto iter = interfaces.begin(); iter != interfaces.end(); ++iter) {
-    if (!iter->is<std::string>()) {
-      return LogAndCreateTizenError(InvalidValuesError, "Array holds incorrect interface names");
+  auto result = ConvertIotconError(iotcon_resource_interfaces_create(&interfaces));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_interfaces_create() failed"));
+  }
+
+  std::unique_ptr<std::remove_pointer<iotcon_resource_interfaces_h>::type, void(*)(iotcon_resource_interfaces_h)> ptr{interfaces, &iotcon_resource_interfaces_destroy};
+
+  for (const auto& iter : i) {
+    if (!iter.is<std::string>()) {
+      return LogAndCreateTizenError(InvalidValuesError, "Interface name should be a string");
     } else {
-      iotcon_interface_e interface = ToInterface(iter->get<std::string>());
-      result_value |= interface;
+      result = ConvertIotconError(iotcon_resource_interfaces_add(interfaces, iter.get<std::string>().c_str()));
+      if (!result) {
+        LogAndReturnTizenError(result, ("iotcon_resource_interfaces_add() failed"));
+      }
     }
   }
-  *res = result_value;
+
+  *out = ptr.release();
   return TizenSuccess();
 }
 
-picojson::array IotconUtils::InterfacesToArray(int interfaces) {
+TizenResult IotconUtils::InterfacesToArray(iotcon_resource_interfaces_h interfaces, picojson::array* arr) {
   ScopeLogger();
 
-  picojson::array res;
-  if (interfaces & IOTCON_INTERFACE_DEFAULT) {
-    res.push_back(picojson::value(FromInterface(IOTCON_INTERFACE_DEFAULT)));
+  auto result = ConvertIotconError(iotcon_resource_interfaces_foreach(interfaces, [](const char* iface, void* user_data) -> bool {
+    ScopeLogger("iotcon_resource_interfaces_foreach");
+
+    if (iface) {
+      auto arr = static_cast<picojson::array*>(user_data);
+      arr->push_back(picojson::value(iface));
+    }
+
+    // always continue with iteration
+    return true;
+  }, arr));
+  if (!result) {
+    LogAndReturnTizenError(result, ("iotcon_resource_interfaces_foreach() failed"));
   }
-  if (interfaces & IOTCON_INTERFACE_LINK) {
-    res.push_back(picojson::value(FromInterface(IOTCON_INTERFACE_LINK)));
-  }
-  if (interfaces & IOTCON_INTERFACE_BATCH) {
-    res.push_back(picojson::value(FromInterface(IOTCON_INTERFACE_BATCH)));
-  }
-  if (interfaces & IOTCON_INTERFACE_GROUP) {
-    res.push_back(picojson::value(FromInterface(IOTCON_INTERFACE_GROUP)));
-  }
-  if (interfaces & IOTCON_INTERFACE_READONLY) {
-    res.push_back(picojson::value(FromInterface(IOTCON_INTERFACE_READONLY)));
-  }
-  return res;
+
+  return TizenSuccess();
 }
 
 TizenResult IotconUtils::ArrayToTypes(const picojson::array& types, iotcon_resource_types_h* res) {
@@ -249,18 +249,20 @@ TizenResult IotconUtils::ArrayToTypes(const picojson::array& types, iotcon_resou
     LogAndReturnTizenError(result, ("iotcon_resource_types_create() failed"));
   }
 
-  for (auto iter = types.begin(); iter != types.end(); ++iter) {
-    if (!iter->is<std::string>()) {
-      return LogAndCreateTizenError(InvalidValuesError, "Array holds incorrect types");
+  std::unique_ptr<std::remove_pointer<iotcon_resource_types_h>::type, void(*)(iotcon_resource_types_h)> ptr{resource_types, &iotcon_resource_types_destroy};
+
+  for (const auto& iter : types) {
+    if (!iter.is<std::string>()) {
+      return LogAndCreateTizenError(InvalidValuesError, "Resource type should be a string");
     } else {
-      result = ConvertIotconError(iotcon_resource_types_add(resource_types, iter->get<std::string>().c_str()));
+      result = ConvertIotconError(iotcon_resource_types_add(resource_types, iter.get<std::string>().c_str()));
       if (!result) {
-        iotcon_resource_types_destroy(resource_types);
         LogAndReturnTizenError(result, ("iotcon_resource_types_add() failed"));
       }
     }
   }
-  *res = resource_types;
+
+  *res = ptr.release();
   return TizenSuccess();
 }
 
@@ -280,7 +282,7 @@ static bool ResourceTypeIterator(const char *type, void *user_data) {
 TizenResult IotconUtils::ExtractFromResource(const ResourceInfoPtr& pointer,
                                              char** uri_path,
                                              iotcon_resource_types_h* res_types,
-                                             int* ifaces,
+                                             iotcon_resource_interfaces_h* ifaces,
                                              int* properties) {
   ScopeLogger();
 
@@ -312,7 +314,7 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
 
   char* uri_path = nullptr;
   iotcon_resource_types_h res_types = nullptr;
-  int ifaces = 0;
+  iotcon_resource_interfaces_h ifaces = nullptr;
   int properties = 0;
   auto ret = ExtractFromResource(pointer, &uri_path, &res_types, &ifaces, &properties);
   if (!ret){
@@ -325,8 +327,12 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
   iotcon_resource_types_foreach(res_types, ResourceTypeIterator, &types);
   res->insert(std::make_pair(kResourceTypes, picojson::value(types)));
 
-  res->insert(std::make_pair(kResourceInterfaces,
-                             picojson::value(InterfacesToArray(ifaces))));
+  picojson::array interfaces;
+  ret = InterfacesToArray(ifaces, &interfaces);
+  if (!ret) {
+    LogAndReturnTizenError(ret, ("InterfacesToArray() failed"));
+  }
+  res->insert(std::make_pair(kResourceInterfaces, picojson::value(interfaces)));
   IotconUtils::PropertiesToJson(properties, res);
 
   picojson::array children;
@@ -428,8 +434,14 @@ TizenResult IotconUtils::RemoteResourceToJson(iotcon_remote_resource_h handle,
     res->insert(std::make_pair(kResourceTypes, picojson::value(types)));
   }
 
-  res->insert(std::make_pair(kResourceInterfaces,
-                             picojson::value(InterfacesToArray(remote_res.ifaces))));
+  if (remote_res.ifaces) {
+    picojson::array interfaces;
+    result = InterfacesToArray(remote_res.ifaces, &interfaces);
+    if (!result) {
+      LogAndReturnTizenError(result, ("InterfacesToArray() failed"));
+    }
+    res->insert(std::make_pair(kResourceInterfaces, picojson::value(interfaces)));
+  }
 
   IotconUtils::PropertiesToJson(remote_res.properties, res);
 
@@ -495,14 +507,20 @@ common::TizenResult IotconUtils::RemoteResourceFromJson(const picojson::object& 
   if (!res) {
     return res;
   }
+  SCOPE_EXIT {
+    iotcon_resource_types_destroy(resource_types);
+  };
 
   CHECK_EXIST(source, kResourceInterfaces);
   const auto& interfaces_array = source.find(kResourceInterfaces)->second.get<picojson::array>();
-  int interfaces = IOTCON_INTERFACE_NONE;
+  iotcon_resource_interfaces_h interfaces = nullptr;
   res = IotconUtils::ArrayToInterfaces(interfaces_array, &interfaces);
   if (!res) {
     return res;
   }
+  SCOPE_EXIT {
+    iotcon_resource_interfaces_destroy(interfaces);
+  };
 
   res = IotconUtils::ConvertIotconError(
       iotcon_remote_resource_create(host_address, connectivity_type, uri_path,
@@ -648,12 +666,17 @@ common::TizenResult IotconUtils::RepresentationToJson(iotcon_representation_h re
 
   {
     // resourceInterfaces
-    int interfaces = 0;
+    iotcon_resource_interfaces_h interfaces = nullptr;
     auto result = ConvertIotconError(iotcon_representation_get_resource_interfaces(representation, &interfaces));
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_representation_get_resource_interfaces() failed"));
     }
-    out->insert(std::make_pair(kResourceInterfaces, picojson::value{InterfacesToArray(interfaces)}));
+    picojson::array js_interfaces;
+    result = InterfacesToArray(interfaces, &js_interfaces);
+    if (!result) {
+      LogAndReturnTizenError(result, ("InterfacesToArray() failed"));
+    }
+    out->insert(std::make_pair(kResourceInterfaces, picojson::value{js_interfaces}));
   }
 
   {
@@ -999,12 +1022,12 @@ common::TizenResult IotconUtils::QueryToJson(iotcon_query_h query,
 
   {
     // resourceInterface
-    iotcon_interface_e interface = IOTCON_INTERFACE_NONE;
+    char* interface = nullptr;
     auto result = ConvertIotconError(iotcon_query_get_interface(query, &interface));
-    if (!result) {
+    if (!result || !interface) {
       LogAndReturnTizenError(result, ("iotcon_query_get_interface() failed"));
     }
-    out->insert(std::make_pair(kResourceInterface, picojson::value{FromInterface(interface)}));
+    out->insert(std::make_pair(kResourceInterface, picojson::value{interface}));
   }
 
   {
@@ -1052,8 +1075,8 @@ common::TizenResult IotconUtils::QueryFromJson(const picojson::object& source, i
     // resourceInterface
     auto it = source.find(kResourceInterface);
     if (source.end() != it && it->second.is<std::string>()) {
-      iotcon_interface_e interface = ToInterface(it->second.get<std::string>());
-      auto result = ConvertIotconError(iotcon_query_set_interface(query, interface));
+      auto& interface = it->second.get<std::string>();
+      auto result = ConvertIotconError(iotcon_query_set_interface(query, interface.c_str()));
       if (!result) {
         LogAndReturnTizenError(result, ("iotcon_query_set_interface() failed"));
       }
@@ -1178,7 +1201,7 @@ common::TizenResult IotconUtils::RepresentationFromResource(const ResourceInfoPt
   }
 
   {
-    int intrefaces = IOTCON_INTERFACE_NONE;
+    iotcon_resource_interfaces_h intrefaces = nullptr;
     result = IotconUtils::ConvertIotconError(iotcon_resource_get_interfaces(resource->handle, &intrefaces));
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_resource_get_interfaces() failed"));
@@ -1648,12 +1671,15 @@ common::TizenResult IotconUtils::RepresentationFromJson(const picojson::object& 
   {
     const auto& resource_interfaces = r.find(kResourceInterfaces);
     if (r.end() != resource_interfaces && resource_interfaces->second.is<picojson::array>()) {
-      int interfaces = IOTCON_INTERFACE_NONE;
+      iotcon_resource_interfaces_h interfaces = nullptr;
 
       result = ArrayToInterfaces(resource_interfaces->second.get<picojson::array>(), &interfaces);
       if (!result) {
         LogAndReturnTizenError(result, ("ArrayToInterfaces() failed"));
       }
+      SCOPE_EXIT {
+        iotcon_resource_interfaces_destroy(interfaces);
+      };
 
       result = ConvertIotconError(iotcon_representation_set_resource_interfaces(representation, interfaces));
       if (!result) {
@@ -1967,14 +1993,6 @@ std::string IotconUtils::FromObserveType(iotcon_observe_type_e e) {
   }
 }
 
-std::string IotconUtils::FromInterface(iotcon_interface_e e) {
-  ScopeLogger();
-
-  switch (e) {
-    IOTCON_INTERFACE_E
-  }
-}
-
 std::string IotconUtils::FromPresenceResponseResultType(iotcon_presence_result_e e) {
   ScopeLogger();
 
@@ -2006,12 +2024,6 @@ std::string IotconUtils::FromResponseResultType(iotcon_response_result_e e) {
 #define XD(v, s) \
   LoggerE("Unknown value: %s, returning default: %d", e.c_str(), v); \
   return v;
-
-iotcon_interface_e IotconUtils::ToInterface(const std::string& e) {
-  ScopeLogger();
-
-  IOTCON_INTERFACE_E
-}
 
 iotcon_qos_e IotconUtils::ToQos(const std::string& e) {
   ScopeLogger();
