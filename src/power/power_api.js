@@ -213,7 +213,6 @@ PowerManager.prototype.getScreenBrightness = function() {
  * @param {!number} brightness The screen brightness value to set.
  */
 var PowerManagerSetScreenBrightness = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.POWER);
     var args = validator_.validateArgs(arguments, [
         {'name' : 'brightness', 'type': types_.DOUBLE}
     ]);
