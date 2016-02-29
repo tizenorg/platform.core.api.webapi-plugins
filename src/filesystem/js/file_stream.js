@@ -79,7 +79,6 @@ function _checkClosed(stream) {
 }
 
 function closeFileStream() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
   this._closed = true;
 };
 
@@ -100,8 +99,6 @@ function _checkWriteAccess(mode) {
 }
 
 function read() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'charCount',
@@ -147,8 +144,6 @@ FileStream.prototype.read = function() {
 };
 
 function readBytes() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'byteCount',
@@ -186,8 +181,6 @@ FileStream.prototype.readBytes = function() {
 };
 
 function readBase64() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'byteCount',
@@ -237,8 +230,6 @@ FileStream.prototype.readBase64 = function() {
 }
 
 function write() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'stringData',
@@ -275,8 +266,6 @@ FileStream.prototype.write = function() {
 };
 
 function writeBytes() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'byteData',
@@ -319,8 +308,6 @@ function _isBase64(str) {
 }
 
 function writeBase64() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'base64Data',

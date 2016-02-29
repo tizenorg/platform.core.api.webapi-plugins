@@ -31,8 +31,6 @@ function FileSystemManager() {
 }
 
 function resolve() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'location', type: types_.STRING},
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -108,8 +106,7 @@ FileSystemManager.prototype.resolve = function() {
 };
 
 function getStorage() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   var args = validator_.validateArgs(arguments, [
     {name: 'label', type: types_.STRING},
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -133,8 +130,7 @@ FileSystemManager.prototype.getStorage = function() {
 };
 
 function listStorages() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
@@ -171,8 +167,6 @@ function _StorageStateChangeListener(result) {
 }
 
 function addStorageStateChangeListener() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
@@ -203,8 +197,6 @@ FileSystemManager.prototype.addStorageStateChangeListener = function() {
 };
 
 function removeStorageStateChangeListener() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'watchId', type: types_.LONG}
   ]);
