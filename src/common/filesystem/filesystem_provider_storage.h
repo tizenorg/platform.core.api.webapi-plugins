@@ -49,7 +49,7 @@ class FilesystemProviderStorage : public IFilesystemProvider {
   /**
    * For given storage_id try to get paths for virtual paths.
    * For example for storage_id (which has type INTERNAL) it will
-   * add to storages virtual paths: downloads with real path /opt/usr/media/Downloads
+   * add to storages virtual paths: downloads with real path TZ_USER_DOWNLOADS
    */
   DeviceChangeStateFun listener_;
   Storages storages_;
