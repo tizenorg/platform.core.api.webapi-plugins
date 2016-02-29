@@ -30,8 +30,6 @@ function ContentManager() {
 }
 
 var ContentManagerUpdate = function(content) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
