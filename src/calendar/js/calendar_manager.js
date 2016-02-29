@@ -98,7 +98,6 @@ CalendarManager.prototype.getDefaultCalendar = function() {
 };
 
 var CalendarManagerGetCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
