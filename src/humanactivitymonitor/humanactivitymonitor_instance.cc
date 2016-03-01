@@ -250,11 +250,11 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerAddActivityRecogni
     Instance::PostMessage(this, data->serialize().c_str());
   };
 
-  long watchId = 0;
+  long watch_id = 0;
 
-  result = manager_->AddActivityRecognitionListener(type, cb, args, &watchId);
+  result = manager_->AddActivityRecognitionListener(type, cb, &watch_id);
   if (result) {
-    out["watchId"] = picojson::value(static_cast<double>(watchId));
+    out["watchId"] = picojson::value(static_cast<double>(watch_id));
     ReportSuccess(out);
   } else {
     LogAndReportError(result, &out, ("Failed: manager_->AddActivityRecognitionListener()"));
