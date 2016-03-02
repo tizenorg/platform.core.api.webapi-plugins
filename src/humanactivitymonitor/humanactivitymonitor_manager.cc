@@ -39,9 +39,16 @@ namespace {
 const std::string kActivityTypePedometer = "PEDOMETER";
 const std::string kActivityTypeWristUp = "WRIST_UP";
 const std::string kActivityTypeHrm = "HRM";
+const std::string kActivityTypeSleepMonitor = "SLEEP_MONITOR";
+
+const std::string kSleepStateAwake = "AWAKE";
+const std::string kSleepStateAsleep = "ASLEEP";
 
 const std::string kCallbackInterval = "callbackInterval";
 const std::string kSampleInterval = "sampleInterval";
+
+const std::string kStatus = "status";
+const std::string kTimestamp = "timestamp";
 
 }  // namespace
 
@@ -588,7 +595,7 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
     gps_info_o["speed"] = picojson::value(speed);
     // TODO(r.galka): errorRange not available in CAPI
     gps_info_o["errorRange"] = picojson::value(static_cast<double>(0));
-    gps_info_o["timestamp"] = picojson::value(static_cast<double>(timestamp));
+    gps_info_o[kTimestamp] = picojson::value(static_cast<double>(timestamp));
 
     gps_info_array->push_back(gps_info);
 
@@ -717,7 +724,7 @@ class HumanActivityMonitorManager::ActivityRecognition {
 
     result_obj.insert(std::make_pair("type", picojson::value(FromActivityType(type))));
     result_obj.insert(std::make_pair("accuracy", picojson::value(FromActivityAccuracy(accuracy))));
-    result_obj.insert(std::make_pair("timestamp", picojson::value(timestamp)));
+    result_obj.insert(std::make_pair(kTimestamp, picojson::value(timestamp)));
 
     ReportSuccess(result, obj);
     callback(&val);
@@ -833,10 +840,42 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     return PlatformResult(ErrorCode::NO_ERROR);
   };
 
+  auto convert_sleep = [](sensor_event_s* event, picojson::object* data) -> PlatformResult {
+    ScopeLogger("convert_sleep");
+
+    if (event->value_count < 1) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "To few values of SLEEP event");
+    }
+
+    sensor_sleep_state_e state = static_cast<sensor_sleep_state_e>(event->values[0]);
+    std::string sleep_state;
+
+    switch (state) {
+      case SENSOR_SLEEP_STATE_WAKE:
+        sleep_state = kSleepStateAwake;
+        break;
+
+      case SENSOR_SLEEP_STATE_SLEEP:
+        sleep_state = kSleepStateAsleep;
+        break;
+
+      default:
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Unknown sleep state",
+                                  ("Unknown sleep state: %d", state));
+    }
+
+    data->insert(std::make_pair(kStatus, picojson::value(sleep_state)));
+    data->insert(std::make_pair(kTimestamp, picojson::value(static_cast<double>(event->timestamp))));
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  };
+
   monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor>(kActivityTypePedometer)));  // not supported
   monitors_.insert(std::make_pair(kActivityTypeWristUp, std::make_shared<Monitor::GestureMonitor>(kActivityTypeWristUp)));
   monitors_.insert(std::make_pair(kActivityTypeHrm, std::make_shared<Monitor::SensorMonitor>(kActivityTypeHrm, SENSOR_HRM, convert_hrm)));
   monitors_.insert(std::make_pair(kActivityTypeGps, std::make_shared<Monitor::GpsMonitor>(kActivityTypeGps)));
+  monitors_.insert(std::make_pair(kActivityTypeSleepMonitor, std::make_shared<Monitor::SensorMonitor>(kActivityTypeSleepMonitor, SENSOR_HUMAN_SLEEP_MONITOR, convert_sleep)));
 }
 
 HumanActivityMonitorManager::~HumanActivityMonitorManager() {
