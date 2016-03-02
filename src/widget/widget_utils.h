@@ -14,27 +14,33 @@
  *    limitations under the License.
  */
 
-#ifndef WIDGET_WIDGET_INSTANCE_H_
-#define WIDGET_WIDGET_INSTANCE_H_
+#ifndef WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
+#define WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
 
-#include "common/tizen_instance.h"
+#include <string>
+
+#include "common/tizen_result.h"
 
 namespace extension {
 namespace widget {
 
-class WidgetInstance : public common::TizenInstance {
- public:
-  WidgetInstance();
-  virtual ~WidgetInstance();
+#define CHECK_EXIST(args, name, out) \
+  if (args.end() == args.find(name)) { \
+    return common::TypeMismatchError(std::string(name) + " is required argument"); \
+  }
 
- private:
-  //WidgetManager
-  common::TizenResult GetWidget(picojson::object const& args);
-  common::TizenResult GetWidgets(picojson::object const& args, const common::AsyncToken& token);
+extern const std::string kWidgetId;
+extern const std::string kPackageId;
+
+
+class WidgetUtils {
+ public:
+  static common::TizenResult ConvertErrorCode(int error);
+  static common::TizenResult WidgetToJson(const char* id, picojson::object* out, const char* pkgid = nullptr);
 
 };
 
-} // namespace widget
-} // namespace extension
+} // widget
+} // extension
 
-#endif // WIDGET_WIDGET_INSTANCE_H_
+#endif // WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
