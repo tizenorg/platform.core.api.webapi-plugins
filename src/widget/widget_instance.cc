@@ -22,6 +22,7 @@
 #include <widget_errno.h>
 
 #include "widget/widget_utils.h"
+#include "common/scope_exit.h"
 
 namespace extension {
 namespace widget {
@@ -84,6 +85,8 @@ WidgetInstance::WidgetInstance() {
   RegisterSyncHandler(c, std::bind(&WidgetInstance::x, this, _1));
 
   REGISTER_SYNC("WidgetManager_getWidget", GetWidget);
+  REGISTER_SYNC("WidgetManager_getPrimaryWidgetId", GetPrimaryWidgetId);
+  REGISTER_SYNC("WidgetManager_getSize", GetSize);
 #undef REGISTER_SYNC
 
 #define REGISTER_ASYNC(c, x) \
@@ -154,6 +157,54 @@ TizenResult WidgetInstance::GetWidgets(const picojson::object& args,
   std::thread(get_widgets, token).detach();
 
   return TizenSuccess();
+}
+
+TizenResult WidgetInstance::GetPrimaryWidgetId(const picojson::object& args) {
+  ScopeLogger();
+
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_EXIST(args, kId, out)
+
+  std::string id = args.find(kId)->second.get<std::string>();
+
+  char* widget_id = widget_service_get_widget_id(id.c_str());
+  if (!widget_id) {
+    LogAndReturnTizenError(
+        WidgetUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_widget_id() failed"));
+  }
+
+  SCOPE_EXIT {
+    free(widget_id);
+  };
+
+  return TizenSuccess(picojson::value(widget_id));
+}
+
+TizenResult WidgetInstance::GetSize(const picojson::object& args) {
+  ScopeLogger();
+
+  CHECK_EXIST(args, kSizeType, out)
+
+  widget_size_type_e type = WidgetUtils::ToSizeType(args.find(kSizeType)->second.get<std::string>());
+  if (WIDGET_SIZE_TYPE_UNKNOWN == type) {
+    LogAndReturnTizenError(common::InvalidValuesError(), ("incorrect size type"));
+  }
+
+  int width = 0;
+  int height = 0;
+
+  int ret = widget_service_get_size(type, &width, &height);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(WidgetUtils::ConvertErrorCode(ret), ("widget_service_get_size() failed"));
+  }
+
+  picojson::value value{picojson::object{}};
+  auto& obj = value.get<picojson::object>();
+
+  obj.insert(std::make_pair(kWidth, picojson::value(static_cast<double>(width))));
+  obj.insert(std::make_pair(kHeight, picojson::value(static_cast<double>(height))));
+
+  return TizenSuccess(value);
 }
 
 } // namespace widget

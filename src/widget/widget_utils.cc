@@ -16,11 +16,30 @@
 
 #include "widget_utils.h"
 
-#include <widget_service.h>
 #include <widget_errno.h>
 
 namespace extension {
 namespace widget {
+
+namespace {
+
+#define WIDGET_SIZE_TYPE_E \
+  X(WIDGET_SIZE_TYPE_1x1, "1x1") \
+  X(WIDGET_SIZE_TYPE_2x1, "2x1") \
+  X(WIDGET_SIZE_TYPE_2x2, "2x2") \
+  X(WIDGET_SIZE_TYPE_4x1, "4x1") \
+  X(WIDGET_SIZE_TYPE_4x2, "4x2") \
+  X(WIDGET_SIZE_TYPE_4x3, "4x3") \
+  X(WIDGET_SIZE_TYPE_4x4, "4x4") \
+  X(WIDGET_SIZE_TYPE_4x5, "4x5") \
+  X(WIDGET_SIZE_TYPE_4x6, "4x6") \
+  X(WIDGET_SIZE_TYPE_EASY_1x1, "EASY_1x1") \
+  X(WIDGET_SIZE_TYPE_EASY_3x1, "EASY_3x1") \
+  X(WIDGET_SIZE_TYPE_EASY_3x3, "EASY_3x3") \
+  X(WIDGET_SIZE_TYPE_FULL, "FULL") \
+  XD(WIDGET_SIZE_TYPE_UNKNOWN, "unknown")
+
+} // namespace
 
 const std::string kWidgetId = "widgetId";
 const std::string kPackageId = "packageId";
@@ -28,6 +47,9 @@ const std::string kId = "id";
 const std::string kApplicationId = "applicationId";
 const std::string kSetupApplicationId = "setupApplicationId";
 const std::string kNoDisplay = "noDisplay";
+const std::string kSizeType = "sizeType";
+const std::string kWidth = "width";
+const std::string kHeight = "height";
 
 using common::TizenResult;
 using common::TizenSuccess;
@@ -110,6 +132,20 @@ TizenResult WidgetUtils::WidgetToJson(const char* id, picojson::object* out, con
 
   return TizenSuccess();
 }
+
+#define X(v, s) if (e == s) return v;
+#define XD(v, s) \
+  LoggerE("Unknown value: %s, returning default: %d", e.c_str(), v); \
+  return v;
+
+widget_size_type_e WidgetUtils::ToSizeType(const std::string& e) {
+  ScopeLogger();
+
+  WIDGET_SIZE_TYPE_E
+}
+
+#undef X
+#undef XD
 
 } // widget
 } // extension
