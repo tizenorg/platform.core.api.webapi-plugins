@@ -36,7 +36,8 @@ var HumanActivityType = {
   PEDOMETER: 'PEDOMETER',
   WRIST_UP: 'WRIST_UP',
   HRM: 'HRM',
-  GPS: 'GPS'
+  GPS: 'GPS',
+  SLEEP_MONITOR: 'SLEEP_MONITOR'
 };
 
 var PedometerStepStatus = {
@@ -58,6 +59,11 @@ var ActivityAccuracy = {
   HIGH: 'HIGH'
 };
 
+var SleepStatus = {
+  ASLEEP: 'ASLEEP',
+  AWAKE: 'AWAKE'
+};
+
 function convertActivityData(type, data) {
   switch (type) {
     case HumanActivityType.PEDOMETER:
@@ -73,6 +79,10 @@ function convertActivityData(type, data) {
         gpsInfo.push(new HumanActivityGPSInfo(data[i]));
       }
       return new HumanActivityGPSInfoArray(gpsInfo);
+    case HumanActivityType.SLEEP_MONITOR:
+      return new HumanActivitySleepMonitorData(data);
+    default:
+      console.error('Uknown human activity type: ' + type);
   }
 }
 
@@ -397,5 +407,12 @@ function HumanActivityGPSInfoArray(data) {
 HumanActivityGPSInfoArray.prototype = new HumanActivityData();
 HumanActivityGPSInfoArray.prototype.constructor = HumanActivityGPSInfoArray;
 
+function HumanActivitySleepMonitorData(data) {
+  SetReadOnlyProperty(this, 'status', data.status);
+  SetReadOnlyProperty(this, 'timestamp', data.timestamp);
+}
+
+HumanActivitySleepMonitorData.prototype = new HumanActivityData();
+HumanActivitySleepMonitorData.prototype.constructor = HumanActivitySleepMonitorData;
 
 exports = new HumanActivityMonitorManager();

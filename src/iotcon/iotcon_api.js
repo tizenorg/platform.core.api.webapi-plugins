@@ -155,13 +155,6 @@ var ConnectivityType = {
   ALL: 'ALL'
 };
 
-var ResourceInterface = {
-  DEFAULT: 'DEFAULT',
-  LINK: 'LINK',
-  BATCH: 'BATCH',
-  GROUP: 'GROUP'
-};
-
 var ObservePolicy = {
   IGNORE_OUT_OF_ORDER: 'IGNORE_OUT_OF_ORDER',
   ACCEPT_OUT_OF_ORDER: 'ACCEPT_OUT_OF_ORDER'
@@ -365,8 +358,7 @@ Resource.prototype.addResourceTypes = function() {
 Resource.prototype.addResourceInterface = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'iface',
-    type: types.ENUM,
-    values: T.getValues(ResourceInterface)
+    type: types.STRING
   }]);
 
   var callArgs = {};
@@ -501,8 +493,7 @@ function Response(request) {
 Response.prototype.send = function() {
   var args = validator.validateMethod(arguments, [{
     name: 'iface',
-    type: types.ENUM,
-    values: T.getValues(ResourceInterface)
+    type: types.STRING
   }]);
 
   var callArgs = {};

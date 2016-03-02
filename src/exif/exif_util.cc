@@ -214,8 +214,8 @@ const std::string& ExifUtil::exposureProgramToString(ExposureProgram value) {
 }
 
 // Example:
-// in: uri = file:///opt/usr/media/Images/exif.jpg
-// out: path = /opt/usr/media/Images/exif.jpg
+// in: uri = file://TZ_USER_IMAGES/exif.jpg
+// out: path = TZ_USER_IMAGES/exif.jpg
 std::string ExifUtil::convertUriToPath(const std::string& str) {
   std::string path = ltrim(str);
   std::string prefix = path.substr(0, URI_PREFIX.size());

@@ -22,10 +22,17 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 #include "filesystem_manager.h"
 
 namespace extension {
 namespace filesystem {
+
+namespace {
+// The privileges that required in Filesystem API
+const std::string kPrivilegeFilesystemRead = "http://tizen.org/privilege/systemsettings.admin";
+const std::string kPrivilegeFilesystemWrite = "http://tizen.org/privilege/systemsettings.admin";
+}
 
 using namespace common;
 using namespace extension::filesystem;
@@ -82,6 +89,7 @@ FilesystemInstance::~FilesystemInstance() {
 void FilesystemInstance::FileCreateSync(const picojson::value& args, picojson::object& out)
 {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "location", out)
 
   const std::string& location = args.get("location").get<std::string>();
@@ -102,6 +110,7 @@ void FilesystemInstance::FileCreateSync(const picojson::value& args, picojson::o
 void FilesystemInstance::FileRename(const picojson::value& args,
                                     picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "oldPath", out)
   CHECK_EXIST(args, "newPath", out)
@@ -177,6 +186,7 @@ void FilesystemInstance::FileRead(const picojson::value& args,
 void FilesystemInstance::FileReadSync(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
   CHECK_EXIST(args, "location", out)
   CHECK_EXIST(args, "offset", out)
   CHECK_EXIST(args, "length", out)
@@ -244,6 +254,7 @@ void FilesystemInstance::FileWrite(const picojson::value& args,
 void FilesystemInstance::FileWriteSync(const picojson::value& args,
                                        picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "location", out)
   CHECK_EXIST(args, "data", out)
   CHECK_EXIST(args, "offset", out)
@@ -269,6 +280,7 @@ void FilesystemInstance::FileWriteSync(const picojson::value& args,
 void FilesystemInstance::FileStat(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "location", out)
 
@@ -301,6 +313,7 @@ void FilesystemInstance::FileStat(const picojson::value& args,
 void FilesystemInstance::FileStatSync(const picojson::value& args,
                                       picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
   CHECK_EXIST(args, "location", out)
 
   const std::string& location = args.get("location").get<std::string>();
@@ -365,6 +378,7 @@ void FilesystemInstance::StartListening(
     const picojson::value& args,
     picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   FilesystemManager::GetInstance().StartListening();
   ReportSuccess(out);
 }
@@ -373,6 +387,7 @@ void FilesystemInstance::StopListening(
     const picojson::value& args,
     picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   FilesystemManager::GetInstance().StopListening();
   ReportSuccess(out);
 }
@@ -432,6 +447,7 @@ void FilesystemInstance::FileSystemManagerMakeDirectorySync(
     const picojson::value& args,
     picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "location", out)
 
   const std::string& location = args.get("location").get<std::string>();
@@ -450,6 +466,7 @@ void FilesystemInstance::FileSystemManagerMakeDirectorySync(
 void FilesystemInstance::ReadDir(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemRead, &out);
   CHECK_EXIST(args, "pathToDir", out)
   CHECK_EXIST(args, "callbackId", out)
 
@@ -488,6 +505,7 @@ void FilesystemInstance::ReadDir(const picojson::value& args,
 void FilesystemInstance::UnlinkFile(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "pathToFile", out)
 
   double callback_id = args.get("callbackId").get<double>();
@@ -520,6 +538,7 @@ void FilesystemInstance::UnlinkFile(const picojson::value& args,
 void FilesystemInstance::RemoveDirectory(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "pathToDelete", out)
 
   double callback_id = args.get("callbackId").get<double>();
@@ -552,6 +571,7 @@ void FilesystemInstance::RemoveDirectory(const picojson::value& args,
 void FilesystemInstance::CopyTo(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeFilesystemWrite, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "originFilePath", out)
   CHECK_EXIST(args, "destinationFilePath", out)

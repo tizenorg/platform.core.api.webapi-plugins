@@ -226,7 +226,6 @@ ContactManager.prototype.get = function() {
 
 // Updates a person in the address book synchronously.
 var ContactManagerUpdate = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'person',

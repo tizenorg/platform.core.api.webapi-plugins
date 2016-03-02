@@ -60,7 +60,7 @@ function File(data) {
 }
 
 function toURI() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   return 'file://' + commonFS_.toRealPath(this.fullPath);
 }
 
@@ -160,8 +160,6 @@ function checkFile(file, fileFilter) {
 }
 
 function listFiles() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true},
@@ -243,8 +241,6 @@ function _checkEncoding(encoding) {
 }
 
 function openStream() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'mode', type: types_.ENUM, values: ['r', 'rw', 'w', 'a']},
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -296,8 +292,6 @@ File.prototype.openStream = function() {
 };
 
 function readAsText() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true},
@@ -357,8 +351,6 @@ File.prototype.readAsText = function() {
 };
 
 function copyTo() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
     {name: 'destinationFilePath', type: types_.STRING},
@@ -499,8 +491,6 @@ File.prototype.copyTo = function() {
 };
 
 function moveTo() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
     {name: 'destinationFilePath', type: types_.STRING},
@@ -604,8 +594,6 @@ File.prototype.moveTo = function() {
 };
 
 function createDirectory() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'dirPath', type: types_.STRING}
   ]);
@@ -661,8 +649,6 @@ File.prototype.createDirectory = function() {
 }
 
 function createFile() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'relativeFilePath', type: types_.STRING}
   ]);
@@ -710,8 +696,6 @@ File.prototype.createFile = function() {
 };
 
 function resolveFile() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING}
   ]);
@@ -751,8 +735,6 @@ File.prototype.resolve = function() {
 };
 
 function deleteDirectory() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'directoryPath', type: types_.STRING},
     {name: 'recursive', type: types_.BOOLEAN},
@@ -841,8 +823,6 @@ File.prototype.deleteDirectory = function() {
 };
 
 function deleteFile() {
-  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING},
     {name: 'onsuccess', type: types_.FUNCTION, optional: true, nullable: true},

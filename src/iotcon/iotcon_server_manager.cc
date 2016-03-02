@@ -17,6 +17,7 @@
 #include "iotcon/iotcon_server_manager.h"
 
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 #include "iotcon/iotcon_instance.h"
 
@@ -49,7 +50,7 @@ TizenResult IotconServerManager::RestoreHandles() {
     ResourceInfoPtr resource = it.second;
     char* uri_path = nullptr;
     iotcon_resource_types_h res_types = nullptr;
-    int ifaces = 0;
+    iotcon_resource_interfaces_h ifaces = 0;
     int properties = 0;
 
     auto res = IotconUtils::ExtractFromResource(resource, &uri_path,
@@ -176,17 +177,23 @@ TizenResult IotconServerManager::CreateResource(const std::string& uri_path,
   ScopeLogger();
 
   int ret;
-  int interfaces = IOTCON_INTERFACE_NONE;
+  iotcon_resource_interfaces_h interfaces = nullptr;
   auto res = IotconUtils::ArrayToInterfaces(interfaces_array, &interfaces);
   if (!res) {
     return res;
   }
+  SCOPE_EXIT {
+    iotcon_resource_interfaces_destroy(interfaces);
+  };
 
   iotcon_resource_types_h resource_types = nullptr;
   res = IotconUtils::ArrayToTypes(types_array, &resource_types);
   if (!res) {
     return res;
   }
+  SCOPE_EXIT {
+    iotcon_resource_types_destroy(resource_types);
+  };
 
   // Create resource
   ret = iotcon_resource_create(uri_path.c_str(),

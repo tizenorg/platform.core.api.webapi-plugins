@@ -16,9 +16,13 @@
 
 #include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
+#include <activity_recognition.h>
 #include <gesture_recognition.h>
+#include <location_batch.h>
+#include <sensor.h>
 
 #include "common/logger.h"
+#include "common/optional.h"
 #include "common/picojson.h"
 #include "common/tools.h"
 
@@ -31,758 +35,898 @@ using common::tools::ReportError;
 using common::tools::ReportSuccess;
 
 namespace {
-const std::string kActivityRecognitionStationary = "STATIONARY";
-const std::string kActivityRecognitionWalking = "WALKING";
-const std::string kActivityRecognitionRunning = "RUNNING";
-const std::string kActivityRecognitionInVehicle = "IN_VEHICLE";
 
-const std::string kActivityAccuracyLow = "LOW";
-const std::string kActivityAccuracyMedium = "MEDIUM";
-const std::string kActivityAccuracyHigh = "HIGH";
+const std::string kActivityTypePedometer = "PEDOMETER";
+const std::string kActivityTypeWristUp = "WRIST_UP";
+const std::string kActivityTypeHrm = "HRM";
+const std::string kActivityTypeSleepMonitor = "SLEEP_MONITOR";
 
-long GetNextId() {
-  static long id = 0;
-  return ++id;
-}
-}
+const std::string kSleepStateAwake = "AWAKE";
+const std::string kSleepStateAsleep = "ASLEEP";
 
-HumanActivityMonitorManager::HumanActivityMonitorManager()
-    : gesture_handle_(nullptr),
-      hrm_sensor_listener_(nullptr),
-      location_handle_(nullptr) {
-  LoggerD("Enter");
-}
+const std::string kCallbackInterval = "callbackInterval";
+const std::string kSampleInterval = "sampleInterval";
 
-HumanActivityMonitorManager::~HumanActivityMonitorManager() {
-  LoggerD("Enter");
-  UnsetWristUpListener();
-  UnsetHrmListener();
-  UnsetGpsListener();
+const std::string kStatus = "status";
+const std::string kTimestamp = "timestamp";
 
-  for (const auto& it: handles_cb_) {
-    activity_release(it.second->handle);
-    delete it.second;
-  }
-  handles_cb_.erase(handles_cb_.begin(), handles_cb_.end());
-}
+}  // namespace
 
-PlatformResult HumanActivityMonitorManager::Init() {
-  LoggerD("Enter");
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
+const std::string kActivityTypeGps = "GPS";
 
-PlatformResult HumanActivityMonitorManager::IsSupported(
-    const std::string& type) {
+class HumanActivityMonitorManager::Monitor {
+ public:
+  class GestureMonitor;
+  class SensorMonitor;
+  class GpsMonitor;
 
-  // check cache first
-  if (supported_.count(type)) {
-    return LogAndCreateResult(supported_[type]
-        ? ErrorCode::NO_ERROR
-        : ErrorCode::NOT_SUPPORTED_ERR);
+  explicit Monitor(const std::string& t) : type_(t) {
+    ScopeLogger(type());
   }
 
-  int ret;
-  bool supported = false;
-  if (type == kActivityTypePedometer) {
-    // TODO(r.galka) no native api for pedometer
-    // so just pass it for not supported.
-  } else if (type == kActivityTypeWristUp) {
-    ret = gesture_is_supported(GESTURE_WRIST_UP, &supported);
-    if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "WRIST_UP gesture check failed",
-                            ("gesture_is_supported(GESTURE_WRIST_UP), error: %d",ret));
-    }
-  } else if (type == kActivityTypeHrm) {
-    ret = sensor_is_supported(SENSOR_HRM, &supported);
-    if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "HRM sensor check failed",
-                            ("sensor_is_supported(HRM), error: %d",ret));
-    }
-  } else if (type == kActivityTypeGps) {
-    supported = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
-  } else if (type == kActivityRecognitionStationary) {
-    ret = activity_is_supported(ACTIVITY_STATIONARY, &supported);
-    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
-      LoggerD("Type %s not supported", type.c_str());
-    } else if (ret != ACTIVITY_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                "activity_is_supported failed",
-                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
-    }
-  } else if (type == kActivityRecognitionWalking) {
-    ret = activity_is_supported(ACTIVITY_WALK, &supported);
-    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
-      LoggerD("Type %s not supported", type.c_str());
-    } else if (ret != ACTIVITY_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                "activity_is_supported failed",
-                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
-    }
-  } else if (type == kActivityRecognitionRunning) {
-    ret = activity_is_supported(ACTIVITY_RUN, &supported);
-    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
-      LoggerD("Type %s not supported", type.c_str());
-    } else if (ret != ACTIVITY_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                "activity_is_supported failed",
-                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
-    }
-  } else if (type == kActivityRecognitionInVehicle) {
-    ret = activity_is_supported(ACTIVITY_IN_VEHICLE, &supported);
-    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
-      LoggerD("Type %s not supported", type.c_str());
-    } else if (ret != ACTIVITY_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                "activity_is_supported failed",
-                                ("activity_is_supported error %d - %s",ret, get_error_message(ret)));
-    }
-  } else {
-    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR);
+  virtual ~Monitor() {
+    ScopeLogger(type());
   }
 
-  supported_[type] = supported;
+  std::string type() const {
+    return type_;
+  }
 
-  return LogAndCreateResult(supported_[type]
-      ? ErrorCode::NO_ERROR
-      : ErrorCode::NOT_SUPPORTED_ERR);
-}
+  JsonCallback& event_callback() {
+    ScopeLogger(type());
+    return event_callback_;
+  }
 
-PlatformResult HumanActivityMonitorManager::SetListener(
-    const std::string& type , JsonCallback callback, const picojson::value& args) {
+  PlatformResult SetListener(JsonCallback callback, const picojson::value& args) {
+    ScopeLogger(type());
 
-  PlatformResult result = IsSupported(type);
-  if (!result) {
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    result = SetListenerImpl(args);
+    if (!result) {
+      return result;
+    }
+
+    event_callback_ = callback;
     return result;
   }
 
-  if (type == kActivityTypePedometer) {
-    // TODO(r.galka) Not Supported in current implementation.
+  PlatformResult UnsetListener() {
+    ScopeLogger(type());
+
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    result = UnsetListenerImpl();
+    if (!result) {
+      return result;
+    }
+
+    event_callback_ = nullptr;
+    return result;
   }
 
-  if (type == kActivityTypeWristUp) {
-    return SetWristUpListener(callback);
+  PlatformResult GetData(picojson::value* data) {
+    ScopeLogger(type());
+
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    return GetDataImpl(data);
   }
 
-  if (type == kActivityTypeHrm) {
-    return SetHrmListener(callback, args);
+ protected:
+  virtual PlatformResult IsSupportedImpl(bool* supported) const {
+    ScopeLogger(type());
+    *supported = false;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  if (type == kActivityTypeGps) {
-    return SetGpsListener(callback, args);
+  virtual PlatformResult SetListenerImpl(const picojson::value& args) {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
   }
 
-  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+  virtual PlatformResult UnsetListenerImpl() {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+  }
+
+  virtual PlatformResult GetDataImpl(picojson::value* data) const {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+  }
+
+ private:
+  PlatformResult IsSupported() {
+    ScopeLogger(type());
+
+    if (!is_supported_) {
+      bool is_supported = false;
+      auto res = IsSupportedImpl(&is_supported);
+      if (!res) {
+        return res;
+      } else {
+        is_supported_ = is_supported;
+      }
+    }
+
+    if (*is_supported_) {
+      return PlatformResult(ErrorCode::NO_ERROR);
+    } else {
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+    }
+  }
+
+  std::string type_;
+  common::optional<bool> is_supported_;
+  JsonCallback event_callback_;
+};
+
+class HumanActivityMonitorManager::Monitor::GestureMonitor : public HumanActivityMonitorManager::Monitor {
+ public:
+  explicit GestureMonitor(const std::string& t) : Monitor(t), handle_(nullptr) {
+    ScopeLogger(type());
+  }
+
+  virtual ~GestureMonitor() override {
+    ScopeLogger(type());
+    UnsetListenerImpl();
+  }
+
+ protected:
+  virtual PlatformResult IsSupportedImpl(bool* s) const override {
+    ScopeLogger(type());
+
+    bool supported = false;
+
+    int ret = gesture_is_supported(GESTURE_WRIST_UP, &supported);
+    if (ret != SENSOR_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "WRIST_UP gesture check failed",
+                                ("gesture_is_supported(GESTURE_WRIST_UP), error: %d (%s)", ret, get_error_message(ret)));
+    }
+
+    *s = supported;
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult SetListenerImpl(const picojson::value&) override {
+    ScopeLogger(type());
+
+    if (!handle_) {
+      int ret = gesture_create(&handle_);
+      if (GESTURE_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to create WRIST_UP listener",
+                                  ("Failed to create WRIST_UP handle, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      ret = gesture_start_recognition(handle_,
+                                      GESTURE_WRIST_UP,
+                                      GESTURE_OPTION_DEFAULT,
+                                      OnWristUpEvent,
+                                      this);
+      if (GESTURE_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to start WRIST_UP listener",
+                                  ("Failed to start WRIST_UP listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult UnsetListenerImpl() override {
+    ScopeLogger(type());
+
+    if (handle_) {
+      int ret = gesture_stop_recognition(handle_);
+      if (GESTURE_ERROR_NONE != ret) {
+        LOGGER(ERROR) << "Failed to stop WRIST_UP detection, error: " << ret;
+      }
+
+      ret = gesture_release(handle_);
+      if (GESTURE_ERROR_NONE != ret) {
+        LOGGER(ERROR) << "Failed to release WRIST_UP handle, error: " << ret;
+      }
+
+      handle_ = nullptr;
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  // GetData is not supported by gesture monitor
+
+ private:
+  static void OnWristUpEvent(gesture_type_e gesture,
+                             const gesture_data_h data,
+                             double timestamp,
+                             gesture_error_e error,
+                             void* user_data) {
+    ScopeLogger();
+
+    auto monitor = static_cast<GestureMonitor*>(user_data);
+    auto& callback = monitor->event_callback();
+
+    if (!callback) {
+      LOGGER(ERROR) << "No WRIST_UP event callback registered, skipping.";
+      return;
+    }
+
+    picojson::value v = picojson::value();  // null value
+    callback(&v);
+  }
+
+  gesture_h handle_;
+};
+
+class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivityMonitorManager::Monitor {
+ public:
+  using SensorEventConverter = std::function<PlatformResult(sensor_event_s* event, picojson::object* o)>;
+
+  SensorMonitor(const std::string& t, sensor_type_e s, const SensorEventConverter& c) : Monitor(t), sensor_(s), handle_(nullptr), converter_(c) {
+    ScopeLogger(type());
+  }
+
+  virtual ~SensorMonitor() override {
+    ScopeLogger(type());
+    UnsetListenerImpl();
+  }
+
+ protected:
+  virtual PlatformResult IsSupportedImpl(bool* s) const override {
+    ScopeLogger(type());
+
+    bool supported = false;
+
+    int ret = sensor_is_supported(sensor_, &supported);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Sensor support check failed",
+                                ("sensor_is_supported(%d), error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    *s = supported;
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult SetListenerImpl(const picojson::value& args) override {
+    ScopeLogger(type());
+
+    if (!handle_) {
+      sensor_h sensor_handle = nullptr;
+      int ret = sensor_get_default_sensor(sensor_, &sensor_handle);
+
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to get default sensor",
+                                  ("Failed to get (%d) sensor, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      ret = sensor_create_listener(sensor_handle, &handle_);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to create sensor listener",
+                                  ("Failed to create (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      int interval = 0;
+      auto& js_interval = args.get(kCallbackInterval);
+
+      if (js_interval.is<double>()) {
+        interval = js_interval.get<double>();
+        LoggerD("callbackInterval: %d", interval);
+      }
+
+      ret = sensor_listener_set_event_cb(handle_,
+                                         interval,
+                                         OnSensorEvent,
+                                         this);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set sensor listener",
+                                  ("Failed to set (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      ret = sensor_listener_start(handle_);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to start sensor listener",
+                                  ("Failed to start (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult UnsetListenerImpl() override {
+    ScopeLogger(type());
+
+    if (handle_) {
+      int ret = sensor_listener_stop(handle_);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to stop sensor listener",
+                                  ("Failed to stop (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      ret = sensor_listener_unset_event_cb(handle_);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to unset sensor listener",
+                                  ("Failed to unset (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      ret = sensor_destroy_listener(handle_);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to destroy sensor listener",
+                                  ("Failed to destroy (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      handle_ = nullptr;
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult GetDataImpl(picojson::value* data) const override {
+    ScopeLogger(type());
+
+    if (!handle_) {
+      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+    }
+
+    sensor_event_s event = {0};
+    int ret = sensor_listener_read_data(handle_, &event);
+
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to get sensor data",
+                                ("Failed to get (%d) sensor data, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    *data = picojson::value(picojson::object());
+    auto result = converter_(&event, &data->get<picojson::object>());
+    if (!result) {
+      return result;
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+ private:
+  static void OnSensorEvent(sensor_h, sensor_event_s* event, void* user_data) {
+    ScopeLogger();
+
+    auto monitor = static_cast<SensorMonitor*>(user_data);
+    auto& callback = monitor->event_callback();
+
+    if (!callback) {
+      LOGGER(ERROR) << "No sensor event callback registered, skipping.";
+      return;
+    }
+
+    picojson::value sensor_data{picojson::object{}};
+
+    auto result = monitor->converter_(event, &sensor_data.get<picojson::object>());
+    if (!result) {
+      LOGGER(ERROR) << "Failed to convert sensor data: " << result.message();
+      return;
+    }
+
+    callback(&sensor_data);
+  }
+
+  sensor_type_e sensor_;
+  sensor_listener_h handle_;
+  SensorEventConverter converter_;
+};
+
+class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMonitorManager::Monitor {
+ public:
+  explicit GpsMonitor(const std::string& t) : Monitor(t), handle_(nullptr) {
+    ScopeLogger(type());
+  }
+
+  virtual ~GpsMonitor() override {
+    ScopeLogger(type());
+    UnsetListenerImpl();
+  }
+
+ protected:
+  virtual PlatformResult IsSupportedImpl(bool* s) const override {
+    ScopeLogger(type());
+
+    *s = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult SetListenerImpl(const picojson::value& args) override {
+    ScopeLogger(type());
+
+    if (!handle_) {
+      int ret = location_manager_create(LOCATIONS_METHOD_GPS, &handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to create location manager",
+                                  ("Failed to create location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      int callback_interval = static_cast<int>(args.get(kCallbackInterval).get<double>() / 1000);
+      int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
+      LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
+
+      ret = location_manager_set_location_batch_cb(handle_,
+                                                   OnGpsEvent,
+                                                   sample_interval, // batch_interval
+                                                   callback_interval, // batch_period
+                                                   this);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set location listener",
+                                  ("Failed to set location listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      ret = location_manager_start_batch(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to start location manager",
+                                  ("Failed to start location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult UnsetListenerImpl() override {
+    ScopeLogger(type());
+
+    if (handle_) {
+      int ret = location_manager_stop_batch(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to stop location manager",
+                                  ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      ret = location_manager_unset_location_batch_cb(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to unset location listener",
+                                  ("Failed to unset location listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      ret = location_manager_destroy(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to destroy location manager",
+                                  ("Failed to destroy location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
+      handle_ = nullptr;
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult GetDataImpl(picojson::value* data) const override {
+    ScopeLogger(type());
+
+    if (!handle_) {
+      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+    }
+
+    double altitude = 0.0, latitude = 0.0, longitude = 0.0, climb = 0.0,
+           direction = 0.0, speed = 0.0, horizontal = 0.0, vertical = 0.0;
+    location_accuracy_level_e level = LOCATIONS_ACCURACY_NONE;
+    time_t timestamp = 0;
+
+    int ret = location_manager_get_location(handle_, &altitude, &latitude,
+                                            &longitude, &climb, &direction, &speed,
+                                            &level, &horizontal, &vertical,
+                                            &timestamp);
+    if (LOCATIONS_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to get location",
+                                ("Failed to get location, error: %d (%s)", ret, get_error_message(ret)));
+    }
+
+    *data = picojson::value(picojson::array());
+    ConvertGpsEvent(latitude, longitude, altitude, speed, direction, horizontal,
+                    vertical, timestamp, &data->get<picojson::array>());
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+ private:
+  static void OnGpsEvent(int num_of_location, void* user_data) {
+    ScopeLogger();
+
+    auto monitor = static_cast<GpsMonitor*>(user_data);
+    auto& callback = monitor->event_callback();
+
+    if (!callback) {
+      LOGGER(ERROR) << "No GPS event callback registered, skipping.";
+      return;
+    }
+
+    if (0 == num_of_location) {
+      LOGGER(ERROR) << "No GPS locations available, skipping.";
+      return;
+    }
+
+    picojson::value gps_info{picojson::array{}};
+    int ret = location_manager_foreach_location_batch(monitor->handle_,
+                                                      ConvertGpsEvent,
+                                                      &gps_info.get<picojson::array>());
+    if (LOCATIONS_ERROR_NONE != ret) {
+      LOGGER(ERROR) << "Failed to convert location, error: " << ret;
+      return;
+    }
+
+    callback(&gps_info);
+  }
+
+  static bool ConvertGpsEvent(double latitude, double longitude, double altitude,
+                              double speed, double direction, double horizontal,
+                              double vertical, time_t timestamp,
+                              void* user_data) {
+    ScopeLogger();
+
+    auto gps_info_array = static_cast<picojson::array*>(user_data);
+
+    picojson::value gps_info{picojson::object{}};
+    auto& gps_info_o = gps_info.get<picojson::object>();
+
+    gps_info_o["latitude"] = picojson::value(latitude);
+    gps_info_o["longitude"] = picojson::value(longitude);
+    gps_info_o["altitude"] = picojson::value(altitude);
+    gps_info_o["speed"] = picojson::value(speed);
+    // TODO(r.galka): errorRange not available in CAPI
+    gps_info_o["errorRange"] = picojson::value(static_cast<double>(0));
+    gps_info_o[kTimestamp] = picojson::value(static_cast<double>(timestamp));
+
+    gps_info_array->push_back(gps_info);
+
+    return true;
+  }
+
+  location_manager_h handle_;
+};
+
+class HumanActivityMonitorManager::ActivityRecognition {
+ public:
+  PlatformResult AddListener(const std::string& type, JsonCallback callback, long* watch_id) {
+    ScopeLogger();
+
+    activity_type_e activity_type = ToActivityType(type);
+    auto result = IsSupported(activity_type);
+
+    if (!result) {
+      return result;
+    }
+
+    activity_h handle = nullptr;
+    int ret = activity_create(&handle);
+    if (ACTIVITY_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to create activity",
+                                ("activity_create() error: %d - %s", ret, get_error_message(ret)));
+    }
+
+    const auto id = GetNextId();
+    auto data = std::make_shared<ActivityData>(id, callback, handle);
+
+    ret = activity_start_recognition(handle, activity_type, OnActivityRecognitionEvent, data.get());
+    if (ACTIVITY_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to start activity recognition",
+                                ("activity_start_recognition() error: %d - %s", ret, get_error_message(ret)));
+    }
+
+    activity_data_.insert(std::make_pair(id, data));
+    *watch_id = id;
+
+    return result;
+  }
+
+  PlatformResult RemoveListener(long watch_id) {
+    ScopeLogger();
+
+    const auto it = activity_data_.find(watch_id);
+
+    if (activity_data_.end() == it) {
+      return LogAndCreateResult( ErrorCode::ABORT_ERR,
+                                 "Listener not found",
+                                 ("Listener with id = %ld not found", watch_id));
+    }
+
+    activity_data_.erase(it);
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+ private:
+  struct ActivityData {
+    ActivityData(long id, const JsonCallback& cb, activity_h h)
+        : watch_id(id),
+          callback(cb),
+          handle(h) {
+    }
+
+    ~ActivityData() {
+      if (handle) {
+        activity_stop_recognition(handle);
+        activity_release(handle);
+      }
+    }
+
+    long watch_id;
+    JsonCallback callback;
+    activity_h handle;
+  };
+
+  static long GetNextId() {
+    static long id = 0;
+    return ++id;
+  }
+
+  static void OnActivityRecognitionEvent(activity_type_e type,
+                                         const activity_data_h data,
+                                         double timestamp,
+                                         activity_error_e callback_error,
+                                         void* user_data) {
+    ScopeLogger();
+
+    auto activity_data = static_cast<ActivityData*>(user_data);
+    JsonCallback callback = activity_data->callback;
+
+    picojson::value val{picojson::object{}};
+    auto& obj = val.get<picojson::object>();
+    obj.insert(std::make_pair("watchId", picojson::value(static_cast<double>(activity_data->watch_id))));
+
+    if (ACTIVITY_ERROR_NONE != callback_error) {
+      LogAndReportError(PlatformResult(ErrorCode::ABORT_ERR, "System operation has failed"),
+                        &obj,
+                        ("activity_recognition_cb() has failed with error code %d - %s", callback_error, get_error_message(callback_error)));
+      callback(&val);
+      return;
+    }
+
+    activity_accuracy_e accuracy = ACTIVITY_ACCURACY_MID;
+
+    int ret = activity_get_accuracy(data, &accuracy);
+    if (ret != ACTIVITY_ERROR_NONE) {
+      LogAndReportError(PlatformResult(ErrorCode::ABORT_ERR, "System operation has failed"),
+                        &obj,
+                        ("activity_get_accuracy() has failed with error code %d - %s", ret, get_error_message(ret)));
+      callback(&val);
+      return;
+    }
+
+    SLoggerD("Activity type: (%d)", type);
+    SLoggerD("Activity accuracy: (%d)", accuracy);
+    SLoggerD("Activity timestamp: (%f)", timestamp);
+
+    picojson::value result{picojson::object{}};
+    auto& result_obj = result.get<picojson::object>();
+
+    result_obj.insert(std::make_pair("type", picojson::value(FromActivityType(type))));
+    result_obj.insert(std::make_pair("accuracy", picojson::value(FromActivityAccuracy(accuracy))));
+    result_obj.insert(std::make_pair(kTimestamp, picojson::value(timestamp)));
+
+    ReportSuccess(result, obj);
+    callback(&val);
+  }
+
+  PlatformResult IsSupported(activity_type_e type) {
+    ScopeLogger();
+
+    bool supported = false;
+    int ret = activity_is_supported(type, &supported);
+
+    if (ret == ACTIVITY_ERROR_NOT_SUPPORTED || !supported) {
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                                "Activity type is not supported",
+                                ("Type %d not supported", type));
+    } else if (ret != ACTIVITY_ERROR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "activity_is_supported failed",
+                                ("activity_is_supported error %d - %s", ret, get_error_message(ret)));
+    } else {
+      return PlatformResult(ErrorCode::NO_ERROR);
+    }
+  }
+
+#define ACTIVITY_TYPE_E \
+  X(ACTIVITY_STATIONARY, "STATIONARY") \
+  X(ACTIVITY_WALK, "WALKING") \
+  X(ACTIVITY_RUN, "RUNNING") \
+  X(ACTIVITY_IN_VEHICLE, "IN_VEHICLE") \
+  XD(static_cast<activity_type_e>(-1), "unknown")
+
+#define ACTIVITY_ACCURACY_E \
+  X(ACTIVITY_ACCURACY_LOW, "LOW") \
+  X(ACTIVITY_ACCURACY_MID, "MEDIUM") \
+  X(ACTIVITY_ACCURACY_HIGH, "HIGH") \
+  XD(static_cast<activity_accuracy_e>(-1), "unknown")
+
+#define X(v, s) case v: return s;
+#define XD(v, s) \
+  default: \
+    LoggerE("Unknown value: %d, returning default: %s", e, s); \
+    return s;
+
+  static std::string FromActivityType(activity_type_e e) {
+    ScopeLogger();
+
+    switch (e) {
+      ACTIVITY_TYPE_E
+    }
+  }
+
+  static std::string FromActivityAccuracy(activity_accuracy_e e) {
+    ScopeLogger();
+
+    switch (e) {
+      ACTIVITY_ACCURACY_E
+    }
+  }
+
+#undef X
+#undef XD
+
+#define X(v, s) if (e == s) return v;
+#define XD(v, s) \
+  LoggerE("Unknown value: %s, returning default: %d", e.c_str(), v); \
+  return v;
+
+  static activity_type_e ToActivityType(const std::string& e) {
+    ScopeLogger();
+
+    ACTIVITY_TYPE_E
+  }
+
+#undef X
+#undef XD
+
+#undef ACTIVITY_ACCURACY_E
+#undef ACTIVITY_TYPE_E
+
+  std::map<long, std::shared_ptr<ActivityData>> activity_data_;
+};
+
+HumanActivityMonitorManager::HumanActivityMonitorManager()
+    : activity_recognition_(std::make_shared<ActivityRecognition>()) {
+  ScopeLogger();
+
+  auto convert_hrm = [](sensor_event_s* event, picojson::object* data) -> PlatformResult {
+    ScopeLogger("convert_hrm");
+
+    LOGGER(DEBUG) << "Sensor event:";
+    LOGGER(DEBUG) << "  |- accuracy: " << event->accuracy;
+    LOGGER(DEBUG) << "  |- timestamp: " << event->timestamp;
+    LOGGER(DEBUG) << "  |- value_count: " << event->value_count;
+
+    if (event->value_count < 2) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "To few values of HRM event");
+    }
+
+    LOGGER(DEBUG) << "  |- values[0]: " << event->values[0];
+    LOGGER(DEBUG) << "  |- values[1]: " << event->values[1];
+
+    float hr = floor( event->values[0] + 0.5); // heart beat rate 0 ~ 220 integer (bpm)
+
+    // there are no public native api for peak to peak interval.
+    // but RRI = (60 / HR) * 1000
+    // or unofficially values[1] is rri (0 ~ 5000 ms)
+    float rri = floor(event->values[1] + 0.5);
+
+
+    data->insert(std::make_pair("heartRate", picojson::value(static_cast<double>(hr))));
+    data->insert(std::make_pair("rRInterval", picojson::value(static_cast<double>(rri))));
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  };
+
+  auto convert_sleep = [](sensor_event_s* event, picojson::object* data) -> PlatformResult {
+    ScopeLogger("convert_sleep");
+
+    if (event->value_count < 1) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "To few values of SLEEP event");
+    }
+
+    sensor_sleep_state_e state = static_cast<sensor_sleep_state_e>(event->values[0]);
+    std::string sleep_state;
+
+    switch (state) {
+      case SENSOR_SLEEP_STATE_WAKE:
+        sleep_state = kSleepStateAwake;
+        break;
+
+      case SENSOR_SLEEP_STATE_SLEEP:
+        sleep_state = kSleepStateAsleep;
+        break;
+
+      default:
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Unknown sleep state",
+                                  ("Unknown sleep state: %d", state));
+    }
+
+    data->insert(std::make_pair(kStatus, picojson::value(sleep_state)));
+    data->insert(std::make_pair(kTimestamp, picojson::value(static_cast<double>(event->timestamp))));
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  };
+
+  monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor>(kActivityTypePedometer)));  // not supported
+  monitors_.insert(std::make_pair(kActivityTypeWristUp, std::make_shared<Monitor::GestureMonitor>(kActivityTypeWristUp)));
+  monitors_.insert(std::make_pair(kActivityTypeHrm, std::make_shared<Monitor::SensorMonitor>(kActivityTypeHrm, SENSOR_HRM, convert_hrm)));
+  monitors_.insert(std::make_pair(kActivityTypeGps, std::make_shared<Monitor::GpsMonitor>(kActivityTypeGps)));
+  monitors_.insert(std::make_pair(kActivityTypeSleepMonitor, std::make_shared<Monitor::SensorMonitor>(kActivityTypeSleepMonitor, SENSOR_HUMAN_SLEEP_MONITOR, convert_sleep)));
+}
+
+HumanActivityMonitorManager::~HumanActivityMonitorManager() {
+  ScopeLogger();
+}
+
+PlatformResult HumanActivityMonitorManager::Init() {
+  ScopeLogger();
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HumanActivityMonitorManager::SetListener(
+    const std::string& type, JsonCallback callback,
+    const picojson::value& args) {
+  ScopeLogger();
+  return GetMonitor(type)->SetListener(callback, args);
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetListener(
     const std::string& type) {
-
-  PlatformResult result = IsSupported(type);
-  if (!result) {
-    return result;
-  }
-
-  if (type == kActivityTypePedometer) {
-    // TODO(r.galka) Not Supported in current implementation.
-  }
-
-  if (type == kActivityTypeWristUp) {
-    return UnsetWristUpListener();
-  }
-
-  if (type == kActivityTypeHrm) {
-    return UnsetHrmListener();
-  }
-
-  if (type == kActivityTypeGps) {
-    return UnsetGpsListener();
-  }
-
-  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
-}
-
-void HumanActivityMonitorManager:: ActivityRecognitionCb(
-                activity_type_e type,
-                const activity_data_h data,
-                double timestamp,
-                activity_error_e callback_error,
-                void *user_data) {
-  LoggerD("enter");
-
-  HandleCallback* handle_callback = static_cast<HandleCallback*>(user_data);
-  long watch_id = handle_callback->watch_id;
-  JsonCallback callback = handle_callback->callback;
-
-  picojson::value val = picojson::value(picojson::object());
-  picojson::object& obj = val.get<picojson::object>();
-  obj["watchId"] = picojson::value(static_cast<double>(watch_id));
-
-  if (callback_error != ACTIVITY_ERROR_NONE) {
-    LogAndReportError(
-        PlatformResult(ErrorCode::ABORT_ERR, "System operation was failed"),
-        &obj,
-        ("activity_recognition_cb() is failed with error code %d - %s", callback_error, get_error_message(callback_error)));
-    callback(&val);
-    return;
-  }
-
-  activity_accuracy_e accuracy = ACTIVITY_ACCURACY_MID;
-
-  int ret = activity_get_accuracy(data, &accuracy);
-  if (ret != ACTIVITY_ERROR_NONE) {
-    LogAndReportError(
-        PlatformResult(ErrorCode::ABORT_ERR, "System operation was failed"),
-        &obj,
-        ("activity_get_accuracy() is failed with error code %d - %s", ret, get_error_message(ret)));
-    callback(&val);
-    return;
-  }
-
-  const char *type_str;
-
-  switch (type) {
-    case ACTIVITY_STATIONARY:
-      type_str = kActivityRecognitionStationary.c_str();
-      break;
-
-    case ACTIVITY_WALK:
-      type_str = kActivityRecognitionWalking.c_str();
-      break;
-
-    case ACTIVITY_RUN:
-      type_str = kActivityRecognitionRunning.c_str();
-      break;
-
-    case ACTIVITY_IN_VEHICLE:
-      type_str = kActivityRecognitionInVehicle.c_str();
-      break;
-
-    default:
-      LogAndReportError(
-          PlatformResult(ErrorCode::ABORT_ERR, "Unknown activity recognition type"),
-          &obj,
-          ("Unknown activity recognition type %d", type));
-      callback(&val);
-      return;
-  }
-
-  LoggerD("Activity type: (%s)", type_str);
-
-  const char *accuracy_str;
-
-  switch (accuracy) {
-    case ACTIVITY_ACCURACY_LOW:
-      accuracy_str = kActivityAccuracyLow.c_str();
-      break;
-
-    case ACTIVITY_ACCURACY_MID:
-      accuracy_str = kActivityAccuracyMedium.c_str();
-      break;
-
-    case ACTIVITY_ACCURACY_HIGH:
-      accuracy_str = kActivityAccuracyHigh.c_str();
-      break;
-
-    default:
-      LogAndReportError(
-          PlatformResult(ErrorCode::ABORT_ERR, "Unknown activity accuracy type"),
-          &obj,
-          ("Unknown activity accuracy type %d", accuracy));
-      callback(&val);
-      return;
-  }
-
-  LoggerD("accuracy: (%s)", accuracy_str);
-  LoggerD("##### timeStamp: (%f)", timestamp);
-
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-
-  result_obj.insert(std::make_pair("type", picojson::value(type_str)));
-  result_obj.insert(std::make_pair("timestamp", picojson::value(timestamp)));
-  result_obj.insert(std::make_pair("accuracy", picojson::value(accuracy_str)));
-
-  ReportSuccess(result, obj);
-  callback(&val);
-  return;
-}
-
-PlatformResult HumanActivityMonitorManager:: AddActivityRecognitionListener(
-    const std::string& type, JsonCallback callback, const picojson::value& args, long* watch_id) {
-  LoggerD("Enter");
-
-  PlatformResult result = IsSupported(type);
-  if (!result) {
-    return result;
-  }
-
-  activity_type_e activity_type = ACTIVITY_STATIONARY;
-
-  if (type == kActivityRecognitionStationary) {
-    activity_type = ACTIVITY_STATIONARY;
-  } else if (type == kActivityRecognitionWalking) {
-    activity_type = ACTIVITY_WALK;
-  } else if (type == kActivityRecognitionRunning) {
-    activity_type = ACTIVITY_RUN;
-  } else if (type == kActivityRecognitionInVehicle) {
-    activity_type = ACTIVITY_IN_VEHICLE;
-  } else {
-    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
-                              "A type not supported",
-                              ("The type %s is not matched with the activity recognition type", type.c_str()));
-  }
-
-  activity_h handle = nullptr;
-  int ret = activity_create(&handle);
-  if (ret != ACTIVITY_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                              "activity_create error",
-                              ("activity_create error: %d - %s", ret, get_error_message(ret)));
-  }
-
-  long id = GetNextId();
-
-  // Adding the handle to handles map
-  HandleCallback* handle_callback = new HandleCallback(id, callback, handle);
-
-  handles_cb_[id] = handle_callback;
-
-  ret = activity_start_recognition(handle, activity_type, ActivityRecognitionCb, static_cast<void*>(handle_callback));
-  if (ret != ACTIVITY_ERROR_NONE) {
-    delete handle_callback;
-    handles_cb_.erase(id);
-    activity_release(handle);
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                              "activity_start_recognition error",
-                              ("activity_start_recognition error: %d - %s", ret, get_error_message(ret)));
-  }
-
-  *watch_id = id;
-
-  return result;
-}
-
-PlatformResult HumanActivityMonitorManager::RemoveActivityRecognitionListener(const long watch_id) {
-  LoggerD("Enter");
-
-  if (handles_cb_.find(watch_id) == handles_cb_.end()) {
-    return LogAndCreateResult(
-              ErrorCode::ABORT_ERR,
-              "Listener not found",
-              ("Listener with id = %ld not found", watch_id));
-  }
-  activity_h handle = handles_cb_[watch_id]->handle;
-
-  int ret = activity_stop_recognition(handle);
-  if (ret != ACTIVITY_ERROR_NONE) {
-    return LogAndCreateResult(
-              ErrorCode::ABORT_ERR,
-              "System operation was failed",
-              ("Activity_stop_recognition() return (%d) - %s", ret, get_error_message(ret)));
-  }
-
-  activity_release(handle);
-  delete handles_cb_[watch_id];
-  handles_cb_.erase(watch_id);
-
-  return PlatformResult(ErrorCode::NO_ERROR);
+  ScopeLogger();
+  return GetMonitor(type)->UnsetListener();
 }
 
 PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
-    const std::string& type,
-    picojson::value* data) {
-
-  LoggerD("Enter");
-  if (type == kActivityTypePedometer) {
-    // TODO(r.galka) Not Supported in current implementation.
-  }
-
-  if (type == kActivityTypeWristUp) {
-    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
-  }
-
-  if (type == kActivityTypeHrm) {
-    return GetHrmData(data);
-  }
-
-  if (type == kActivityTypeGps) {
-    return GetGpsData(data);
-  }
-
-  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+    const std::string& type, picojson::value* data) {
+  ScopeLogger();
+  return GetMonitor(type)->GetData(data);
 }
 
-// WRIST_UP
-PlatformResult HumanActivityMonitorManager::SetWristUpListener(
-    JsonCallback callback) {
-  LoggerD("Enter");
-  int ret;
-
-  ret = gesture_create(&gesture_handle_);
-  if (ret != GESTURE_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create WRIST_UP listener",
-                          ("Failed to create WRIST_UP handle, error: %d",ret));
-  }
-
-  ret = gesture_start_recognition(gesture_handle_,
-                                  GESTURE_WRIST_UP,
-                                  GESTURE_OPTION_DEFAULT,
-                                  OnWristUpEvent,
-                                  this);
-  if (ret != GESTURE_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start WRIST_UP listener",
-                          ("Failed to start WRIST_UP listener, error: %d",ret));
-  }
-
-  wrist_up_event_callback_ = callback;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
+PlatformResult HumanActivityMonitorManager::AddActivityRecognitionListener(
+    const std::string& type, JsonCallback callback, long* watch_id) {
+  ScopeLogger();
+  return activity_recognition_->AddListener(type, callback, watch_id);
 }
 
-PlatformResult HumanActivityMonitorManager::UnsetWristUpListener() {
-  LoggerD("Enter");
-
-  if (gesture_handle_) {
-    int ret = gesture_stop_recognition(gesture_handle_);
-    if (ret != GESTURE_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to stop WRIST_UP detection, error: " << ret;
-    }
-
-    ret = gesture_release(gesture_handle_);
-    if (ret != GESTURE_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to release WRIST_UP handle, error: " << ret;
-    }
-  }
-
-  wrist_up_event_callback_ = nullptr;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
+PlatformResult HumanActivityMonitorManager::RemoveActivityRecognitionListener(const long watch_id) {
+  ScopeLogger();
+  return activity_recognition_->RemoveListener(watch_id);
 }
 
-void HumanActivityMonitorManager::OnWristUpEvent(gesture_type_e gesture,
-                                                 const gesture_data_h data,
-                                                 double timestamp,
-                                                 gesture_error_e error,
-                                                 void* user_data) {
-  LoggerD("Enter");
-  HumanActivityMonitorManager* manager =
-      static_cast<HumanActivityMonitorManager*>(user_data);
+std::shared_ptr<HumanActivityMonitorManager::Monitor> HumanActivityMonitorManager::GetMonitor(const std::string& type) {
+  ScopeLogger();
 
-  if (!manager->wrist_up_event_callback_) {
-    LOGGER(ERROR) << "No WRIST_UP event callback registered, skipping.";
-    return;
+  const auto it = monitors_.find(type);
+
+  if (monitors_.end() != it) {
+    return it->second;
+  } else {
+    return std::make_shared<Monitor>(type);  // return default unsupported monitor
   }
-
-  picojson::value v = picojson::value(); // null value
-  manager->wrist_up_event_callback_(&v);
-}
-
-// HRM
-PlatformResult HumanActivityMonitorManager::SetHrmListener(
-    JsonCallback callback, const picojson::value& args) {
-  LoggerD("Enter");
-  sensor_h hrm_sensor;
-  int ret;
-
-  ret = sensor_get_default_sensor(SENSOR_HRM, &hrm_sensor);
-  if (ret != SENSOR_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get HRM sensor",
-                          ("Failed to get HRM sensor, error: %d",ret));
-  }
-
-  ret = sensor_create_listener(hrm_sensor, &hrm_sensor_listener_);
-  if (ret != SENSOR_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create HRM sensor listener",
-                          ("Failed to create HRM sensor listener, error: %d",ret));
-  }
-
-  int callbackInterval = static_cast<int>(args.get("callbackInterval").get<double>());
-  LoggerD("callbackInterval: %d", callbackInterval);
-
-  ret = sensor_listener_set_event_cb(hrm_sensor_listener_,
-                                     callbackInterval,
-                                     OnHrmSensorEvent,
-                                     this);
-  if (ret != SENSOR_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to set HRM sensor listener",
-                          ("Failed to set HRM sensor listener, error: %d",ret));
-  }
-
-  ret = sensor_listener_start(hrm_sensor_listener_);
-  if (ret != SENSOR_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start HRM sensor listener",
-                          ("Failed to start HRM sensor listener, error: %d",ret));
-  }
-
-  hrm_event_callback_ = callback;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
-  LoggerD("Enter");
-
-  if (hrm_sensor_listener_) {
-    int ret = sensor_listener_stop(hrm_sensor_listener_);
-    if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to stop HRM sensor",
-                            ("Failed to stop HRM sensor, error: %d",ret));
-    }
-
-    ret = sensor_listener_unset_event_cb(hrm_sensor_listener_);
-    if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to unset HRM sensor listener",
-                            ("Failed to unset HRM sensor listener, error: %d",ret));
-    }
-
-    ret = sensor_destroy_listener(hrm_sensor_listener_);
-    if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to destroy HRM sensor listener",
-                            ("Failed to destroy HRM sensor listener, error: %d",ret));
-    }
-  }
-
-  hrm_event_callback_ = nullptr;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-static PlatformResult ConvertHrmEvent(sensor_event_s* event,
-                                      picojson::object* data) {
-  LOGGER(DEBUG) << "Sensor event:";
-  LOGGER(DEBUG) << "  |- accuracy: " << event->accuracy;
-  LOGGER(DEBUG) << "  |- timestamp: " << event->timestamp;
-  LOGGER(DEBUG) << "  |- value_count: " << event->value_count;
-
-  if (event->value_count < 2) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "To few values of HRM event");
-  }
-
-  LOGGER(DEBUG) << "  |- values[0]: " << event->values[0];
-  LOGGER(DEBUG) << "  |- values[1]: " << event->values[1];
-
-  float hr = floor( event->values[0] + 0.5); // heart beat rate 0 ~ 220 integer (bpm)
-
-  // there are no public native api for peak to peak interval.
-  // but RRI = (60 / HR) * 1000
-  // or unofficially values[1] is rri (0 ~ 5000 ms)
-  float rri = floor(event->values[1] + 0.5);
-
-
-  (*data)["heartRate"] = picojson::value(static_cast<double>(hr));
-  (*data)["rRInterval"] = picojson::value(static_cast<double>(rri));
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-void HumanActivityMonitorManager::OnHrmSensorEvent(
-    sensor_h /*sensor*/, sensor_event_s *event, void *user_data) {
-
-  LoggerD("Enter");
-  HumanActivityMonitorManager* manager =
-      static_cast<HumanActivityMonitorManager*>(user_data);
-
-  if (!manager->hrm_event_callback_) {
-    LOGGER(ERROR) << "No HRM event callback registered, skipping.";
-    return;
-  }
-
-  picojson::value hrm_data = picojson::value(picojson::object());
-  PlatformResult result = ConvertHrmEvent(event,
-                                          &hrm_data.get<picojson::object>());
-  if (!result) {
-    LOGGER(ERROR) << "Failed to convert HRM data: " << result.message();
-    return;
-  }
-
-  manager->hrm_event_callback_(&hrm_data);
-}
-
-PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
-  LoggerD("Enter");
-  if (!hrm_sensor_listener_) {
-    return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
-  }
-
-  int ret;
-
-  sensor_event_s event;
-  ret = sensor_listener_read_data(hrm_sensor_listener_, &event);
-  if (ret != SENSOR_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get HRM sensor data",
-                          ("Failed to get HRM sensor data, error: %d",ret));
-  }
-
-  *data = picojson::value(picojson::object());
-  PlatformResult result = ConvertHrmEvent(&event,
-                                          &data->get<picojson::object>());
-  if (!result) {
-    return result;
-  }
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-// GPS
-PlatformResult HumanActivityMonitorManager::SetGpsListener(
-    JsonCallback callback, const picojson::value& args) {
-  LoggerD("Enter");
-  int ret;
-
-  ret = location_manager_create(LOCATIONS_METHOD_GPS, &location_handle_);
-  if (ret != LOCATIONS_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create location manager",
-                          ("Failed to create location manager, error: %d",ret));
-  }
-
-  int callbackInterval = static_cast<int>(args.get("callbackInterval").get<double>()/1000);
-  int sampleInterval = static_cast<int>(args.get("sampleInterval").get<double>()/1000);
-  LoggerD("callbackInterval: %d, sampleInterval: %d", callbackInterval, sampleInterval);
-
-  ret = location_manager_set_location_batch_cb(location_handle_,
-                                               OnGpsEvent,
-                                               sampleInterval, // batch_interval
-                                               callbackInterval, // batch_period
-                                               this);
-  if (ret != LOCATIONS_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to set location listener",
-                          ("Failed to set location listener, error: %d",ret));
-  }
-
-  ret = location_manager_start_batch(location_handle_);
-  if (ret != LOCATIONS_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start location manager",
-                          ("Failed to start location manager, error: %d",ret));
-  }
-
-  gps_event_callback_ = callback;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult HumanActivityMonitorManager::UnsetGpsListener() {
-  LoggerD("Enter");
-
-  if (location_handle_) {
-    int ret = location_manager_stop_batch(location_handle_);
-    if (ret != LOCATIONS_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to stop location manager",
-                            ("Failed to stop location manager, error: %d",ret));
-    }
-
-    ret = location_manager_unset_location_batch_cb(location_handle_);
-    if (ret != LOCATIONS_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to unset location listener",
-                            ("Failed to unset location listener, error: %d",ret));
-    }
-
-    ret = location_manager_destroy(location_handle_);
-    if (ret != LOCATIONS_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to destroy location manager",
-                            ("Failed to destroy location manager, error: %d",ret));
-    }
-  }
-
-  gps_event_callback_ = nullptr;
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-static bool ConvertGpsEvent(double latitude, double longitude, double altitude,
-                            double speed, double direction, double horizontal,
-                            double vertical, time_t timestamp,
-                            void* user_data) {
-  LoggerD("Enter");
-  picojson::array* gps_info_array = static_cast<picojson::array*>(user_data);
-
-  picojson::value gps_info = picojson::value(picojson::object());
-  picojson::object& gps_info_o = gps_info.get<picojson::object>();
-
-  gps_info_o["latitude"] = picojson::value(latitude);
-  gps_info_o["longitude"] = picojson::value(longitude);
-  gps_info_o["altitude"] = picojson::value(altitude);
-  gps_info_o["speed"] = picojson::value(speed);
-  // TODO(r.galka) errorRange not available in CAPI
-  gps_info_o["errorRange"] = picojson::value(static_cast<double>(0));
-  gps_info_o["timestamp"] = picojson::value(static_cast<double>(timestamp));
-
-  gps_info_array->push_back(gps_info);
-
-  return true;
-}
-
-void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
-                                             void *user_data) {
-  LoggerD("Enter");
-  HumanActivityMonitorManager* manager =
-      static_cast<HumanActivityMonitorManager*>(user_data);
-
-  if (!manager->gps_event_callback_) {
-    LOGGER(ERROR) << "No GPS event callback registered, skipping.";
-    return;
-  }
-
-  if (0 == num_of_location) {
-    LOGGER(ERROR) << "No GPS locations available, skipping.";
-    return;
-  }
-
-  picojson::value gps_info = picojson::value(picojson::array());
-  int ret = location_manager_foreach_location_batch(
-      manager->location_handle_,
-      ConvertGpsEvent,
-      &gps_info.get<picojson::array>());
-  if (ret != LOCATIONS_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to convert location, error: " << ret;
-    return;
-  }
-
-  manager->gps_event_callback_(&gps_info);
-}
-
-PlatformResult HumanActivityMonitorManager::GetGpsData(picojson::value* data) {
-  LoggerD("Enter");
-  if (!location_handle_) {
-    return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
-  }
-
-  int ret;
-  double altitude, latitude, longitude, climb,
-      direction, speed, horizontal, vertical;
-  location_accuracy_level_e level;
-  time_t timestamp;
-  ret = location_manager_get_location(location_handle_, &altitude, &latitude,
-                                      &longitude, &climb, &direction, &speed,
-                                      &level, &horizontal, &vertical,
-                                      &timestamp);
-  if (ret != LOCATIONS_ERROR_NONE) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to get location",
-                              ("Failed to get location, error: %d",ret));
-  }
-
-  *data = picojson::value(picojson::array());
-  ConvertGpsEvent(latitude, longitude, altitude, speed, direction, horizontal,
-                  vertical, timestamp, &data->get<picojson::array>());
-
-  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // namespace humanactivitymonitor
