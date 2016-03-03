@@ -535,7 +535,7 @@ void BluetoothGATTService::RemoveValueChangeListener(
   }
 }
 
-common::PlatformResult BluetoothGATTService::GetServiceUuids(
+common::PlatformResult BluetoothGATTService::GetServiceAllUuids(
     const std::string& address, picojson::array* array) {
   LoggerD("Entered");
 

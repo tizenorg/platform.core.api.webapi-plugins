@@ -691,6 +691,22 @@ BluetoothLEDevice.prototype.getService = function() {
     }
 };
 
+BluetoothLEDevice.prototype.getServiceAllUuids = function() {
+  console.log('Entered BluetoothLEDevice.getServiceAllUuids()');
+
+  var callArgs = {
+    address : this.address
+  };
+
+  var result = native.callSync('BluetoothLEDevice_getServiceAllUuids', callArgs);
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  } else {
+    var uuids = native.getResultObject(result);
+    return uuids;
+  }
+};
+
 BluetoothLEDevice.prototype.addConnectStateChangeListener = function() {
     console.log('Entered BluetoothLEDevice.addConnectStateChangeListener()');
     var args = AV.validateMethod(arguments, [
