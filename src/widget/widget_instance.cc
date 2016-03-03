@@ -87,12 +87,22 @@ WidgetInstance::WidgetInstance() {
   REGISTER_SYNC("WidgetManager_getWidget", GetWidget);
   REGISTER_SYNC("WidgetManager_getPrimaryWidgetId", GetPrimaryWidgetId);
   REGISTER_SYNC("WidgetManager_getSize", GetSize);
+  REGISTER_SYNC("Widget_getName", GetName);
+  REGISTER_SYNC("Widget_getVariant", GetVariant);
+  REGISTER_SYNC("Widget_addChangeListener", AddChangeListener);
+  REGISTER_SYNC("Widget_removeChangeListener", RemoveChangeListener);
+  REGISTER_SYNC("WidgetInstance_changeUpdatePeriod", ChangeUpdatePeriod);
+  REGISTER_SYNC("WidgetInstance_sendContent", SendContent);
+
 #undef REGISTER_SYNC
 
 #define REGISTER_ASYNC(c, x) \
   RegisterHandler(c, std::bind(&WidgetInstance::x, this, _1, _2));
 
   REGISTER_ASYNC("WidgetManager_getWidgets", GetWidgets);
+  REGISTER_ASYNC("Widget_getInstances", GetInstances);
+  REGISTER_ASYNC("Widget_getVariants", GetVariants);
+  REGISTER_ASYNC("WidgetInstance_getContent", GetContent);
 #undef REGISTER_ASYNC
 }
 
@@ -205,6 +215,60 @@ TizenResult WidgetInstance::GetSize(const picojson::object& args) {
   obj.insert(std::make_pair(kHeight, picojson::value(static_cast<double>(height))));
 
   return TizenSuccess(value);
+}
+
+TizenResult WidgetInstance::GetName(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::GetInstances(picojson::object const& args, const common::AsyncToken& token) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::GetVariants(picojson::object const& args, const common::AsyncToken& token) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::SendContent(picojson::object const& args) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
+}
+
+TizenResult WidgetInstance::GetContent(picojson::object const& args, const common::AsyncToken& token) {
+  ScopeLogger();
+
+  return common::NotSupportedError();
 }
 
 } // namespace widget
