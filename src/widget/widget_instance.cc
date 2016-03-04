@@ -218,19 +218,13 @@ TizenResult WidgetInstance::GetSize(const picojson::object& args) {
     LogAndReturnTizenError(common::InvalidValuesError(), ("incorrect size type"));
   }
 
-  int width = 0;
-  int height = 0;
-
-  int ret = widget_service_get_size(type, &width, &height);
-  if (WIDGET_ERROR_NONE != ret) {
-    LogAndReturnTizenError(WidgetUtils::ConvertErrorCode(ret), ("widget_service_get_size() failed"));
-  }
-
   picojson::value value{picojson::object{}};
-  auto& obj = value.get<picojson::object>();
+  auto* obj = &value.get<picojson::object>();
 
-  obj.insert(std::make_pair(kWidth, picojson::value(static_cast<double>(width))));
-  obj.insert(std::make_pair(kHeight, picojson::value(static_cast<double>(height))));
+  auto result = WidgetUtils::SizeToJson(type, obj);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetSize() failed"));
+  }
 
   return TizenSuccess(value);
 }
@@ -295,13 +289,95 @@ TizenResult WidgetInstance::GetInstances(picojson::object const& args, const com
 TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+  CHECK_EXIST(args, kSizeType, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& type = args.find(kSizeType)->second.get<std::string>();
+
+  widget_size_type_e size_type = WidgetUtils::ToSizeType(type);
+  if (WIDGET_SIZE_TYPE_UNKNOWN == size_type) {
+    LogAndReturnTizenError(common::InvalidValuesError(), ("incorrect size type"));
+  }
+
+  picojson::value value{picojson::object{}};
+  auto* obj = &value.get<picojson::object>();
+
+  auto result = WidgetUtils::SizeToJson(size_type, obj);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetVariant() failed"));
+  }
+
+  result = WidgetUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
+  if (!result) {
+    LogAndReturnTizenError(result, ("GetVariant() failed"));
+  }
+
+  //sizeType
+  obj->insert(std::make_pair(kSizeType, picojson::value(type)));
+
+  return TizenSuccess(value);
 }
 
 TizenResult WidgetInstance::GetVariants(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_EXIST(args, kWidgetId, out)
+
+  std::string widget_id = args.find(kWidgetId)->second.get<std::string>();
+
+  auto get_variants = [this, widget_id](const common::AsyncToken& token) -> void {
+    int count = 0;
+    int* type_array = nullptr;
+    int ret = widget_service_get_supported_size_types(widget_id.c_str(), &count, &type_array);
+
+    if (WIDGET_ERROR_NONE != ret) {
+      LoggerE("widget_service_get_supported_size_types() failed");
+      this->Post(token, WidgetUtils::ConvertErrorCode(ret));
+      return;
+    }
+
+    //it is not mentioned in header file if array should be freed by caller
+    //but in widget_service_get_supported_size_types definition it is allocated
+    //so it should be released when it is not needed anymore
+    SCOPE_EXIT {
+      free(type_array);
+    };
+
+    TizenResult result = TizenSuccess();
+    picojson::value response{picojson::array{}};
+    auto& array = response.get<picojson::array>();
+
+    for (int i = 0; i < count; i++) {
+      picojson::value val = picojson::value(picojson::object());
+      picojson::object* obj = &val.get<picojson::object>();
+
+      widget_size_type_e size_type = static_cast<widget_size_type_e>(type_array[i]);
+      result = WidgetUtils::SizeToJson(size_type, obj);
+      if (!result) {
+        break;
+      }
+
+      result = WidgetUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
+      if (!result) {
+        break;
+      }
+
+      obj->insert(std::make_pair(kSizeType, picojson::value(WidgetUtils::FromSizeType(size_type))));
+      array.push_back(val);
+    }
+
+    if (!result) {
+      this->Post(token, result);
+    } else {
+      this->Post(token, TizenSuccess{response});
+    }
+  };
+
+  std::thread(get_variants, token).detach();
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
