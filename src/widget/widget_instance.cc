@@ -33,6 +33,8 @@ using common::TizenSuccess;
 namespace {
 const std::string kPrivilegeWidget = "http://tizen.org/privilege/widget.viewer";
 
+const std::string kLang = "lang";
+
 int WidgetListCb(const char* pkgid, const char* widget_id, int is_primary, void* data) {
   ScopeLogger();
 
@@ -74,6 +76,22 @@ int WidgetListByPkgIdCb(const char* widget_id, int is_primary, void* data) {
 
   return WIDGET_ERROR_NONE;
 }
+
+int WidgetInstanceCb(const char* widget_id, const char* instance_id, void* data) {
+  ScopeLogger();
+
+  picojson::array* array = static_cast<picojson::array*>(data);
+
+  if (!array) {
+    LoggerW("User data is null");
+    return WIDGET_ERROR_NONE;
+  }
+
+  array->push_back(picojson::value(instance_id));
+
+  return WIDGET_ERROR_NONE;
+}
+
 }  // namespace
 
 WidgetInstance::WidgetInstance() {
@@ -220,13 +238,58 @@ TizenResult WidgetInstance::GetSize(const picojson::object& args) {
 TizenResult WidgetInstance::GetName(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_EXIST(args, kWidgetId, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+  char* lang = nullptr;
+
+  const auto lang_it = args.find(kLang);
+  if (args.end() != lang_it) {
+    lang = const_cast<char*>(lang_it->second.get<std::string>().c_str());
+  }
+
+  char* name = widget_service_get_name(widget_id.c_str(), lang);
+  if (!name) {
+    LogAndReturnTizenError(
+        WidgetUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_name() failed"));
+  }
+
+  SCOPE_EXIT {
+    free(name);
+  };
+
+  return TizenSuccess(picojson::value(name));
 }
 
 TizenResult WidgetInstance::GetInstances(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+
+  auto get_instances = [this, widget_id](const common::AsyncToken& token) -> void {
+    picojson::value response{picojson::array{}};
+    auto* array = &response.get<picojson::array>();
+
+    int ret = widget_service_get_widget_instance_list(widget_id.c_str(), WidgetInstanceCb, array);
+
+    TizenResult result = TizenSuccess();
+
+    if (WIDGET_ERROR_NONE != ret) {
+      LoggerE("widget_service_get_widget_instance_list() failed");
+      result = WidgetUtils::ConvertErrorCode(ret);
+    } else {
+      result = TizenSuccess{response};
+    }
+
+    this->Post(token, result);
+  };
+
+  std::thread(get_instances, token).detach();
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::GetVariant(picojson::object const& args) {

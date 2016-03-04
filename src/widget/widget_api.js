@@ -233,14 +233,17 @@ Widget.prototype.getName = function() {
 
   var callArgs = {};
   callArgs.widgetId = this.id;
-  callArgs.lang = args.lang;
+
+  if (args.lang) {
+    callArgs.lang = args.lang;
+  }
 
   var ret = native.callSync('Widget_getName', callArgs);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
   } else {
-    return native.getResultObject(ret).name;
+    return native.getResultObject(ret);
   }
 };
 
