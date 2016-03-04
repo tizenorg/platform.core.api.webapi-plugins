@@ -43,6 +43,7 @@ const std::string kActivityTypeSleepMonitor = "SLEEP_MONITOR";
 
 const std::string kSleepStateAwake = "AWAKE";
 const std::string kSleepStateAsleep = "ASLEEP";
+const std::string kSleepStateUnknown = "UNKNOWN";
 
 const std::string kCallbackInterval = "callbackInterval";
 const std::string kSampleInterval = "sampleInterval";
@@ -857,6 +858,10 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
 
       case SENSOR_SLEEP_STATE_SLEEP:
         sleep_state = kSleepStateAsleep;
+        break;
+
+      case SENSOR_SLEEP_STATE_UNKNOWN:
+        sleep_state = kSleepStateUnknown;
         break;
 
       default:
