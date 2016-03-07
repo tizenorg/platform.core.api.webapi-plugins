@@ -67,21 +67,25 @@ DownloadInstance::~DownloadInstance() {
     DownloadInfoPtr diPtr = it->second->instance->diMap[it->second->callbackId];
     SLoggerD("~DownloadInstance() for callbackID %d Called", it->second->callbackId);
 
-    ret = download_unset_state_changed_cb(diPtr->download_id);
-    if (ret != DOWNLOAD_ERROR_NONE)
-      LoggerE("download_unset_state_changed_cb() is failed. (%s)", get_error_message (ret));
+    if (diPtr) {
+      ret = download_unset_state_changed_cb(diPtr->download_id);
+      if (ret != DOWNLOAD_ERROR_NONE)
+        LoggerE("download_unset_state_changed_cb() is failed. (%s)", get_error_message (ret));
 
-    ret = download_unset_progress_cb(diPtr->download_id);
-    if (ret != DOWNLOAD_ERROR_NONE)
-      LoggerE("download_unset_progress_cb() is failed. (%s)", get_error_message (ret));
+      ret = download_unset_progress_cb(diPtr->download_id);
+      if (ret != DOWNLOAD_ERROR_NONE)
+        LoggerE("download_unset_progress_cb() is failed. (%s)", get_error_message (ret));
 
-    ret = download_cancel(diPtr->download_id);
-    if (ret != DOWNLOAD_ERROR_NONE)
-      LoggerE("download_cancel() is failed. (%s)", get_error_message (ret));
+      ret = download_cancel(diPtr->download_id);
+      if (ret != DOWNLOAD_ERROR_NONE)
+        LoggerE("download_cancel() is failed. (%s)", get_error_message (ret));
 
-    ret = download_destroy(diPtr->download_id);
-    if (ret != DOWNLOAD_ERROR_NONE)
-      LoggerE("download_destroy() is failed. (%s)", get_error_message (ret));
+      ret = download_destroy(diPtr->download_id);
+      if (ret != DOWNLOAD_ERROR_NONE)
+        LoggerE("download_destroy() is failed. (%s)", get_error_message (ret));
+    } else {
+      LoggerD("diPtr is nullptr");
+    }
 
     delete (it->second);
   }
