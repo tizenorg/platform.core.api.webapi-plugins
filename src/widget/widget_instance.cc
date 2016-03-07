@@ -34,6 +34,8 @@ namespace {
 const std::string kPrivilegeWidget = "http://tizen.org/privilege/widget.viewer";
 
 const std::string kLang = "lang";
+const std::string kInstanceId = "instanceId";
+const std::string kPeriod = "period";
 
 int WidgetListCb(const char* pkgid, const char* widget_id, int is_primary, void* data) {
   ScopeLogger();
@@ -395,7 +397,22 @@ TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
 TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+  CHECK_EXIST(args, kInstanceId, out)
+  CHECK_EXIST(args, kPeriod, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& instance_id = args.find(kInstanceId)->second.get<std::string>();
+  const double period = args.find(kPeriod)->second.get<double>();
+
+  int ret = widget_service_change_period(widget_id.c_str(), instance_id.c_str(), period);
+
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        WidgetUtils::ConvertErrorCode(ret), ("widget_service_change_period() failed"));
+  }
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::SendContent(picojson::object const& args) {
