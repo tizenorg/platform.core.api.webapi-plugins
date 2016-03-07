@@ -79,7 +79,7 @@ void ContactsListDeleter(contacts_list_h* contacts_list) {
 }
 
 void ContactsFilterDeleter(contacts_filter_h contacts_filter) {
-  if (CONTACTS_ERROR_NONE != contacts_filter_destroy(contacts_filter)) {
+  if (contacts_filter && CONTACTS_ERROR_NONE != contacts_filter_destroy(contacts_filter)) {
     LoggerE("failed to destroy contacts_filter_h");
   }
 }
@@ -3023,31 +3023,6 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
   arguments_obj.insert(
       std::make_pair("displayContactId",
                      picojson::value(std::to_string(int_value))));
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult ImportPersonFromContactsUsageRecord(contacts_record_h record,
-                                                   JsonObject* out_ptr) {
-  if (nullptr == record) {
-    LoggerW("Platform person record did not set");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Platform person record did not set");
-  }
-
-  JsonObject& arguments_obj = *out_ptr;
-
-  int int_value = 0;
-  // usageCount
-  PlatformResult status = ContactUtil::GetIntFromRecord(
-      record, _contacts_person_usage.times_used, &int_value);
-
-  if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
-    return status;
-  }
-
-  arguments_obj.insert(
-      std::make_pair("usageCount", JsonValue(static_cast<double>(int_value))));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

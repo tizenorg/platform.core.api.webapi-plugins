@@ -145,8 +145,6 @@ common::PlatformResult ExportContactGroupToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
 common::PlatformResult ImportPersonFromContactsRecord(
     contacts_record_h contacts_record, JsonObject *out);
-common::PlatformResult ImportPersonFromContactsUsageRecord(
-    contacts_record_h contacts_record, JsonObject *out);
 
 common::PlatformResult CheckDBConnection();
 

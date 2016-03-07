@@ -42,8 +42,6 @@ class ContactSearchEngine {
 
   common::PlatformResult Find(picojson::array* out);
 
-  static common::PlatformResult GetPersonUsage(int person_id, JsonObject* out_ptr);
-
  private:
   typedef std::vector<long> LongVector;
   typedef std::shared_ptr<LongVector> LongVectorPtr;
