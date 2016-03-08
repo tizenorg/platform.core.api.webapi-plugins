@@ -1,6 +1,6 @@
 %bcond_with wayland
 
-%{!?profile:%define profile mobile}
+%{!?profile:%define profile tv}
 
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
 %define _desktop_icondir %{TZ_SYS_SHARE}/icons/default/small
@@ -300,8 +300,8 @@ BuildRequires: pkgconfig(libtzplatform-config)
 BuildRequires: pkgconfig(wayland-client)
 %else
 %define display_type x11
-BuildRequires: pkgconfig(x11)
-BuildRequires: pkgconfig(xrandr)
+#BuildRequires: pkgconfig(x11)
+#BuildRequires: pkgconfig(xrandr)
 %endif
 
 %if "%{?tizen_privilege_engine}" == "ACE"
