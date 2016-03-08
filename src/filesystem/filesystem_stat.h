@@ -16,6 +16,7 @@
 #ifndef FILESYSTEM_FILESYSTEM_STAT_H
 #define FILESYSTEM_FILESYSTEM_STAT_H
 
+#include <ctime>
 #include <string>
 
 #include "common/picojson.h"
@@ -36,8 +37,8 @@ class FilesystemStat {
   bool isFile;
   bool isDirectory;
   bool readOnly;
-  uint64_t ctime;
-  uint64_t mtime;
+  std::time_t ctime;
+  std::time_t mtime;
   size_t size;
   size_t nlink;
 

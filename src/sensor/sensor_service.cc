@@ -87,7 +87,7 @@ void ReportSensorData(sensor_type_e sensor_type, sensor_event_s* sensor_event,
     }
     case SENSOR_PROXIMITY: {
       const int state = static_cast<int>(sensor_event->values[0]);
-      (*out)["proximityState"] = picojson::value(state ? "NEAR" : "FAR");
+      (*out)["proximityState"] = picojson::value(SENSOR_PROXIMITY_NEAR == state ? "NEAR" : "FAR");
       break;
     }
     case SENSOR_ULTRAVIOLET: {

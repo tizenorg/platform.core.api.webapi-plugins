@@ -373,7 +373,7 @@ PlatformResult Node::getSize(unsigned long long* size) const
         return LogAndCreateResult(ErrorCode::IO_ERR, "Specified node is not a regular file.");
     }
 
-    *size =  info.st_size;
+    *size =  static_cast<unsigned long long>(info.st_size);
 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
