@@ -164,10 +164,11 @@ int main(int argc, char* argv[]) {
   }
 
   DIR * dir;
-  struct dirent *ent;
+  struct dirent ent = {0};
+  struct dirent* result = nullptr;
   if ((dir = opendir(tec_path.c_str())) != NULL) {
-    while ((ent = readdir(dir)) != NULL) {
-      std::string fname = ent->d_name;
+    while ((0 == (readdir_r(dir, &ent, &result))) && result) {
+      std::string fname = ent.d_name;
 
       if (fname.size() >= prefix_.size() + postfix_.size() &&
           !fname.compare(0, prefix_.size(), prefix_) &&

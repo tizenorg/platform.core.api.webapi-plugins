@@ -42,6 +42,8 @@ typedef std::vector<unsigned char> RawBuffer;
 
 typedef int (*AliasListFunction)(ckmc_alias_list_s**);
 
+const std::string kSpace = " ";
+
 void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
   LoggerD("Enter");
 
@@ -60,9 +62,10 @@ void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
     while (head) {
       //aliases.push_back(picojson::value(head->alias ? head->alias : ""));
       if(head->alias) {
-        char* tokenized = strtok(head->alias," ");
+        char* saveptr = nullptr;
+        char* tokenized = strtok_r(head->alias, kSpace.c_str(), &saveptr);
         obj["packageId"] = picojson::value(tokenized);
-        tokenized = strtok(NULL," ");
+        tokenized = strtok_r(nullptr, kSpace.c_str(), &saveptr);
         obj["name"] = picojson::value(tokenized);
 
         aliases.push_back(resultElem);
