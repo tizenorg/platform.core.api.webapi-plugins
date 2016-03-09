@@ -1120,7 +1120,6 @@ PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::obje
 PlatformResult SysteminfoPropertiesManager::ReportNetProxyNetwork(picojson::object* out) {
   LoggerD("Entered");
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
-  connection_profile_h profile_handle = nullptr;
   connection_h connection_handle = nullptr;
   std::string result_status;
 
