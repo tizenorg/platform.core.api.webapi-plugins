@@ -20,6 +20,8 @@
 
 #include <widget_service.h>
 #include <widget_errno.h>
+#include <bundle.h>
+#include <bundle_internal.h>
 
 #include "widget/widget_utils.h"
 #include "common/scope_exit.h"
@@ -36,6 +38,8 @@ const std::string kPrivilegeWidget = "http://tizen.org/privilege/widget.viewer";
 const std::string kLang = "lang";
 const std::string kInstanceId = "instanceId";
 const std::string kPeriod = "period";
+const std::string kForce = "force";
+const std::string kData = "data";
 
 int WidgetListCb(const char* pkgid, const char* widget_id, int is_primary, void* data) {
   ScopeLogger();
@@ -418,13 +422,93 @@ TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {
 TizenResult WidgetInstance::SendContent(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+  CHECK_EXIST(args, kInstanceId, out)
+  CHECK_EXIST(args, kData, out)
+  CHECK_EXIST(args, kForce, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& instance_id = args.find(kInstanceId)->second.get<std::string>();
+  const int force = args.find(kForce)->second.get<bool>() ? 1 : 0;
+
+  bundle* data = bundle_create();
+  int ret = get_last_result();
+  if (BUNDLE_ERROR_NONE != ret) {
+    LogAndReturnTizenError(common::AbortError(ret), ("bundle_create() failed"));
+  }
+
+  SCOPE_EXIT {
+    bundle_free(data);
+  };
+
+  ret = bundle_add(data, kData.c_str(), args.find(kData)->second.serialize().c_str());
+  if (BUNDLE_ERROR_NONE != ret) {
+    LogAndReturnTizenError(common::AbortError(ret), ("bundle_add() failed"));
+  }
+
+  ret = widget_service_trigger_update(widget_id.c_str(), instance_id.c_str(), data, force);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        WidgetUtils::ConvertErrorCode(ret), ("widget_service_trigger_update() failed"));
+  }
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::GetContent(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+  CHECK_EXIST(args, kInstanceId, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& instance_id = args.find(kInstanceId)->second.get<std::string>();
+
+  auto get_content = [this, widget_id, instance_id](const common::AsyncToken& token) -> void {
+    bundle* bundle_data = bundle_create();
+
+    int ret = get_last_result();
+    if (BUNDLE_ERROR_NONE != ret) {
+      LoggerE("bundle_create() failed");
+      this->Post(token, common::AbortError(ret));
+      return;
+    }
+
+    SCOPE_EXIT {
+      bundle_free(bundle_data);
+    };
+
+    ret = widget_service_get_content_of_widget_instance(widget_id.c_str(),
+                                                        instance_id.c_str(), &bundle_data);
+    if (WIDGET_ERROR_NONE != ret) {
+      LoggerE("widget_service_get_content_of_widget_instance() failed");
+      this->Post(token, WidgetUtils::ConvertErrorCode(ret));
+      return;
+    }
+
+    char* data_str = nullptr;
+    ret = bundle_get_str(bundle_data, kData.c_str(), &data_str);
+    if (BUNDLE_ERROR_NONE != ret) {
+      LoggerE("bundle_get_str() failed");
+      this->Post(token, common::AbortError(ret));
+      return;
+    }
+
+    picojson::value response;
+    std::string err;
+    picojson::parse(response, data_str, data_str + strlen(data_str), &err);
+    if (!err.empty()) {
+      LoggerE("Failed to parse bundle data() failed [%s]", err.c_str());
+      this->Post(token, common::AbortError());
+      return;
+    }
+
+    this->Post(token, TizenSuccess{response});
+  };
+
+  std::thread(get_content, token).detach();
+
+  return TizenSuccess();
 }
 
 } // namespace widget
