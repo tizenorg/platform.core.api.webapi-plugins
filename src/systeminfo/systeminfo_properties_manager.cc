@@ -57,7 +57,7 @@ const std::string kOrientationLandscapeSecondary = "LANDSCAPE_SECONDARY";
 const std::string kVideoOutputString = "isVideoOutputOn";
 //Storage
 const std::string kStorageInternalPath = std::string(tzplatform_getenv(TZ_USER_CONTENT));
-const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_STORAGE)) + "/sdcard";
+const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_MEDIA)) + "/sdcard";
 const std::string kPropertyIdStorage = "STORAGE";
 const std::string kTypeUnknown = "UNKNOWN";
 const std::string kTypeInternal = "INTERNAL";
