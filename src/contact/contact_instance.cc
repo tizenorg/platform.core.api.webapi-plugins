@@ -87,6 +87,7 @@ ContactInstance::ContactInstance()
   REGISTER_SYNC("Person_link", PersonLink);
   REGISTER_SYNC("Person_unlink", PersonUnlink);
   REGISTER_SYNC("Person_getUsageCount", PersonGetUsageCount);
+  REGISTER_SYNC("Person_resetUsageCount", PersonResetUsageCount);
 
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
@@ -632,6 +633,17 @@ void ContactInstance::PersonGetUsageCount(const JsonValue& args, JsonObject& out
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
+  } else {
+    LogAndReportError(status, &out);
+  }
+}
+
+void ContactInstance::PersonResetUsageCount(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
+  PlatformResult status = Person::PersonResetUsageCount(
+      common::JsonCast<JsonObject>(args));
+  if (status.IsSuccess()) {
+    ReportSuccess(out);
   } else {
     LogAndReportError(status, &out);
   }

@@ -211,3 +211,20 @@ Person.prototype.getUsageCount = function() {
   var res = native_.getResultObject(result);
   return Number(res.usageCount);
 };
+
+// Resets a person's usageCount from the contact DB synchronously.
+Person.prototype.resetUsageCount = function() {
+// validation
+   var args = validator_.validateArgs(arguments, [{
+   name: 'usage_type',
+   type: types_.ENUM,
+   values: Object.keys(PersonUsageTypeEnum),
+   optional: true,
+   nullable: true
+  }]);
+
+  var usage_type = (args.usage_type === undefined ? null : args.usage_type);
+
+  var result = native_.callSync('Person_resetUsageCount', { personId: this.id, usage_type: usage_type });
+  _checkError(result);
+};

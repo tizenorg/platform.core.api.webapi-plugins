@@ -230,6 +230,7 @@ class ContactInstance : public common::ParsedInstance {
   void PersonLink(const JsonValue& args, JsonObject& out);
   void PersonUnlink(const JsonValue& args, JsonObject& out);
   void PersonGetUsageCount(const JsonValue& args, JsonObject& out);
+  void PersonResetUsageCount(const JsonValue& args, JsonObject& out);
 
   int current_state_;
   bool is_listening_;

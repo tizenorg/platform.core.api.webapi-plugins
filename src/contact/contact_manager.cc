@@ -188,6 +188,15 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
     return status;
   }
 
+  //get information from view _contacts_person_usage
+  status = ContactSearchEngine::GetPersonUsage(person_id, out);
+  if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
+    LoggerE("failed to destroy contacts_record_h");
+  }
+  if (!status) {
+    return status;
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 }

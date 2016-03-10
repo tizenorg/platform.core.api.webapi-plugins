@@ -20,6 +20,18 @@
 
 namespace extension {
 namespace contact {
+
+extern const std::string kUsageTypeOutgoingCall  = "OUTGOING_CALL";
+extern const std::string kUsageTypeOutgoingMsg   = "OUTGOING_MSG";
+extern const std::string kUsageTypeOutgoingEmail = "OUTGOING_EMAIL";
+extern const std::string kUsageTypeIncomingCall  = "INCOMING_CALL";
+extern const std::string kUsageTypeIncomingMsg   = "INCOMING_MSG";
+extern const std::string kUsageTypeIncomingEmail = "INCOMING_EMAIL";
+extern const std::string kUsageTypeMissedCall    = "MISSED_CALL";
+extern const std::string kUsageTypeRejectedCall  = "REJECTED_CALL";
+extern const std::string kUsageTypeBlockedCall   = "BLOCKED_CALL";
+extern const std::string kUsageTypeBlockedMsg    = "BLOCKED_MSG";
+
 namespace Person {
 
 using namespace common;
@@ -251,6 +263,42 @@ PlatformResult GetUsageCount(const JsonObject& args, JsonObject& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ResetUsageCount(const long& person_id, const std::string& type) {
+  contacts_usage_type_e type_enum = UsageTypeFromString(type);
+  int ret = CONTACTS_ERROR_NONE;
+
+  for (int i = CONTACTS_USAGE_STAT_TYPE_OUTGOING_CALL; i <= CONTACTS_USAGE_STAT_TYPE_BLOCKED_MSG; i++) {
+    if (type == "" || type_enum == static_cast<contacts_usage_type_e>(i)) {
+      ret = contacts_person_reset_usage(person_id, static_cast<contacts_usage_type_e>(i));
+      if (CONTACTS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                                  "Error during reset usage count",
+                                  ("Error during reset usage count for %s: %d", type.c_str(), ret));
+      }
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult PersonResetUsageCount(const JsonObject& args) {
+  LoggerD("Enter");
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+
+  long person_id = common::stol(FromJson<JsonString>(args, "personId"));
+  if (person_id < 0) {
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Negative person id");
+  }
+
+  if (IsNull(args, "usage_type")) {
+    return ResetUsageCount(person_id, std::string(""));
+  } else {
+    return ResetUsageCount(person_id, FromJson<JsonString>(args, "usage_type"));
+  }
+
+}
+
 PlatformResult PersonPropertyFromString(const std::string& name,
                                         PersonProperty* person_prop) {
   LoggerD("Enter");
@@ -268,25 +316,25 @@ PlatformResult PersonPropertyFromString(const std::string& name,
 
 contacts_usage_type_e UsageTypeFromString(const std::string& type_str) {
   if (type_str == kUsageTypeOutgoingCall) {
-    return  CONTACTS_USAGE_STAT_TYPE_OUTGOING_CALL;
+    return CONTACTS_USAGE_STAT_TYPE_OUTGOING_CALL;
   } else if (type_str == kUsageTypeOutgoingMsg) {
-    return  CONTACTS_USAGE_STAT_TYPE_OUTGOING_MSG;
+    return CONTACTS_USAGE_STAT_TYPE_OUTGOING_MSG;
   } else if (type_str == kUsageTypeOutgoingEmail) {
     return CONTACTS_USAGE_STAT_TYPE_OUTGOING_EMAIL;
   } else if (type_str == kUsageTypeIncomingCall) {
-    return  CONTACTS_USAGE_STAT_TYPE_INCOMING_CALL;
+    return CONTACTS_USAGE_STAT_TYPE_INCOMING_CALL;
   } else if (type_str == kUsageTypeIncomingMsg) {
-    return  CONTACTS_USAGE_STAT_TYPE_INCOMING_MSG;
+    return CONTACTS_USAGE_STAT_TYPE_INCOMING_MSG;
   } else if (type_str == kUsageTypeIncomingEmail) {
-    return  CONTACTS_USAGE_STAT_TYPE_INCOMING_EMAIL;
+    return CONTACTS_USAGE_STAT_TYPE_INCOMING_EMAIL;
   } else if (type_str == kUsageTypeMissedCall) {
-    return  CONTACTS_USAGE_STAT_TYPE_MISSED_CALL;
+    return CONTACTS_USAGE_STAT_TYPE_MISSED_CALL;
   } else if (type_str == kUsageTypeRejectedCall) {
-    return  CONTACTS_USAGE_STAT_TYPE_REJECTED_CALL;
+    return CONTACTS_USAGE_STAT_TYPE_REJECTED_CALL;
   } else if (type_str == kUsageTypeBlockedCall) {
-    return  CONTACTS_USAGE_STAT_TYPE_BLOCKED_CALL;
+    return CONTACTS_USAGE_STAT_TYPE_BLOCKED_CALL;
   } else if (type_str == kUsageTypeBlockedMsg) {
-    return  CONTACTS_USAGE_STAT_TYPE_BLOCKED_MSG;
+    return CONTACTS_USAGE_STAT_TYPE_BLOCKED_MSG;
   } else {
     return CONTACTS_USAGE_STAT_TYPE_NONE;
   }

@@ -57,6 +57,8 @@ contacts_usage_type_e UsageTypeFromString(const std::string& type_str);
 common::PlatformResult PersonLink(const JsonObject& args, JsonObject&);
 common::PlatformResult PersonUnlink(const JsonObject& args, JsonObject&);
 common::PlatformResult GetUsageCount(const JsonObject& args, JsonObject&);
+common::PlatformResult ResetUsageCount(const long& person_id, const std::string& type);
+common::PlatformResult PersonResetUsageCount(const JsonObject& args);
 
 }  // Person
 }  // contact

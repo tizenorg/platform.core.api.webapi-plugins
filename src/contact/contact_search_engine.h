@@ -41,6 +41,7 @@ class ContactSearchEngine {
   common::PlatformResult SetSortMode(const picojson::value& sort_mode);
 
   common::PlatformResult Find(picojson::array* out);
+  static common::PlatformResult GetPersonUsage(int person_id, JsonObject* out_ptr);
 
  private:
   typedef std::vector<long> LongVector;
