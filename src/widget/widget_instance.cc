@@ -32,7 +32,11 @@ namespace widget {
 using common::TizenResult;
 using common::TizenSuccess;
 
+std::mutex WidgetInstance::listener_mutex_;
+
 namespace {
+const common::ListenerToken kWidgetChangeCallbackToken{"WidgetChangeCallback"};
+
 const std::string kPrivilegeWidget = "http://tizen.org/privilege/widget.viewer";
 
 const std::string kLang = "lang";
@@ -40,6 +44,7 @@ const std::string kInstanceId = "instanceId";
 const std::string kPeriod = "period";
 const std::string kForce = "force";
 const std::string kData = "data";
+const std::string kEvent = "event";
 
 int WidgetListCb(const char* pkgid, const char* widget_id, int is_primary, void* data) {
   ScopeLogger();
@@ -98,6 +103,35 @@ int WidgetInstanceCb(const char* widget_id, const char* instance_id, void* data)
   return WIDGET_ERROR_NONE;
 }
 
+int WidgetLifecycleCb(const char* widget_id, widget_lifecycle_event_e lifecycle_event,
+                      const char* widget_instance_id, void* data) {
+  ScopeLogger();
+
+  //WIDGET_LIFE_CYCLE_EVENT_MAX event is not supported
+  if (WIDGET_LIFE_CYCLE_EVENT_RESUME < lifecycle_event) {
+    LoggerW("Unknown event type");
+    return WIDGET_ERROR_NONE;
+  }
+
+  WidgetInstance* instance = static_cast<WidgetInstance*>(data);
+
+  if (!instance) {
+    LoggerW("User data is null");
+    return WIDGET_ERROR_NONE;
+  }
+
+  picojson::value response = picojson::value(picojson::object());
+  auto& obj = response.get<picojson::object>();
+
+  obj.insert(std::make_pair(kWidgetId, picojson::value(widget_id)));
+  obj.insert(std::make_pair(kInstanceId, picojson::value(widget_instance_id)));
+  obj.insert(std::make_pair(kEvent, picojson::value(WidgetUtils::FromEventType(lifecycle_event))));
+
+  instance->CallWidgetLifecycleListener(widget_id, response);
+
+  return WIDGET_ERROR_NONE;
+}
+
 }  // namespace
 
 WidgetInstance::WidgetInstance() {
@@ -132,6 +166,16 @@ WidgetInstance::WidgetInstance() {
 
 WidgetInstance::~WidgetInstance() {
   ScopeLogger();
+
+  std::lock_guard<std::mutex> lock(listener_mutex_);
+  for (auto& it : listener_map_) {
+    int ret = widget_service_unset_lifecycle_event_cb(it.first.c_str(), nullptr);
+    if (WIDGET_ERROR_NONE != ret) {
+      LoggerE("widget_service_unset_lifecycle_event_cb() failed");
+    }
+  }
+
+  listener_map_.clear();
 }
 
 TizenResult WidgetInstance::GetWidget(const picojson::object& args) {
@@ -140,7 +184,7 @@ TizenResult WidgetInstance::GetWidget(const picojson::object& args) {
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
   CHECK_EXIST(args, kWidgetId, out)
 
-  std::string widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
 
   picojson::value value {picojson::object{}};
   auto* obj = &value.get<picojson::object>();
@@ -199,7 +243,7 @@ TizenResult WidgetInstance::GetPrimaryWidgetId(const picojson::object& args) {
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
   CHECK_EXIST(args, kId, out)
 
-  std::string id = args.find(kId)->second.get<std::string>();
+  const auto& id = args.find(kId)->second.get<std::string>();
 
   char* widget_id = widget_service_get_widget_id(id.c_str());
   if (!widget_id) {
@@ -331,7 +375,7 @@ TizenResult WidgetInstance::GetVariants(picojson::object const& args, const comm
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
   CHECK_EXIST(args, kWidgetId, out)
 
-  std::string widget_id = args.find(kWidgetId)->second.get<std::string>();
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
 
   auto get_variants = [this, widget_id](const common::AsyncToken& token) -> void {
     int count = 0;
@@ -386,16 +430,70 @@ TizenResult WidgetInstance::GetVariants(picojson::object const& args, const comm
   return TizenSuccess();
 }
 
+void WidgetInstance::CallWidgetLifecycleListener(const std::string& widget_id,
+                                                 const picojson::value& response) {
+  ScopeLogger();
+
+  std::lock_guard<std::mutex> lock(listener_mutex_);
+  const auto it = listener_map_.find(widget_id);
+  if (listener_map_.end() != it) {
+    Post(kWidgetChangeCallbackToken, TizenSuccess{response});
+    return;
+  }
+
+  LoggerW("widget id was not found.");
+}
+
 TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_EXIST(args, kWidgetId, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+
+  std::lock_guard<std::mutex> lock(listener_mutex_);
+  auto it = listener_map_.find(widget_id);
+  if (listener_map_.end() != it) {
+    it->second++;
+    return TizenSuccess();
+  }
+
+  int ret = widget_service_set_lifecycle_event_cb(widget_id.c_str(), WidgetLifecycleCb , this);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        WidgetUtils::ConvertErrorCode(ret), ("widget_service_set_lifecycle_event_cb() failed"));
+  }
+
+  listener_map_[widget_id]++;
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
   ScopeLogger();
 
-  return common::NotSupportedError();
+  CHECK_EXIST(args, kWidgetId, out)
+
+  const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
+
+  std::lock_guard<std::mutex> lock(listener_mutex_);
+  auto it = listener_map_.find(widget_id);
+  if (listener_map_.end() == it) {
+    LoggerW("Listener id not found");
+    return TizenSuccess();
+  }
+
+  if (!(--it->second)) {
+    int ret = widget_service_unset_lifecycle_event_cb(widget_id.c_str(), nullptr);
+    if (WIDGET_ERROR_NONE != ret) {
+      LogAndReturnTizenError(
+          WidgetUtils::ConvertErrorCode(ret), ("widget_service_unset_lifecycle_event_cb() failed"));
+    }
+    listener_map_.erase(it);
+  }
+
+  return TizenSuccess();
 }
 
 TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {

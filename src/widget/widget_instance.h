@@ -17,6 +17,9 @@
 #ifndef WIDGET_WIDGET_INSTANCE_H_
 #define WIDGET_WIDGET_INSTANCE_H_
 
+#include <mutex>
+#include <map>
+
 #include "common/tizen_instance.h"
 
 namespace extension {
@@ -26,7 +29,7 @@ class WidgetInstance : public common::TizenInstance {
  public:
   WidgetInstance();
   virtual ~WidgetInstance();
-
+  void CallWidgetLifecycleListener(const std::string& widget_id, const picojson::value& response);
  private:
   //WidgetManager
   common::TizenResult GetWidget(picojson::object const& args);
@@ -45,6 +48,8 @@ class WidgetInstance : public common::TizenInstance {
   common::TizenResult SendContent(picojson::object const& args);
   common::TizenResult GetContent(picojson::object const& args, const common::AsyncToken& token);
 
+  static std::mutex listener_mutex_;
+  std::map<std::string, int> listener_map_;
 };
 
 } // namespace widget

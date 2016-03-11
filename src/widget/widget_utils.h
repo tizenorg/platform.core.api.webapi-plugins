@@ -42,6 +42,7 @@ class WidgetUtils {
  public:
   static widget_size_type_e ToSizeType(const std::string& e);
   static std::string FromSizeType(widget_size_type_e e);
+  static std::string FromEventType(widget_lifecycle_event_e e);
   static common::TizenResult ConvertErrorCode(int error);
   static common::TizenResult WidgetToJson(const char* id, picojson::object* out, const char* pkgid = nullptr);
   static common::TizenResult SizeToJson(widget_size_type_e type, picojson::object* out);
