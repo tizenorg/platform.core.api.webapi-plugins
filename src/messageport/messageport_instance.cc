@@ -131,7 +131,7 @@ static void BundleJsonIterator(const char *key, const int type, const bundle_key
       bundle_keyval_get_array_val(const_cast<bundle_keyval_t*>(kv),
           (void ***)&array_value, &ele_nos, &array_ele_size);
 
-      for (int i=0;i<ele_nos;i++)
+      for (unsigned int i=0;i<ele_nos;i++)
       {
         picojson::value::array tab2;
         for (unsigned int j = 0; j < array_ele_size[i]; j++) {

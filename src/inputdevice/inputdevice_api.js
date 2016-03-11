@@ -20,11 +20,11 @@ var types = validator.Types;
 var map = {
   "VolumeUp": {
       keyName: "XF86AudioRaiseVolume",
-      keyCode: 447
+      keyCode: 175
   },
   "VolumeDown": {
       keyName: "XF86AudioLowerVolume",
-      keyCode: 448
+      keyCode: 174
   },
 };
 

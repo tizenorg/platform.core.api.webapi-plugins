@@ -57,7 +57,7 @@ const std::string kOrientationLandscapeSecondary = "LANDSCAPE_SECONDARY";
 const std::string kVideoOutputString = "isVideoOutputOn";
 //Storage
 const std::string kStorageInternalPath = std::string(tzplatform_getenv(TZ_USER_CONTENT));
-const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_STORAGE)) + "/sdcard";
+const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_MEDIA)) + "/sdcard";
 const std::string kPropertyIdStorage = "STORAGE";
 const std::string kTypeUnknown = "UNKNOWN";
 const std::string kTypeInternal = "INTERNAL";
@@ -1120,7 +1120,6 @@ PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::obje
 PlatformResult SysteminfoPropertiesManager::ReportNetProxyNetwork(picojson::object* out) {
   LoggerD("Entered");
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
-  connection_profile_h profile_handle = nullptr;
   connection_h connection_handle = nullptr;
   std::string result_status;
 
