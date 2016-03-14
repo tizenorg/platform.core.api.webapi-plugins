@@ -294,8 +294,8 @@ RemoteMessagePort.prototype.sendMessage = function() {
 
   var filtered_data = new Array(args.data.length);
   var unique_data_key = {};
-
-  for (var i = 0, j = args.data.length; i < j; i++) {
+  var data_length = args.data.length;
+  for (var i = 0; i < data_length; i++) {
     if (!args.data[i].hasOwnProperty('key')) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'MessagePortDataItem should contain \'key\' property.');
