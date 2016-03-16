@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.52
+Version:    0.53
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -134,7 +134,11 @@ Source0:    %{name}-%{version}.tar.gz
 # Badge API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_badge_support                   1
 
+%if 0%{?tizen_is_emulator}
+%define tizen_feature_bluetooth_support               0
+%else
 %define tizen_feature_bluetooth_support               1
+%endif
 
 # Bookmark API is optional in Tizen Wearable Profile.
 %define tizen_feature_bookmark_support                0
