@@ -317,7 +317,7 @@ HumanActivityMonitorManager.prototype.addActivityRecognitionListener = function(
 
 HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = function() {
   var args = validator_.validateArgs(arguments, [
-    {name: 'watchId', type: types_.ENUM},
+    {name: 'watchId', type: types_.LONG},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
