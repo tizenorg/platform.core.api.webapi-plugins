@@ -216,6 +216,7 @@ void PushInstance::onDeregister(double callbackId,
 
 PushInstance::~PushInstance() {
     LoggerD("Enter");
+    PushManager::getInstance().setListener(nullptr);
 }
 
 }  // namespace push
