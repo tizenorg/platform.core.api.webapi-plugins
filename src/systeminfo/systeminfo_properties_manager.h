@@ -20,7 +20,6 @@
 #include <string>
 #include "common/picojson.h"
 #include "common/platform_result.h"
-#include "systeminfo/systeminfo_sim_details_manager.h"
 
 namespace extension {
 namespace systeminfo {
@@ -59,7 +58,6 @@ class SysteminfoPropertiesManager {
   common::PlatformResult FetchStatus(std::string* result);
 
   SysteminfoManager& manager_;
-  SimDetailsManager sim_manager_;
 };
 
 } // namespace systeminfo
