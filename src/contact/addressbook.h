@@ -39,6 +39,8 @@ common::PlatformResult AddressBookUpdate(const JsonObject& args,
 common::PlatformResult AddressBookRemove(const JsonObject& args, JsonObject&);
 common::PlatformResult AddressBookFind(const JsonObject& args,
                                        JsonArray& array);
+common::PlatformResult AddressBookFindByUsageCount(const JsonObject& args,
+                                                   JsonArray& array);
 common::PlatformResult AddressBookAddGroup(const JsonObject& args,
                                            JsonObject& out);
 common::PlatformResult AddressBookGetGroup(const JsonObject& args,

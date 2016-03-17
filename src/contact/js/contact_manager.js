@@ -409,6 +409,76 @@ ContactManager.prototype.find = function() {
   _checkError(result);
 };
 
+ContactManager.prototype.findByUsageCount = function() {
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'filter',
+      type: types_.PLATFORM_OBJECT,
+      values: [tizen.AttributeFilter,
+        tizen.AttributeRangeFilter],
+        optional: false,
+        nullable: false
+    },
+    {
+      name: 'successCallback',
+      type: types_.FUNCTION,
+      optional: false,
+      nullable: false
+    },
+    {
+      name: 'errorCallback',
+      type: types_.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'sortModeOrder',
+      type: types_.ENUM,
+      values: ['ASC', 'DESC'],
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'limit',
+      type: types_.UNSIGNED_LONG,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'offset',
+      type: types_.UNSIGNED_LONG,
+      optional: true,
+      nullable: true
+    }
+  ]);
+
+  var data = {
+    filter: utils_.repackFilter(args.filter),
+    sortModeOrder: args.sortModeOrder,
+    limit: args.limit,
+    offset: args.offset
+  };
+
+  var self = this;
+
+  var callback = function(result) {
+    if (native_.isSuccess(result)) {
+      var _result = native_.getResultObject(result);
+      var retval = [];
+      for (var i = 0; i < _result.length; ++i) {
+        retval.push(self.get(String(_result[i])));
+      }
+      args.successCallback(retval);
+    } else {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+    }
+  };
+
+  var result = native_.call('ContactManager_findByUsageCount', data, callback);
+
+  _checkError(result);
+};
+
 // Subscribes to receive notifications about persons' changes.
 ContactManager.prototype.addChangeListener = function() {
   var args = validator_.validateArgs(arguments, [
