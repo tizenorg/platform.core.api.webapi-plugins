@@ -647,13 +647,9 @@ class HumanActivityMonitorManager::ActivityRecognition {
 
     const auto it = activity_data_.find(watch_id);
 
-    if (activity_data_.end() == it) {
-      return LogAndCreateResult( ErrorCode::ABORT_ERR,
-                                 "Listener not found",
-                                 ("Listener with id = %ld not found", watch_id));
+    if (activity_data_.end() != it) {
+      activity_data_.erase(it);
     }
-
-    activity_data_.erase(it);
 
     return PlatformResult(ErrorCode::NO_ERROR);
   }

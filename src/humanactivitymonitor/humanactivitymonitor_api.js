@@ -122,10 +122,6 @@ ActivityRecognitionListenerManager.prototype.addListener = function(watchId, lis
 };
 
 ActivityRecognitionListenerManager.prototype.removeListener = function(watchId) {
-  if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
-    throw new WebAPIException(0, 'Listener id not found.', 'InvalidValuesError');
-  }
-
   if (this.listeners.hasOwnProperty(watchId)) {
     delete this.listeners[watchId];
     if (type_.isEmptyObject(this.listeners)) {
@@ -317,7 +313,7 @@ HumanActivityMonitorManager.prototype.addActivityRecognitionListener = function(
 
 HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = function() {
   var args = validator_.validateArgs(arguments, [
-    {name: 'watchId', type: types_.ENUM},
+    {name: 'watchId', type: types_.LONG},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
@@ -328,7 +324,7 @@ HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = functi
     setTimeout(function () { native_.callIfPossible(args.errorCallback, native_.getErrorObject(result)); }, 0);
     return;
   }
-  activityRecognitionListener.removeListener(watchId);
+  activityRecognitionListener.removeListener(args.watchId);
 };
 
 function StepDifference() {
