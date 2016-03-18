@@ -761,6 +761,8 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
         break;
     default:
         LoggerE("Not supported message type");
+        return LogAndCreateResult(
+            ErrorCode::INVALID_VALUES_ERR, "Not supported message type");
         break;
     }
 
