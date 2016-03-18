@@ -1203,7 +1203,8 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
           }
 
           std::string r_address(remote_address);
-          for(size_t i = 0; i < sizeof(remote_address); i++) {
+          size_t length = sizeof(remote_address) / sizeof(*remote_address);
+          for(size_t i = 0; i < length; i++) {
             r_address[i] = toupper(remote_address[i]);
           }
 
