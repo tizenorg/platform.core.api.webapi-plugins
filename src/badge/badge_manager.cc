@@ -237,6 +237,10 @@ bool BadgeManager::IsAppInstalled(const std::string &app_id) {
   //  /home/app/.applications/dbspace/.pkgmgr_parser.db below line should be used
   int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &pkgmgrinfo_appinfo);
 
+  if (pkgmgrinfo_appinfo) {
+    pkgmgrinfo_appinfo_destroy_appinfo(pkgmgrinfo_appinfo);
+  }
+
   return (ret == PMINFO_R_OK);
 }
 
