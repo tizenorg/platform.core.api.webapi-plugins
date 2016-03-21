@@ -34,7 +34,15 @@ class SimDetailsManager {
   SimDetailsManager();
 
   common::PlatformResult GatherSimInformation(TapiHandle* handle, picojson::object* out);
-  long GetSimCount(TapiHandle **tapi_handle);
+  static common::PlatformResult FetchBasicSimProperties(TapiHandle* tapi_handle,
+                                                        unsigned short* result_mcc,
+                                                        unsigned short* result_mnc,
+                                                        unsigned short* result_cell_id,
+                                                        unsigned short* result_lac,
+                                                        bool* result_is_roaming,
+                                                        bool* result_is_flight_mode,
+                                                        std::string* result_imei);
+
   void TryReturn();
 
   void set_operator_name(const std::string& name);

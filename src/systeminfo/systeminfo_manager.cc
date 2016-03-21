@@ -32,6 +32,7 @@
 
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
+#include "systeminfo/systeminfo_sim_details_manager.h"
 #include "systeminfo/systeminfo-utils.h"
 
 using common::PlatformResult;
@@ -231,6 +232,197 @@ static void OnWifiLevelChangedCb (wifi_rssi_level_e rssi_level, void *user_data)
 
 } //namespace
 
+class SysteminfoManager::TapiManager {
+ public:
+  TapiManager() : initialized_(false) {
+    ScopeLogger();
+  }
+
+  ~TapiManager() {
+    ScopeLogger();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    for (const auto& h : handles_) {
+      tel_deinit(h);
+    }
+
+    handles_.clear();
+  }
+
+  int GetSimCount() {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    return handles_.size();
+  }
+
+  int GetChangedTapiIndex(TapiHandle* tapi) {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    const auto it = std::find(handles_.begin(), handles_.end(), tapi);
+
+    if (handles_.end() != it) {
+      return std::distance(handles_.begin(), it);
+    } else {
+      return -1;
+    }
+  }
+
+  PlatformResult RegisterCallbacks(void* user_data) {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    for (const auto& h : handles_) {
+      for (const auto& n : kNotifications) {
+        auto result = SysteminfoUtils::RegisterTapiChangeCallback(
+            h, n, OnTapiValueChangedCb, user_data);
+        if (!result) {
+          return result;
+        }
+      }
+    }
+
+    return PlatformResult{ErrorCode::NO_ERROR};
+  }
+
+  PlatformResult UnregisterCallbacks() {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    for (const auto& h : handles_) {
+      for (const auto& n : kNotifications) {
+        auto result = SysteminfoUtils::UnregisterTapiChangeCallback(h, n);
+        if (!result) {
+          return result;
+        }
+      }
+    }
+
+    return PlatformResult{ErrorCode::NO_ERROR};
+  }
+
+  PlatformResult GetNetworkType(std::size_t index, int* network_type) {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (index >= handles_.size()) {
+      LoggerE("Tried to access disallowed index: %zu", index);
+      return PlatformResult{ErrorCode::INDEX_SIZE_ERR};
+    }
+
+    if (TAPI_API_SUCCESS == tel_get_property_int(handles_[index],
+                                                 TAPI_PROP_NETWORK_SERVICE_TYPE,
+                                                 network_type)) {
+      return PlatformResult{ErrorCode::NO_ERROR};
+    } else {
+      LoggerE("Failed to get network type of index: %zu", index);
+      return PlatformResult{ErrorCode::UNKNOWN_ERR};
+    }
+  }
+
+  PlatformResult GatherSimInformation(std::size_t index, picojson::object* out) {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (index >= handles_.size()) {
+      LoggerE("Tried to access disallowed index: %zu", index);
+      return PlatformResult{ErrorCode::INDEX_SIZE_ERR};
+    }
+
+    return sim_manager_.GatherSimInformation(handles_[index], out);
+  }
+
+  PlatformResult FetchBasicSimProperties(std::size_t index,
+                                         unsigned short* result_mcc,
+                                         unsigned short* result_mnc,
+                                         unsigned short* result_cell_id,
+                                         unsigned short* result_lac,
+                                         bool* result_is_roaming,
+                                         bool* result_is_flight_mode,
+                                         std::string* result_imei) {
+    ScopeLogger();
+
+    Initialize();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (index >= handles_.size()) {
+      LoggerE("Tried to access disallowed index: %zu", index);
+      return PlatformResult{ErrorCode::INDEX_SIZE_ERR};
+    }
+
+    return SimDetailsManager::FetchBasicSimProperties(handles_[index],
+                                                      result_mcc,
+                                                      result_mnc,
+                                                      result_cell_id,
+                                                      result_lac,
+                                                      result_is_roaming,
+                                                      result_is_flight_mode,
+                                                      result_imei);
+  }
+
+ private:
+  void Initialize() {
+    ScopeLogger();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (!initialized_) {
+      char** cp_list = tel_get_cp_name_list();
+
+      if (nullptr != cp_list) {
+        int sim_count = 0;
+
+        while (cp_list[sim_count]) {
+          auto tapi_handle = tel_init(cp_list[sim_count]);
+          if (nullptr == tapi_handle) {
+            LoggerE("Failed to connect with TAPI, handle is null");
+            break;
+          }
+
+          LoggerD("%d modem: %s", sim_count, cp_list[sim_count]);
+          handles_.push_back(tapi_handle);
+          ++sim_count;
+        }
+
+        initialized_ = true;
+      } else {
+        LoggerE("Failed to get cp list");
+      }
+
+      g_strfreev(cp_list);
+    }
+  }
+
+  const int kTapiMaxHandle = 2;
+  const char* kNotifications[3] = { TAPI_PROP_NETWORK_CELLID, TAPI_PROP_NETWORK_LAC, TAPI_PROP_NETWORK_ROAMING_STATUS };
+
+  bool initialized_;
+  std::vector<TapiHandle*> handles_;
+  std::mutex mutex_;
+  SimDetailsManager sim_manager_;
+};
+
 SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
     : instance_(instance),
       prop_manager_(*this),
@@ -242,8 +434,7 @@ SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
       last_available_capacity_internal_(0),
       available_capacity_mmc_(0),
       last_available_capacity_mmc_(0),
-      sim_count_(0),
-      tapi_handles_{nullptr},
+      tapi_manager_(new TapiManager()),
       cpu_event_id_(0),
       storage_event_id_(0),
       connection_handle_(nullptr) {
@@ -284,12 +475,6 @@ SysteminfoManager::~SysteminfoManager() {
   if (IsListenerRegistered(kPropertyIdPeripheral)) { UnregisterPeripheralListener(); }
   if (IsListenerRegistered(kPropertyIdMemory)) { UnregisterMemoryListener(); }
   if (IsListenerRegistered(kPropertyIdCameraFlash)) { UnregisterCameraFlashListener(); }
-
-  unsigned int i = 0;
-  while(tapi_handles_[i]) {
-    tel_deinit(tapi_handles_[i]);
-    i++;
-  }
 
   if (nullptr != connection_handle_) {
     connection_destroy(connection_handle_);
@@ -951,16 +1136,9 @@ PlatformResult SysteminfoManager::RegisterCellularNetworkListener() {
   if (!IsListenerRegistered(kPropertyIdCellularNetwork)) {
     CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(
         VCONFKEY_TELEPHONY_FLIGHT_MODE, OnCellularNetworkValueChangedCb, this))
-    int sim_count = GetSimCount();
-    TapiHandle **tapis = GetTapiHandles();
-    for (int i = 0; i < sim_count; ++i) {
-      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_CELLID, OnTapiValueChangedCb, this))
-      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_LAC, OnTapiValueChangedCb, this))
-      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_ROAMING_STATUS, OnTapiValueChangedCb, this))
-    }
+
+    CHECK_LISTENER_ERROR(tapi_manager_->RegisterCallbacks(this));
+
     LoggerD("Added callback for CELLULAR_NETWORK");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -974,16 +1152,8 @@ PlatformResult SysteminfoManager::UnregisterCellularNetworkListener() {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(
         VCONFKEY_TELEPHONY_FLIGHT_MODE, OnCellularNetworkValueChangedCb))
-    int sim_count = GetSimCount();
-    TapiHandle **tapis = GetTapiHandles();
-    for (int i = 0; i < sim_count; ++i) {
-      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_CELLID))
-      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_LAC))
-      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
-          tapis[i], TAPI_PROP_NETWORK_ROAMING_STATUS))
-    }
+
+    CHECK_LISTENER_ERROR(tapi_manager_->UnregisterCallbacks());
   }
 
   if (IsIpChangeCallbackNotRegistered()) {
@@ -1140,7 +1310,7 @@ PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
     if (ret.IsError()) {
       *count = 0;
     } else {
-      *count = GetSimCount();
+      *count = tapi_manager_->GetSimCount();
     }
   } else if ("CAMERA_FLASH" == property) {
     *count = GetCameraTypesCount();
@@ -1228,57 +1398,38 @@ void SysteminfoManager::SetAvailableCapacityMmc(unsigned long long capacity) {
   available_capacity_mmc_ = capacity;
 }
 
-int SysteminfoManager::GetSimCount() {
-  LoggerD("Entered");
-  InitTapiHandles();
-  return sim_count_;
-}
-
-void SysteminfoManager::InitTapiHandles() {
-  LoggerD("Entered");
-  std::lock_guard<std::mutex> lock(tapi_mutex_);
-  if (nullptr == tapi_handles_[0]){  //check if anything is in table
-    sim_count_ = 0;
-    char **cp_list = tel_get_cp_name_list();
-    if (nullptr != cp_list) {
-      while (cp_list[sim_count_]) {
-        tapi_handles_[sim_count_] = tel_init(cp_list[sim_count_]);
-        if (nullptr == tapi_handles_[sim_count_]) {
-          LoggerE("Failed to connect with tapi, handle is null");
-          break;
-        }
-        LoggerD("%d modem: %s", sim_count_, cp_list[sim_count_]);
-        sim_count_++;
-      }
-    } else {
-      LoggerE("Failed to get cp list");
-      sim_count_ = kTapiMaxHandle;
-    }
-    g_strfreev(cp_list);
-  }
-}
-
-TapiHandle* SysteminfoManager::GetTapiHandle() {
-  LoggerD("Entered");
-  InitTapiHandles();
-  return tapi_handles_[0];
-}
-
-TapiHandle** SysteminfoManager::GetTapiHandles() {
-  LoggerD("Enter");
-  InitTapiHandles();
-  return tapi_handles_;
-}
-
 int SysteminfoManager::GetChangedTapiIndex(TapiHandle* tapi) {
-  LoggerD("Enter");
-  TapiHandle** handles = GetTapiHandles();
-  for (int i = 0; i < sim_count_; ++i) {
-    if (handles[i] == tapi) {
-      return i;
-    }
-  }
-  return -1;
+  ScopeLogger();
+  return tapi_manager_->GetChangedTapiIndex(tapi);
+}
+
+PlatformResult SysteminfoManager::GetNetworkType(std::size_t index, int* network_type) {
+  ScopeLogger();
+  return tapi_manager_->GetNetworkType(index, network_type);
+}
+
+PlatformResult SysteminfoManager::GatherSimInformation(std::size_t index, picojson::object* out) {
+  ScopeLogger();
+  return tapi_manager_->GatherSimInformation(index, out);
+}
+
+PlatformResult SysteminfoManager::FetchBasicSimProperties(std::size_t index,
+                                                unsigned short* result_mcc,
+                                                unsigned short* result_mnc,
+                                                unsigned short* result_cell_id,
+                                                unsigned short* result_lac,
+                                                bool* result_is_roaming,
+                                                bool* result_is_flight_mode,
+                                                std::string* result_imei) {
+  ScopeLogger();
+  return tapi_manager_->FetchBasicSimProperties(index,
+                                                result_mcc,
+                                                result_mnc,
+                                                result_cell_id,
+                                                result_lac,
+                                                result_is_roaming,
+                                                result_is_flight_mode,
+                                                result_imei);
 }
 
 void SysteminfoManager::InitCameraTypes() {

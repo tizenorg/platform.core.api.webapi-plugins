@@ -17,10 +17,13 @@
 #ifndef WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 #define WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 
+#include <memory>
+#include <mutex>
 #include <set>
 
-#include <wifi.h>
+#include <ITapiModem.h>
 #include <net_connection.h>
+#include <wifi.h>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -28,8 +31,6 @@
 
 namespace extension {
 namespace systeminfo {
-
-const int kTapiMaxHandle = 2;
 
 class SysteminfoInstance;
 
@@ -55,9 +56,19 @@ class SysteminfoManager {
   wifi_rssi_level_e GetWifiLevel();
   void SetWifiLevel(wifi_rssi_level_e level);
   int GetSensorHandle();
-  TapiHandle* GetTapiHandle();
-  TapiHandle** GetTapiHandles();
+
   int GetChangedTapiIndex(TapiHandle* tapi);
+  common::PlatformResult GetNetworkType(std::size_t index, int* network_type);
+  common::PlatformResult GatherSimInformation(std::size_t index, picojson::object* out);
+  common::PlatformResult FetchBasicSimProperties(std::size_t index,
+                                                unsigned short* result_mcc,
+                                                unsigned short* result_mnc,
+                                                unsigned short* result_cell_id,
+                                                unsigned short* result_lac,
+                                                bool* result_is_roaming,
+                                                bool* result_is_flight_mode,
+                                                std::string* result_imei);
+
   common::PlatformResult GetConnectionHandle(connection_h& handle);
 
   SysteminfoInstance* GetInstance() { return instance_;};
@@ -74,13 +85,13 @@ class SysteminfoManager {
   void CallCpuListenerCallback();
   void CallStorageListenerCallback();
  private:
+  class TapiManager;
+
   void PostListenerResponse(const std::string& property_id, const picojson::value& result,
                             int property_index = 0);
   common::PlatformResult ConnectSensor(int* result);
   void DisconnectSensor(int handle_orientation);
-  void InitTapiHandles();
   void InitCameraTypes();
-  int GetSimCount();
 
   bool IsIpChangeCallbackNotRegistered();
   common::PlatformResult RegisterIpChangeCallback();
@@ -129,9 +140,7 @@ class SysteminfoManager {
   unsigned long long available_capacity_mmc_;
   unsigned long long last_available_capacity_mmc_;
 
-  int sim_count_;
-  TapiHandle *tapi_handles_[kTapiMaxHandle+1];
-  std::mutex tapi_mutex_;
+  std::unique_ptr<TapiManager> tapi_manager_;
 
   std::set<std::string> registered_listeners_;
 

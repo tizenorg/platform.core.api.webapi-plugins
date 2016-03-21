@@ -16,6 +16,8 @@
 
 #include "systeminfo/systeminfo_sim_details_manager.h"
 
+#include <vconf.h>
+
 #include "common/logger.h"
 
 namespace extension {
@@ -112,6 +114,8 @@ void SimIccidValueCallback(TapiHandle */*handle*/, int result, void *data, void 
   sim_mgr->TryReturn();
 }
 
+const unsigned short kMccDivider = 100;
+
 } //namespace
 
 using common::PlatformResult;
@@ -181,6 +185,65 @@ PlatformResult SimDetailsManager::GatherSimInformation(TapiHandle* handle, picoj
   }
   //if sim state is not READY return default values and don't wait for callbacks
   TryReturn();
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SimDetailsManager::FetchBasicSimProperties(TapiHandle* tapi_handle,
+                                                          unsigned short* result_mcc,
+                                                          unsigned short* result_mnc,
+                                                          unsigned short* result_cell_id,
+                                                          unsigned short* result_lac,
+                                                          bool* result_is_roaming,
+                                                          bool* result_is_flight_mode,
+                                                          std::string* result_imei) {
+  ScopeLogger();
+
+  int result_value = 0;
+  int tapi_res = TAPI_API_SUCCESS;
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_PLMN, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get mcc value, error: " + std::to_string(tapi_res);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  }
+  *result_mcc = static_cast<unsigned short>(result_value) / kMccDivider;
+  *result_mnc = static_cast<unsigned short>(result_value) % kMccDivider;
+
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_CELLID, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get cell_id value, error: " + std::to_string(tapi_res);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  }
+  *result_cell_id = static_cast<unsigned short>(result_value);
+
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_LAC, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get lac value, error: " + std::to_string(tapi_res);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  }
+  *result_lac = static_cast<unsigned short>(result_value);
+
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_ROAMING_STATUS, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get is_roaming value, error: " + std::to_string(tapi_res);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  }
+  *result_is_roaming = (0 != result_value) ? true : false;
+
+  if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result_value)) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
+  }
+  *result_is_flight_mode = (0 != result_value) ? true : false;
+
+  char* imei = nullptr;
+  imei = tel_get_misc_me_imei_sync(tapi_handle);
+  if (nullptr != imei) {
+    *result_imei = imei;
+    free(imei);
+  } else {
+    LoggerE("Failed to get imei, nullptr pointer. Setting empty value.");
+    *result_imei = "";
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

@@ -91,7 +91,6 @@ const std::string kWifiStatusOn = "ON";
 const std::string kWifiStatusOff = "OFF";
 const int kWifiSignalStrengthDivideValue = 100;
 //Cellular Network
-const unsigned short kMccDivider = 100;
 const char* kConnectionOff = "OFF";
 const char* kConnectionOn = "ON";
 }
@@ -128,7 +127,7 @@ PlatformResult SysteminfoPropertiesManager::GetPropertyValue(const std::string& 
     LoggerD("property name: %s", property.c_str());
     LoggerD("available property count: %d", property_count);
 
-    for (size_t i = 0; i < property_count; i++) {
+    for (std::size_t i = 0; i < property_count; i++) {
       picojson::value result = picojson::value(picojson::object());
       picojson::object& result_obj = result.get<picojson::object>();
 
@@ -549,8 +548,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
       type =  kWifi;
       break;
     case CONNECTION_TYPE_CELLULAR :
-      if (TAPI_API_SUCCESS == tel_get_property_int(manager_.GetTapiHandles()[count],
-                                                   TAPI_PROP_NETWORK_SERVICE_TYPE, &networkType)) {
+      if (manager_.GetNetworkType(count, &networkType)) {
         if (networkType < TAPI_NETWORK_SERVICE_TYPE_2G) {
           type =  kNone;
         } else if (networkType == TAPI_NETWORK_SERVICE_TYPE_2G) {
@@ -925,55 +923,10 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
-    unsigned short *result_mcc,
-    unsigned short *result_mnc,
-    unsigned short *result_cell_id,
-    unsigned short *result_lac,
-    bool *result_is_roaming,
-    bool *result_is_flight_mode) {
-  LoggerD("Entered");
-  int result_value = 0;
-  int tapi_res = TAPI_API_SUCCESS;
-  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_PLMN, &result_value);
-  if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get mcc value, error: " + std::to_string(tapi_res);
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
-  }
-  *result_mcc = static_cast<unsigned short>(result_value) / kMccDivider;
-  *result_mnc = static_cast<unsigned short>(result_value) % kMccDivider;
-
-  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_CELLID, &result_value);
-  if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get cell_id value, error: " + std::to_string(tapi_res);
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
-  }
-  *result_cell_id = static_cast<unsigned short>(result_value);
-
-  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_LAC, &result_value);
-  if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get lac value, error: " + std::to_string(tapi_res);
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
-  }
-  *result_lac = static_cast<unsigned short>(result_value);
-
-  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_ROAMING_STATUS, &result_value);
-  if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get is_roaming value, error: " + std::to_string(tapi_res);
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
-  }
-  *result_is_roaming = (0 != result_value) ? true : false;
-
-  if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result_value)) {
-    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
-  }
-  *result_is_flight_mode = (0 != result_value) ? true : false;
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
-                            std::string* result_apn, std::string* result_ip_address,
-                            std::string* result_ipv6_address, std::string* result_imei) {
+static PlatformResult FetchConnection(std::string* result_status,
+                                      std::string* result_apn,
+                                      std::string* result_ip_address,
+                                      std::string* result_ipv6_address) {
   LoggerD("Entered");
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   connection_profile_h profile_handle = nullptr;
@@ -1056,15 +1009,6 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
     }
   }
 
-  char* imei = nullptr;
-  imei = tel_get_misc_me_imei_sync(tapi_handle);
-  if (nullptr != imei) {
-    *result_imei = imei;
-    free(imei);
-  } else {
-    LoggerE("Failed to get imei, nullptr pointer. Setting empty value.");
-    *result_imei = "";
-  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1088,16 +1032,15 @@ PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::obje
   std::string result_imei;
 
   //gathering vconf-based values
-  ret = FetchBasicSimProperties(manager_.GetTapiHandles()[count], &result_mcc,
+  ret = manager_.FetchBasicSimProperties(count, &result_mcc,
                            &result_mnc, &result_cell_id, &result_lac,
-                           &result_is_roaming, &result_is_flight_mode);
+                           &result_is_roaming, &result_is_flight_mode,
+                           &result_imei);
   if (ret.IsError()) {
     return ret;
   }
   //gathering connection informations
-  ret = FetchConnection(manager_.GetTapiHandles()[count],
-                  &result_status, &result_apn, &result_ip_address, &result_ipv6_address,
-                  &result_imei);
+  ret = FetchConnection(&result_status, &result_apn, &result_ip_address, &result_ipv6_address);
   if (ret.IsError()) {
     return ret;
   }
@@ -1160,8 +1103,7 @@ PlatformResult SysteminfoPropertiesManager::ReportSim(picojson::object* out, uns
   if (ret.IsError()) {
     return ret;
   }
-  return sim_manager_.GatherSimInformation(
-      manager_.GetTapiHandles()[count], out);
+  return manager_.GatherSimInformation(count, out);
 }
 
 /// PERIPHERAL

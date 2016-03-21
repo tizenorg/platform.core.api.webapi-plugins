@@ -793,7 +793,6 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
                 // check if file exists
                 struct stat st = {0};
                 if (stat(const_cast<char*>(filepath.c_str()), &st)) {
-                    LoggerE("Stat error: %d (%s)", errno, strerror(errno));
                     return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                                     "Attachment file not found",
                                     ("att[%d]: attachment file not found", i));
