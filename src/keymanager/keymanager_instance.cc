@@ -144,11 +144,11 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
 
   double callback_id = args.get("callbackId").get<double>();
 
-  const char* password = nullptr;
+  std::string password;
 
   if (password_value.is<std::string>()) {
-    password = (password_value.get<std::string>()).c_str();
-    LoggerE("password %s ", password);
+    password = password_value.get<std::string>();
+    LoggerE("password %s ", password.c_str());
   }
 
   auto save_data = [data_raw, password, alias](const std::shared_ptr<picojson::value>& result) {
@@ -157,7 +157,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
     std::copy(data_raw.begin(), data_raw.end(), data);
 
     ckmc_raw_buffer_s raw_data { data, data_raw.size() };
-    ckmc_policy_s policy { const_cast<char*>(password), true };
+    ckmc_policy_s policy { const_cast<char*>(password.c_str()), true };
 
     int ret = ckmc_save_data(alias.c_str(), raw_data, policy);
 
