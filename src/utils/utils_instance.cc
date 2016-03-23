@@ -94,7 +94,7 @@ void UtilsInstance::GetPkgApiVersion(const picojson::value& args, picojson::obje
     return;
   }
 
-  ret = pkgmgrinfo_pkginfo_get_version(pkginfo_handle, &api_version);
+  ret = pkgmgrinfo_pkginfo_get_api_version(pkginfo_handle, &api_version);
   if (ret != PMINFO_R_OK) {
     LoggerE("Fail to get api version");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail to get api version"), &out);
