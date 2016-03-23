@@ -30,6 +30,7 @@ var SensorType = {
     PROXIMITY : 'PROXIMITY',
     ULTRAVIOLET : 'ULTRAVIOLET',
     HRM_RAW : 'HRM_RAW',
+    GRAVITY : 'GRAVITY',
 };
 
 var ProximityState = {
@@ -146,6 +147,7 @@ var _sensorListeners = {
     'PROXIMITY'   : {},
     'ULTRAVIOLET' : {},
     'HRM_RAW'     : {},
+    'GRAVITY'     : {},
 };
 
 var _listener = function(object) {
@@ -196,6 +198,8 @@ function getDefaultSensor() {
     } else if (_supportedSensors[index] === SensorType.HRM_RAW) {
         utils_.checkPrivilegeAccess(privilege_.HEALTHINFO);
         return new HRMRawSensor();
+    } else if (_supportedSensors[index] === SensorType.GRAVITY) {
+        return new GravitySensor();
     }
 };
 
@@ -428,6 +432,31 @@ HRMRawSensor.prototype.getHRMRawSensorData = function() {
   getHRMRawSensorData.apply(this, arguments);
 };
 
+//// GravitySensor
+var GravitySensor = function(data) {
+    Sensor.call(this, SensorType.GRAVITY);
+};
+
+GravitySensor.prototype = new Sensor();
+
+GravitySensor.prototype.constructor = Sensor;
+
+GravitySensor.prototype.getGravitySensorData = function() {
+    var args = validator_.validateArgs(arguments, [
+       {
+           name : 'successCallback',
+           type : types_.FUNCTION
+       },
+       {
+           name : 'errorCallback',
+           type : types_.FUNCTION,
+           optional : true,
+           nullable : true
+       }
+    ]);
+
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
+};
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////
 ////Base SensorData class
 var SensorData = function () {
@@ -528,6 +557,24 @@ SensorHRMRawData.prototype.constructor = SensorData;
 
 _sensorListeners[SensorType.HRM_RAW] = new SensorListener(SensorType.HRM_RAW,
         SensorHRMRawData);
+
+//// SensorGravityData
+var SensorGravityData = function(data) {
+    SensorData.call(this);
+    Object.defineProperties(this, {
+        x : {value: data.x, writable: false, enumerable: true},
+        y : {value: data.y, writable: false, enumerable: true},
+        z : {value: data.z, writable: false, enumerable: true},
+    });
+};
+
+SensorGravityData.prototype = new SensorData();
+
+SensorGravityData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.GRAVITY] = new SensorListener(SensorType.GRAVITY,
+        SensorGravityData);
+
 
 // Exports
 exports = new SensorService();
