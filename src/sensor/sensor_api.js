@@ -31,6 +31,8 @@ var SensorType = {
     ULTRAVIOLET : 'ULTRAVIOLET',
     HRM_RAW : 'HRM_RAW',
     GRAVITY : 'GRAVITY',
+    GYROSCOPE : 'GYROSCOPE',
+    GYROSCOPE_ROTATION_VECTOR : 'GYROSCOPE_ROTATION_VECTOR',
 };
 
 var ProximityState = {
@@ -148,6 +150,8 @@ var _sensorListeners = {
     'ULTRAVIOLET' : {},
     'HRM_RAW'     : {},
     'GRAVITY'     : {},
+    'GYROSCOPE'   : {},
+    'GYROSCOPE_ROTATION_VECTOR' : {},
 };
 
 var _listener = function(object) {
@@ -200,6 +204,10 @@ function getDefaultSensor() {
         return new HRMRawSensor();
     } else if (_supportedSensors[index] === SensorType.GRAVITY) {
         return new GravitySensor();
+    } else if(_supportedSensors[index] === SensorType.GYROSCOPE){
+        return new GyroscopeSensor();
+    } else if(_supportedSensors[index] === SensorType.GYROSCOPE_ROTATION_VECTOR){
+        return new GyroscopeRotationVectorSensor();
     }
 };
 
@@ -457,6 +465,60 @@ GravitySensor.prototype.getGravitySensorData = function() {
 
     _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
+
+
+//// GyroscopeSensor
+var GyroscopeSensor = function(data) {
+    Sensor.call(this, SensorType.GYROSCOPE);
+};
+
+GyroscopeSensor.prototype = new Sensor();
+
+GyroscopeSensor.prototype.constructor = Sensor;
+
+GyroscopeSensor.prototype.getGyroscopeSensorData = function() {
+    var args = validator_.validateArgs(arguments, [
+       {
+           name : 'successCallback',
+           type : types_.FUNCTION
+       },
+       {
+           name : 'errorCallback',
+           type : types_.FUNCTION,
+           optional : true,
+           nullable : true
+       }
+    ]);
+
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
+};
+
+//// GyroscopeRotationVectorSensor
+var GyroscopeRotationVectorSensor = function(data) {
+    Sensor.call(this, SensorType.GYROSCOPE);
+};
+
+GyroscopeRotationVectorSensor.prototype = new Sensor();
+
+GyroscopeRotationVectorSensor.prototype.constructor = Sensor;
+
+GyroscopeRotationVectorSensor.prototype.getGyroscopeRotationVectorSensorData = function() {
+    var args = validator_.validateArgs(arguments, [
+       {
+           name : 'successCallback',
+           type : types_.FUNCTION
+       },
+       {
+           name : 'errorCallback',
+           type : types_.FUNCTION,
+           optional : true,
+           nullable : true
+       }
+    ]);
+
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
+};
+
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////
 ////Base SensorData class
 var SensorData = function () {
@@ -575,6 +637,42 @@ SensorGravityData.prototype.constructor = SensorData;
 _sensorListeners[SensorType.GRAVITY] = new SensorListener(SensorType.GRAVITY,
         SensorGravityData);
 
+
+
+//// SensorGyroscopeData
+var SensorGyroscopeData = function(data) {
+    SensorData.call(this);
+    Object.defineProperties(this, {
+        x : {value: data.x, writable: false, enumerable: true},
+        y : {value: data.y, writable: false, enumerable: true},
+        z : {value: data.z, writable: false, enumerable: true},
+    });
+};
+
+SensorGyroscopeData.prototype = new SensorData();
+
+SensorGyroscopeData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.GYROSCOPE] = new SensorListener(SensorType.GYROSCOPE,
+        SensorGyroscopeData);
+
+//// SensorGyroscopeRotationVectorData
+var SensorGyroscopeRotationVectorData = function(data) {
+    SensorData.call(this);
+    Object.defineProperties(this, {
+        x : {value: data.x, writable: false, enumerable: true},
+        y : {value: data.y, writable: false, enumerable: true},
+        z : {value: data.z, writable: false, enumerable: true},
+        w : {value: data.w, writable: false, enumerable: true},
+    });
+};
+
+SensorGyroscopeRotationVectorData.prototype = new SensorData();
+
+SensorGyroscopeRotationVectorData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.GYROSCOPE_ROTATION_VECTOR] = new SensorListener(SensorType.GYROSCOPE_ROTATION_VECTOR,
+        SensorGyroscopeRotationVectorData);
 
 // Exports
 exports = new SensorService();

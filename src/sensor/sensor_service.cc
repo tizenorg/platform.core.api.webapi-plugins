@@ -107,6 +107,19 @@ void ReportSensorData(sensor_type_e sensor_type, sensor_event_s* sensor_event,
       (*out)["z"] = picojson::value(static_cast<double>(sensor_event->values[2]));
       break;
     }
+    case SENSOR_GYROSCOPE: {
+      (*out)["x"] = picojson::value(static_cast<double>(sensor_event->values[0]));
+      (*out)["y"] = picojson::value(static_cast<double>(sensor_event->values[1]));
+      (*out)["z"] = picojson::value(static_cast<double>(sensor_event->values[2]));
+      break;
+    }
+    case SENSOR_GYROSCOPE_ROTATION_VECTOR: {
+      (*out)["x"] = picojson::value(static_cast<double>(sensor_event->values[0]));
+      (*out)["y"] = picojson::value(static_cast<double>(sensor_event->values[1]));
+      (*out)["z"] = picojson::value(static_cast<double>(sensor_event->values[2]));
+      (*out)["w"] = picojson::value(static_cast<double>(sensor_event->values[3]));
+      break;
+    }
     default: {
       LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported type"), out);
       return;
@@ -568,6 +581,8 @@ SensorService::SensorService(SensorInstance& instance)
   AddSensor(new SensorData(instance, SENSOR_ULTRAVIOLET, "ULTRAVIOLET"));
   AddSensor(new HrmSensorData(instance));
   AddSensor(new SensorData(instance, SENSOR_GRAVITY, "GRAVITY"));
+  AddSensor(new SensorData(instance, SENSOR_GYROSCOPE, "GYROSCOPE"));
+  AddSensor(new SensorData(instance, SENSOR_GYROSCOPE_ROTATION_VECTOR, "GYROSCOPE_ROTATION_VECTOR"));
 }
 
 SensorService::~SensorService() {
