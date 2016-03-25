@@ -1198,14 +1198,13 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
               std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
           std::string address(handler->address());
-          for(size_t i = 0; i < handler->address().length(); i++) {
-            address[i] = toupper(handler->address()[i]);
+          for (auto& c : address) {
+            c = toupper(c);
           }
 
           std::string r_address(remote_address);
-          size_t length = sizeof(remote_address) / sizeof(*remote_address);
-          for(size_t i = 0; i < length; i++) {
-            r_address[i] = toupper(remote_address[i]);
+          for (auto& c : r_address) {
+            c = toupper(c);
           }
 
           if (!strcmp(address.c_str(), r_address.c_str())) {  // requested event
