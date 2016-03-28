@@ -152,7 +152,7 @@ PlatformResult StatusNotification::Create(notification_type_e noti_type,
                                           notification_h* noti_handle) {
   LoggerD("Enter");
   *noti_handle = notification_create(noti_type);
-  if (!noti_handle) {
+  if (!*noti_handle) {
     return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Cannot make new notification object");
   }
@@ -1160,7 +1160,7 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
     if (app_control) {
       app_control_destroy(app_control);
     }
-    free(noti_handle);
+    notification_free(noti_handle);
   };
 
   if (is_update) {

@@ -438,7 +438,7 @@ function addCardEmulationModeChangeListener() {
   return cardEmulationModeListener.addListener(args.callback);
 };
 
-NFCAdapter.prototype.addCardEmulationModeChangeListener = function()_ {
+NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
   return addCardEmulationModeChangeListener.apply(this, arguments);
 };
 
