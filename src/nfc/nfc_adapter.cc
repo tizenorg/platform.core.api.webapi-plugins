@@ -26,6 +26,7 @@
 #include "common/extension.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/tools.h"
 #include "nfc/aid_data.h"
 #include "nfc/defs.h"
 #include "nfc/nfc_message_utils.h"
