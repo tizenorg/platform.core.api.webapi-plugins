@@ -572,7 +572,8 @@ var Validator = function() {
     LISTENER: 'LISTENER',
     ARRAY: 'ARRAY',
     ENUM: 'ENUM',
-    FILE_REFERENCE: 'FILE_REFERENCE'
+    FILE_REFERENCE: 'FILE_REFERENCE',
+    SIMPLE_TYPE: 'SIMPLE_TYPE'    // Boolean, Number or String
   };
 };
 
@@ -832,6 +833,19 @@ Validator.prototype.validateArgs = function(a, d) {
             val = val.fullPath;
           }
           val = _converter.toString(val, nullable);
+          break;
+
+        case this.Types.SIMPLE_TYPE:
+          if (optional && _type.isUndefined(val)) {
+            break;
+          }
+          if (nullable && _type.isNull(val)) {
+            break;
+          }
+          if (!_type.isBoolean(val) && !_type.isNumber(val) && !_type.isString(val)) {
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+                'Argument "' + name + '" should be boolean, number or string.');
+          }
           break;
 
         default:
