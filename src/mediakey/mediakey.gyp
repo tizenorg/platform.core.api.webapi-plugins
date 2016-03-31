@@ -26,6 +26,7 @@
          'variables': {
             'packages': [
               'capi-system-media-key',
+              'ecore',
             ]
           },
         }],
