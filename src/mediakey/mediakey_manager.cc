@@ -17,6 +17,8 @@
 #include "mediakey/mediakey_manager.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include <glib.h>
+#include <Ecore.h>
 
 namespace extension {
 namespace mediakey {
@@ -38,14 +40,37 @@ MediaKeyManager::MediaKeyManager()
   LoggerD("Enter");
 }
 
+static int timeout_id_=0;
+
+static gboolean itr_ecore(gpointer user_data){
+    //LoggerD("Enter");
+    ecore_main_loop_iterate();
+
+  return true;
+}
+
 common::PlatformResult MediaKeyManager::RegisterMediaKeyEventListener(
     MediaKeyListener* listener) {
   LoggerD("Enter");
+
+
+
+
   if (!m_media_key_listener_registered) {
     LoggerD("before calling media_key_reserve");
+
+    ecore_init(); 
+    timeout_id_ = g_timeout_add(100, itr_ecore, this);
+
     int ret = media_key_reserve(MediaKeyEventCallback, NULL);
+
     LoggerD("after calling media_key_reserve - result = %d", ret);
     if (MEDIA_KEY_ERROR_NONE != ret) {
+      if (timeout_id_ > 0) {
+        // cancel terminate callback
+        g_source_remove(timeout_id_);
+        timeout_id_ = 0;
+      }
       return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
           "Failed to register a media keys change event callback",
@@ -61,6 +86,13 @@ common::PlatformResult MediaKeyManager::UnregisterMediaKeyEventListener() {
   LoggerD("Enter");
   if (m_media_key_listener_registered) {
     int ret = media_key_release();
+
+    if (timeout_id_ > 0) {
+      // cancel terminate callback
+      g_source_remove(timeout_id_);
+      timeout_id_ = 0;
+    }
+
     if (MEDIA_KEY_ERROR_NONE != ret) {
       return LogAndCreateResult(
           ErrorCode::UNKNOWN_ERR,
