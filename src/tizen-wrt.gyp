@@ -225,6 +225,13 @@
           },
         ],
         [
+          'tizen_feature_preference_support==1', {
+            'dependencies': [
+              'preference/preference.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_push_support==1', {
             'dependencies': [
               'push/push.gyp:*',
