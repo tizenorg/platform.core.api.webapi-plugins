@@ -383,7 +383,7 @@ picojson::array NFCUtil::FromUCharArray(unsigned char* array,
   LoggerD("Entered");
   picojson::array apdu_array;
   apdu_array.reserve(apdu_len);
-  for(int i = 0; i < apdu_len; ++i)
+  for(unsigned int i = 0; i < apdu_len; ++i)
     apdu_array.push_back(picojson::value(static_cast<double>(array[i])));
   return apdu_array;
 }
