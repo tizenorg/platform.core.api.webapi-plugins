@@ -20,13 +20,27 @@ var type_ = xwalk.utils.type;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
-
 function PreferenceManager() {
 }
 
-
 PreferenceManager.prototype.getAll = function() {
-  // ...
+  var args = validator_.validateArgs(arguments, [
+    { name: 'successCallback', type: types_.FUNCTION },
+    { name: 'errorCallback', type: types_.FUNCTION, optional : true, nullable : true }
+  ]);
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+    } else {
+      args.successCallback(native_.getResultObject(result));
+    }
+  };
+
+  var result = native_.call('PreferenceManager_getAll', {}, callback);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 PreferenceManager.prototype.setValue = function() {
@@ -47,7 +61,6 @@ PreferenceManager.prototype.setValue = function() {
   }
 };
 
-
 PreferenceManager.prototype.getValue = function() {
   var args = validator_.validateArgs(arguments, [
     { name: 'key', type: types_.STRING }
@@ -62,7 +75,6 @@ PreferenceManager.prototype.getValue = function() {
   }
 };
 
-
 PreferenceManager.prototype.remove = function() {
   var args = validator_.validateArgs(arguments, [
     { name: 'key', type: types_.STRING }
@@ -75,7 +87,6 @@ PreferenceManager.prototype.remove = function() {
   }
 };
 
-
 PreferenceManager.prototype.removeAll = function() {
   var result = native_.callSync('PreferenceManager_removeAll', {});
 
@@ -83,7 +94,6 @@ PreferenceManager.prototype.removeAll = function() {
     throw native_.getErrorObject(result);
   }
 };
-
 
 PreferenceManager.prototype.exists = function() {
   var args = validator_.validateArgs(arguments, [
@@ -99,11 +109,9 @@ PreferenceManager.prototype.exists = function() {
   }
 };
 
+var PREFERENCE_CHANGED_LISTENER = 'PREFERENCE_CHANGED';
 
-var PREFERENCE_LISTENER = 'PREFERENCE_CHANGED';
-
-
-function PreferenceListeners() {
+function PreferenceChangedListener() {
   var that = this;
   this.appListener = function (result) {
     var data = native_.getResultObject(result);
@@ -119,31 +127,26 @@ function PreferenceListeners() {
   };
 }
 
+PreferenceChangedListener.prototype.instances = {};
 
-PreferenceListeners.prototype.instances = {};
-
-
-PreferenceListeners.prototype.addListener = function(key, listener) {
+PreferenceChangedListener.prototype.addListener = function(key, listener) {
   if (type_.isEmptyObject(this.instances)) {
-    native_.addListener(PREFERENCE_LISTENER, this.appListener);
+    native_.addListener(PREFERENCE_CHANGED_LISTENER, this.appListener);
   }
 
   this.instances[key] = listener;
 };
 
-
-PreferenceListeners.prototype.removeListener = function(key) {
+PreferenceChangedListener.prototype.removeListener = function(key) {
   if (this.instances[key]) {
     delete this.instances[key];
     if (type_.isEmptyObject(this.instances)) {
-      native_.removeListener(PREFERENCE_LISTENER);
+      native_.removeListener(PREFERENCE_CHANGED_LISTENER);
     }
   }
 };
 
-
-var _preferenceListeners = new PreferenceListeners();
-
+var _preferenceChangedListener = new PreferenceChangedListener();
 
 PreferenceManager.prototype.setChangeListener = function() {
   var args = validator_.validateArgs(arguments, [
@@ -156,9 +159,8 @@ PreferenceManager.prototype.setChangeListener = function() {
     throw native_.getErrorObject(result);
   }
 
-  _preferenceListeners.addListener(args.key, args.listener);
+  _preferenceChangedListener.addListener(args.key, args.listener);
 }
-
 
 PreferenceManager.prototype.unsetChangeListener = function() {
   var args = validator_.validateArgs(arguments, [
@@ -171,9 +173,8 @@ PreferenceManager.prototype.unsetChangeListener = function() {
     throw native_.getErrorObject(result);
   }
 
-  _preferenceListeners.removeListener(args.key);
+  _preferenceChangedListener.removeListener(args.key);
 };
-
 
 // Exports
 exports = new PreferenceManager();

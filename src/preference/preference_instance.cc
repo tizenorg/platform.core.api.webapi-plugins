@@ -28,6 +28,7 @@ namespace preference {
 namespace {
 const char* kKey = "key";
 const char* kValue = "value";
+
 const common::ListenerToken kPreferenceChangeListenerToken{"PREFERENCE_CHANGED"};
 } // namespace
 
@@ -66,8 +67,8 @@ PreferenceInstance::~PreferenceInstance()
 
 common::TizenResult PreferenceInstance::GetAll(const picojson::object& args, const common::AsyncToken& token) {
   ScopeLogger();
-  // ...
-  return common::TizenSuccess();
+
+  return manager_.GetAll(SimplePost(token));
 }
 
 common::TizenResult PreferenceInstance::SetValue(const picojson::object& args) {

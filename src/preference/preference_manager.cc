@@ -15,6 +15,9 @@
  */
 
 #include <app_preference.h>
+
+#include <thread>
+
 #include "common/logger.h"
 #include "common/tools.h"
 #include "preference/preference_manager.h"
@@ -22,6 +25,8 @@
 
 namespace extension {
 namespace preference {
+
+std::mutex PreferenceManager::key_listener_mtx_;
 
 namespace {
 const char* kKey = "key";
@@ -78,7 +83,97 @@ int GetValueInternal(const std::string& key, picojson::value* val) {
   }
   return ret;
 }
+
+bool GetAllCb(const char* key, void* user_data) {
+  ScopeLogger();
+
+  if (!key) {
+    LoggerW("Key is null");
+    return true;
+  }
+
+  picojson::array* array = static_cast<picojson::array*>(user_data);
+
+  if (!array) {
+    LoggerW("User data is null");
+    return true;
+  }
+
+  picojson::value val;
+  if (PREFERENCE_ERROR_NONE == GetValueInternal(key, &val)) {
+    picojson::value result_val{picojson::object{}};
+    picojson::object& result_obj = result_val.get<picojson::object>();
+
+    result_obj.insert(std::make_pair(kKey, picojson::value(key)));
+    result_obj.insert(std::make_pair(kValue, val));
+
+    array->push_back(result_val);
+  }
+
+  return true;
+}
+
+void ChangedCb(const char* key, void* user_data) {
+  ScopeLogger();
+
+  if (!key) {
+    LoggerW("Key is null");
+    return;
+  }
+
+  common::PostCallback* callback = static_cast<common::PostCallback*>(user_data);
+  if (!callback) {
+    LoggerW("User data is null");
+    return;
+  }
+
+  picojson::value val;
+
+  if (PREFERENCE_ERROR_NONE == GetValueInternal(key, &val)) {
+    picojson::value result_val{picojson::object{}};
+    picojson::object& result_obj = result_val.get<picojson::object>();
+
+    result_obj.insert(std::make_pair(kKey, picojson::value(key)));
+    result_obj.insert(std::make_pair(kValue, val));
+
+    (*callback)(common::TizenSuccess(), result_val);
+  } else {
+    LoggerE("preference_set_ function error");
+  }
+}
 } // namespace
+
+PreferenceManager::~PreferenceManager() {
+  ScopeLogger();
+
+  std::lock_guard<std::mutex> lock(key_listener_mtx_);
+  for (const auto& it : key_listeners_) {
+    preference_unset_changed_cb(it.c_str());
+  }
+}
+
+common::TizenResult PreferenceManager::GetAll(const common::PostCallback& callback) {
+  ScopeLogger();
+
+  auto get_all = [](const common::PostCallback& callback) -> void {
+    picojson::value response{picojson::array{}};
+    auto* array = &response.get<picojson::array>();
+
+    int ret = preference_foreach_item(GetAllCb, array);
+
+    common::TizenResult result = common::TizenSuccess();
+
+    if (PREFERENCE_ERROR_NONE != ret) {
+      result = MakeErrResult(ret, "preference_foreach_item function error");
+    }
+
+    callback(result, response);
+  };
+
+  std::thread(get_all, callback).detach();
+
+  return common::TizenSuccess();
+}
 
 common::TizenResult PreferenceManager::SetValue(const std::string& key, const picojson::value& value) {
   ScopeLogger();
@@ -154,16 +249,24 @@ common::TizenResult PreferenceManager::Exists(const std::string& key) {
 }
 
 common::TizenResult PreferenceManager::SetChangeListener(const std::string& key,
-                                                         common::PostCallback callback) {
+                                                         const common::PostCallback callback) {
   ScopeLogger();
 
-  if (!post_callback_) {
-    post_callback_ = callback;
+  if (!post_changed_callback_) {
+    post_changed_callback_ = callback;
   }
 
-  int ret = preference_set_changed_cb(key.c_str(), ChangedCb, (void*) this);
+  std::lock_guard<std::mutex> lock(key_listener_mtx_);
+  for (const auto& it : key_listeners_) {
+    if (key == it) {
+      return common::TizenSuccess();
+    }
+  }
 
-  if (ret == PREFERENCE_ERROR_NONE) {
+  int ret = preference_set_changed_cb(key.c_str(), ChangedCb, (void*) &post_changed_callback_);
+
+  if (PREFERENCE_ERROR_NONE == ret) {
+    key_listeners_.push_back(key);
     return common::TizenSuccess();
   } else {
     return MakeErrResult(ret, "preference_set_changed_cb function error");
@@ -173,39 +276,23 @@ common::TizenResult PreferenceManager::SetChangeListener(const std::string& key,
 common::TizenResult PreferenceManager::UnsetChangeListener(const std::string& key) {
   ScopeLogger();
 
-  if (post_callback_) {
-    int ret = preference_unset_changed_cb(key.c_str());
+  if (post_changed_callback_) {
+    std::lock_guard<std::mutex> lock(key_listener_mtx_);
+    for (auto it = key_listeners_.begin(); it != key_listeners_.end(); ++it) {
+      if (key == (*it)) {
+        int ret = preference_unset_changed_cb(key.c_str());
 
-    if (ret == PREFERENCE_ERROR_NONE) {
-      return common::TizenSuccess();
-    } else {
-      return MakeErrResult(ret, "preference_unset_changed_cb function error");
+        if (PREFERENCE_ERROR_NONE != ret) {
+          return MakeErrResult(ret, "preference_unset_changed_cb function error");
+        }
+
+        key_listeners_.erase(it);
+        break;
+      }
     }
-  } else {
-    return common::TizenSuccess();
   }
-}
 
-void PreferenceManager::ChangedCb(const char* key, void* user_data) {
-  ScopeLogger();
-
-  PreferenceManager* manager = static_cast<PreferenceManager*>(user_data);
-
-  picojson::value result_val{picojson::object{}};
-  picojson::object& result_obj = result_val.get<picojson::object>();
-
-  result_obj.insert(std::make_pair(kKey, picojson::value(std::string(key))));
-
-  picojson::value val;
-
-  if (GetValueInternal(key, &val) == PREFERENCE_ERROR_NONE) {
-    result_obj.insert(std::make_pair(kValue, val));
-    if (manager->post_callback_) {
-      manager->post_callback_(common::TizenSuccess(), result_val);
-    }
-  } else {
-    LoggerE("preference_set_ function error");
-  }
+  return common::TizenSuccess();
 }
 
 } // namespace preference
