@@ -129,12 +129,8 @@ SoundManager::SoundManager(SoundInstance& instance)
 
 SoundManager::~SoundManager() {
   LoggerD("Enter");
-  if (soundModeChangeListening) {
-    int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
-    if (VCONF_OK != status) {
-      LoggerE("Cannot disable listener!");
-    }
-  }
+
+  UnsetSoundModeChangeListener();
 
   if (sound_device_change_listener_) {
     if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_connected_cb()) {
@@ -247,9 +243,9 @@ PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
   }
 
   if (isEnableSound && isEnableVibrate) {
-    LogAndCreateResult(
-        ErrorCode::UNKNOWN_ERR, "Platform has wrong state.",
-        ("Wrong state (sound && vibration)"));
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Platform has wrong state.",
+                              ("Wrong state (sound && vibration)"));
   }
 
   if (isEnableSound) {
@@ -330,17 +326,21 @@ PlatformResult SoundManager::GetVolume(const picojson::object& args,
 void SoundManager::soundModeChangedCb(keynode_t*, void* user_data)
 {
   LoggerD("Enter");
-  if (user_data == nullptr) {
+
+  if (nullptr == user_data) {
     LoggerE("Invalid callback data!");
     return;
   }
-  SoundManager* self = static_cast<SoundManager*>(user_data);
 
-  std::string soundModeType;
-  PlatformResult status = self->GetSoundMode(&soundModeType);
+  auto self = static_cast<SoundManager*>(user_data);
 
-  if (status.IsSuccess() && self->soundModeListener) {
-    self->soundModeListener->OnSoundModeChange(soundModeType);
+  if (self->soundModeListener) {
+    std::string soundModeType;
+    PlatformResult status = self->GetSoundMode(&soundModeType);
+
+    if (status) {
+      self->soundModeListener->OnSoundModeChange(soundModeType);
+    }
   } else {
     LoggerE("No SoundModeListener attached");
   }
@@ -352,15 +352,22 @@ PlatformResult SoundManager::SetSoundModeChangeListener(
   soundModeListener = listener;
   if (soundModeChangeListening) return PlatformResult(ErrorCode::NO_ERROR);
 
-  int status = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+  int status = vconf_notify_key_changed(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL,
                                         SoundManager::soundModeChangedCb, this);
-  if (VCONF_OK == status) {
-    soundModeChangeListening = true;
-    return PlatformResult(ErrorCode::NO_ERROR);
+  if (VCONF_OK != status) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "SoundModeChangeListener not set");
   }
 
-  return LogAndCreateResult(
-            ErrorCode::UNKNOWN_ERR, "SoundModeChangeListener not set");
+  status = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+                                    SoundManager::soundModeChangedCb, this);
+  if (VCONF_OK != status) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "SoundModeChangeListener not set");
+  }
+
+  soundModeChangeListening = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SoundManager::UnsetSoundModeChangeListener() {
@@ -370,15 +377,22 @@ PlatformResult SoundManager::UnsetSoundModeChangeListener() {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+  int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL,
                                         SoundManager::soundModeChangedCb);
-  if (VCONF_OK == status) {
-    soundModeChangeListening = false;
-    return PlatformResult(ErrorCode::NO_ERROR);
+  if (VCONF_OK != status) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "SoundModeChangeListener not unset");
   }
 
-  return LogAndCreateResult(
-            ErrorCode::UNKNOWN_ERR, "SoundModeChangeListener not unset");
+  status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+                                    SoundManager::soundModeChangedCb);
+  if (VCONF_OK != status) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "SoundModeChangeListener not unset");
+  }
+
+  soundModeChangeListening = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SoundManager::SetVolumeChangeListener() {

@@ -158,7 +158,7 @@ int IotconUtils::GetProperties(const picojson::object& args) {
   properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY;
 
   const auto& discoverable = IotconUtils::GetArg(args, kIsDiscoverable);
-  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : false) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : true) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
 
   const auto& active = IotconUtils::GetArg(args, kIsActive);
   properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_PROPERTY;
@@ -634,7 +634,7 @@ common::TizenResult IotconUtils::RequestToJson(iotcon_request_h request,
       if (!result) {
         LogAndReturnTizenError(result, ("iotcon_request_get_observe_type() failed"));
       }
-      out->insert(std::make_pair(kRequestType, picojson::value{FromObserveType(observe_type)}));
+      out->insert(std::make_pair(kObserveType, picojson::value{FromObserveType(observe_type)}));
     }
   } else {
     LoggerW("Request handle is null, ignoring");

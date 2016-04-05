@@ -1066,6 +1066,10 @@ Server.prototype.createResource = function() {
     type: types.ARRAY,
     values: types.STRING
   }, {
+    name: 'resourceInterfaces',
+    type: types.ARRAY,
+    values: types.STRING
+  }, {
     name: 'dictionary',
     type: types.DICTIONARY,
     optional: true,
@@ -1075,6 +1079,7 @@ Server.prototype.createResource = function() {
   var callArgs = args.dictionary || {};
   callArgs.uriPath = args.uriPath;
   callArgs.resourceTypes = args.resourceTypes;
+  callArgs.resourceInterfaces = args.resourceInterfaces;
 
   var result = native.callSync('IotconServer_createResource', callArgs);
 

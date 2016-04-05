@@ -319,7 +319,7 @@ PlatformResult NFCMessageUtils::ReportNDEFMessage(const picojson::value& args, p
 
   std::unique_ptr<unsigned char[]> data(new unsigned char[size]);
 
-  for (size_t i = 0; i < size; i++) {
+  for (ssize_t i = 0; i < size; i++) {
     data[i] = static_cast<unsigned char>(raw_data[i].get<double>());
   }
 
@@ -339,21 +339,21 @@ static PlatformResult NdefRecordGetHandle(picojson::value& record,
   nfc_record_tnf_e tnf = static_cast<nfc_record_tnf_e>(tnf_from_json);
   const picojson::array& type_data =
       FromJson<picojson::array>(record_obj, "type");
-  int type_size = type_data.size();
+  auto type_size = type_data.size();
   std::unique_ptr<unsigned char[]> type(new unsigned char[type_size]);
   for (size_t i = 0; i < type_size; i++) {
     type[i] = static_cast<unsigned char>(type_data[i].get<double>());
   }
   const picojson::array& id_data =
       FromJson<picojson::array>(record_obj, "id");
-  int id_size = id_data.size();
+  auto id_size = id_data.size();
   std::unique_ptr<unsigned char[]> id(new unsigned char[id_size]);
   for (size_t i = 0; i < id_size; i++) {
     id[i] = static_cast<unsigned char>(id_data[i].get<double>());
   }
   const picojson::array& payload_data =
       FromJson<picojson::array>(record_obj, "payload");
-  int payload_size = payload_data.size();
+  auto payload_size = payload_data.size();
   std::unique_ptr<unsigned char[]> payload(new unsigned char[payload_size]);
   for (size_t i = 0; i < payload_size; i++) {
     payload[i] = static_cast<unsigned char>(payload_data[i].get<double>());
@@ -559,7 +559,7 @@ PlatformResult NFCMessageUtils::ReportNDEFRecord(const picojson::value& args, pi
 
   std::unique_ptr<unsigned char[]> data(new unsigned char[size]);
 
-  for (size_t i = 0; i < size; i++) {
+  for (ssize_t i = 0; i < size; i++) {
     data[i] = static_cast<unsigned char>(raw_data[i].get<double>());
   }
   nfc_ndef_message_h message_handle = NULL;
@@ -943,7 +943,7 @@ PlatformResult NFCMessageUtils::ReportNDEFRecordMedia(const picojson::value& arg
   const int size = static_cast<int>(args.get("dataSize").get<double>());
 
   std::unique_ptr<unsigned char[]> data(new unsigned char[size]);
-  for (size_t i = 0; i < size; i++) {
+  for (ssize_t i = 0; i < size; i++) {
     data[i] = static_cast<unsigned char>(raw_data[i].get<double>());
   }
 

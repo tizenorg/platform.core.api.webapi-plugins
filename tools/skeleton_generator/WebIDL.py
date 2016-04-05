@@ -1032,7 +1032,11 @@ class Parser:
                          | Empty
         '''
         if len(p) > 2:
-            p[0] = p[2] + p[3]
+            try:
+                p[0] = p[2] + p[3]
+            except TypeError, exc:
+                print >> sys.stderr, "WARNING: Parser.p_UnionMemberTypes():", exc
+                p[0] = p[2]
         else:
             p[0] = []
 
