@@ -23,11 +23,11 @@ namespace extension {
 namespace inputdevice {
 
 InputDeviceInstance::InputDeviceInstance() {
-    LOGD("Enter");
+    LoggerD("Enter");
 }
 
 InputDeviceInstance::~InputDeviceInstance() {
-    LOGD("Enter");
+    LoggerD("Enter");
 }
 
 }  // namespace inputdevice
