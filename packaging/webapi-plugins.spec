@@ -338,6 +338,7 @@ BuildRequires: pkgconfig(capi-web-url-download)
 BuildRequires: pkgconfig(motion)
 BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires: pkgconfig(capi-location-manager)
+BuildRequires: pkgconfig(sensor)
 %endif
 
 %if 0%{?tizen_feature_iotcon_support}
