@@ -282,12 +282,12 @@ static void transaction_event_callback(nfc_se_type_e type,
   picojson::array& data_array = response_obj.insert(std::make_pair(JSON_DATA,
                                                                    picojson::value(picojson::array()))).first->second.get<picojson::array>();
 
-  for (unsigned int i = 0; i < aid_size; i++) {
+  for (ssize_t i = 0; i < aid_size; i++) {
     aid_array.push_back(picojson::value(static_cast<double>(_aid[i])));
   }
 
-  for (unsigned int i = 0; i < param_size; i++) {
-    aid_array.push_back(picojson::value(static_cast<double>(param[i])));
+  for (ssize_t i = 0; i < param_size; i++) {
+    data_array.push_back(picojson::value(static_cast<double>(param[i])));
   }
 
   if (NFC_SE_TYPE_ESE == type) {
