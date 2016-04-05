@@ -40,12 +40,12 @@ ArchiveFileEntry::ArchiveFileEntry(filesystem::FilePtr file) :
         m_modified(0),
         m_compression_level(s_default_compression_level)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 ArchiveFileEntry::~ArchiveFileEntry()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 unsigned long ArchiveFileEntry::getCompressedSize() const
@@ -157,7 +157,7 @@ PlatformResult ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callbac
             base_path_name += "/";
         }
 
-        LOGD("strip name is: true; archive file entry name is: [%s]; "
+        LoggerD("strip name is: true; archive file entry name is: [%s]; "
                 "stripBasePath will be: [%s]",
                 m_name.c_str(), base_path_name.c_str());
 

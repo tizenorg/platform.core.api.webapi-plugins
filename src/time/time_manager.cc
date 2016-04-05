@@ -70,19 +70,19 @@ PlatformResult TimeManager::GetTimezoneOffset(const std::string& timezone_id,
   //offset is get for target LOCAL date timestamp, but it should be UTC timestamp,
   //so it has to be checked below against DST edge condition
   tz->getOffset(date, false, stdOffset, dstOffset, ec);
-  LOGD("stdOffset: %d, dstOffset: %d", stdOffset, dstOffset);
+  LoggerD("stdOffset: %d, dstOffset: %d", stdOffset, dstOffset);
 
   //this section checks if date is not in DST transition point
   //check if date shifted to UTC timestamp is still with the same offset
   int32_t dstOffsetBefore = 0;
   tz->getOffset(date - stdOffset - dstOffset, false, stdOffset, dstOffsetBefore, ec);
-  LOGD("stdOffset: %d, dstOffsetBefore: %d", stdOffset, dstOffsetBefore);
+  LoggerD("stdOffset: %d, dstOffsetBefore: %d", stdOffset, dstOffsetBefore);
 
   //it has to be checked if it is 'missing' hour case
   int32_t dstOffsetAfterBefore = 0;
   tz->getOffset(date - stdOffset - dstOffset + oneHour,
                 false, stdOffset, dstOffsetAfterBefore, ec);
-  LOGD("stdOffset: %d, dstOffsetAfterBefore: %d", stdOffset, dstOffsetAfterBefore);
+  LoggerD("stdOffset: %d, dstOffsetAfterBefore: %d", stdOffset, dstOffsetAfterBefore);
 
   //offset would be minimum of local and utc timestamp offsets
   //(to work correctly even if DST transtion is 'now')
@@ -96,22 +96,22 @@ PlatformResult TimeManager::GetTimezoneOffset(const std::string& timezone_id,
 PlatformResult TimeManager::RegisterVconfCallback(ListenerType type) {
   LoggerD("Entered");
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_){
-    LOGD("registering listener on platform");
+    LoggerD("registering listener on platform");
     if (0 != vconf_notify_key_changed(
         VCONFKEY_SYSTEM_TIME_CHANGED, OnTimeChangedCallback, this)) {
       return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback");
     }
   } else {
-    LOGD("not registering listener on platform - already registered");
+    LoggerD("not registering listener on platform - already registered");
   }
   switch (type) {
     case kTimeChange :
       is_time_listener_registered_ = true;
-      LOGD("time change listener registered");
+      LoggerD("time change listener registered");
       break;
     case kTimezoneChange :
       is_timezone_listener_registered_ = true;
-      LOGD("time zone change listener registered");
+      LoggerD("time zone change listener registered");
       break;
     default :
       return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
@@ -124,17 +124,17 @@ PlatformResult TimeManager::UnregisterVconfCallback(ListenerType type) {
   switch (type) {
     case kTimeChange :
       is_time_listener_registered_ = false;
-      LOGD("time change listener unregistered");
+      LoggerD("time change listener unregistered");
       break;
     case kTimezoneChange :
       is_timezone_listener_registered_ = false;
-      LOGD("time zone change listener unregistered");
+      LoggerD("time zone change listener unregistered");
       break;
     default :
       return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
   }
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
-    LOGD("unregistering listener on platform");
+    LoggerD("unregistering listener on platform");
     if (0 != vconf_ignore_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED, OnTimeChangedCallback)) {
       LOGE("Failed to unregister vconf callback");
       // silent fail

@@ -78,7 +78,7 @@ common::PlatformResult MediaKeyManager::RegisterMediaKeyEventListener(
     }
     m_media_key_listener = listener;
     m_media_key_listener_registered = true;
-    LOGD("Added media keys change event callback");
+    LoggerD("Added media keys change event callback");
   }
   return common::PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -110,7 +110,7 @@ void MediaKeyManager::MediaKeyEventCallback(media_key_e key,
                                             void* user_data) {
   LoggerD("Enter");
   if (!GetInstance().m_media_key_listener) {
-    LOGD("Listener is null. Ignoring");
+    LoggerD("Listener is null. Ignoring");
     return;
   }
   if (MEDIA_KEY_STATUS_PRESSED == status) {
