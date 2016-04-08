@@ -320,6 +320,13 @@ class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivity
                                   ("Failed to create (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
       }
 
+      ret = sensor_listener_set_option(handle_, SENSOR_OPTION_ALWAYS_ON);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set sensor listener option",
+                                  ("Failed to set (%d) sensor listener option, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
       int interval = 0;
       auto& js_interval = args.get(kCallbackInterval);
 
