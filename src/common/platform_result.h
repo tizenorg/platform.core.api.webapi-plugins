@@ -24,7 +24,7 @@
 namespace common {
 
 // WARNING! This list should be in sync with the equivalent list
-// located at tizen/tizen_api.js. Remember to update tizen/tizen_api.js if you
+// located at utils/utils_api.js. Remember to update utils/utils_api.js if you
 // change something here.
 enum class ErrorCode : int {
   // NO_ERROR is not really a valid error, but can be used
