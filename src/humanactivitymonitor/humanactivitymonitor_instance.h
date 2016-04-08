@@ -34,13 +34,9 @@ class HumanActivityMonitorInstance : public common::ParsedInstance {
  private:
   void HumanActivityMonitorManagerStop(
       const picojson::value& args, picojson::object& out);
-  void HumanActivityMonitorManagerUnsetAccumulativePedometerListener(
-      const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerGetHumanActivityData(
       const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerStart(
-      const picojson::value& args, picojson::object& out);
-  void HumanActivityMonitorManagerSetAccumulativePedometerListener(
       const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerAddActivityRecognitionListener(
       const picojson::value& args, picojson::object& out);
