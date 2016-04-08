@@ -40,7 +40,7 @@ Description of files required in plugin implementation.
   This file contains all methods required by each API.
   All operation should be done by JavaScript as much as possible.
   If JavaScript can do something, it should do it.
-  This file is responsible for checking privileges, checking arguments, calling C++ methods etc.
+  This file is responsible for checking arguments, calling C++ methods etc.
 
 ### Plugin flow
 

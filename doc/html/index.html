@@ -12,7 +12,7 @@
 	<div class="separator"></div>
 	<a title="Tizen Avengers - WebApi Guidelines" class="brand" href="#" style="background-image:url(images/tizen-logo_32h.png)"></a>
 	<div class="separator"></div>
-	<ul id="sections"><li class="l2"><a href="#revision-history">Revision History</a></li><li class="l2"><a href="#overview">Overview</a></li><li class="l2"><a href="#guideline">Guideline</a><ul><li class="l3"><a href="#guideline/languages">Languages</a></li><li class="l3"><a href="#guideline/codding-style">Codding style</a></li><li class="l3"><a href="#guideline/api-guide">API guide</a></li><li class="l3"><a href="#guideline/unit-test-criteria">Unit test criteria</a></li><li class="l3"><a href="#guideline/source-code">Source code</a></li><li class="l3"><a href="#guideline/license-and-boilerplate">License and Boilerplate</a></li></ul></li><li class="l2"><a href="#plugin-structure">Plugin Structure</a><ul><li class="l3"><a href="#plugin-structure/conventions">Conventions</a></li><li class="l3"><a href="#plugin-structure/structure">Structure</a></li><li class="l3"><a href="#plugin-structure/spec-file">Spec file</a></li><li class="l3"><a href="#plugin-structure/gyp-file">GYP file</a></li><li class="l3"><a href="#plugin-structure/implementation-files">Implementation files</a></li><li class="l3"><a href="#plugin-structure/plugin-flow">Plugin flow</a></li></ul></li><li class="l2"><a href="#widl">WIDL</a><ul><li class="l3"><a href="#widl/conventions">Conventions</a></li><li class="l3"><a href="#widl/architecture">Architecture</a></li><li class="l3"><a href="#widl/example">Example</a></li></ul></li><li class="l2"><a href="#tools">Tools</a><ul><li class="l3"><a href="#tools/generate-stub-code">Generate stub code</a></li><li class="l3"><a href="#tools/using-multiple-javascript-files">Using multiple JavaScript files</a></li></ul></li><li class="l2"><a href="#implementation-javascript">Implementation - JavaScript</a><ul><li class="l3"><a href="#implementation-javascript/interface-creation">Interface creation</a></li><li class="l3"><a href="#implementation-javascript/creating-manager-entity">Creating Manager entity</a></li><li class="l3"><a href="#implementation-javascript/properties-definition">Properties definition</a></li><li class="l3"><a href="#implementation-javascript/methods-definition">Methods definition</a></li><li class="l3"><a href="#implementation-javascript/exporting-interface">Exporting interface</a></li><li class="l3"><a href="#implementation-javascript/utils">Utils</a></li><li class="l3"><a href="#implementation-javascript/exceptions">Exceptions</a></li><li class="l3"><a href="#implementation-javascript/synchronous-methods">Synchronous methods</a></li><li class="l3"><a href="#implementation-javascript/asynchronous-methods">Asynchronous methods</a></li><li class="l3"><a href="#implementation-javascript/listeners">Listeners</a></li></ul></li><li class="l2"><a href="#implementation-c">Implementation - C++</a><ul><li class="l3"><a href="#implementation-c/lifecycle-and-plugin-state">Lifecycle and plugin state</a></li><li class="l3"><a href="#implementation-c/namespace-and-entry-points">Namespace and entry points</a></li><li class="l3"><a href="#implementation-c/plugin-structure">Plugin structure</a></li><li class="l3"><a href="#implementation-c/asynchronous-calls">Asynchronous calls</a></li><li class="l3"><a href="#implementation-c/listeners">Listeners</a></li><li class="l3"><a href="#implementation-c/logger">Logger</a></li><li class="l3"><a href="#implementation-c/error-handling">Error handling</a></li></ul></li><li class="l2"><a href="#devel-package">Devel package</a><ul><li class="l3"><a href="#devel-package/package-structure">Package structure</a></li><li class="l3"><a href="#devel-package/creating-custom-web-device-plugins-module">Creating custom web device plugins module</a></li></ul></li></ul>
+	<ul id="sections"><li class="l2"><a href="#revision-history">Revision History</a></li><li class="l2"><a href="#overview">Overview</a></li><li class="l2"><a href="#guideline">Guideline</a><ul><li class="l3"><a href="#guideline/languages">Languages</a></li><li class="l3"><a href="#guideline/coding-style">Coding style</a></li><li class="l3"><a href="#guideline/api-guide">API guide</a></li><li class="l3"><a href="#guideline/unit-test-criteria">Unit test criteria</a></li><li class="l3"><a href="#guideline/source-code">Source code</a></li><li class="l3"><a href="#guideline/license-and-boilerplate">License and Boilerplate</a></li></ul></li><li class="l2"><a href="#plugin-structure">Plugin Structure</a><ul><li class="l3"><a href="#plugin-structure/conventions">Conventions</a></li><li class="l3"><a href="#plugin-structure/structure">Structure</a></li><li class="l3"><a href="#plugin-structure/spec-file">Spec file</a></li><li class="l3"><a href="#plugin-structure/gyp-file">GYP file</a></li><li class="l3"><a href="#plugin-structure/implementation-files">Implementation files</a></li><li class="l3"><a href="#plugin-structure/plugin-flow">Plugin flow</a></li></ul></li><li class="l2"><a href="#widl">WIDL</a><ul><li class="l3"><a href="#widl/conventions">Conventions</a></li><li class="l3"><a href="#widl/architecture">Architecture</a></li><li class="l3"><a href="#widl/example">Example</a></li></ul></li><li class="l2"><a href="#tools">Tools</a><ul><li class="l3"><a href="#tools/generate-stub-code">Generate stub code</a></li><li class="l3"><a href="#tools/using-multiple-javascript-files">Using multiple JavaScript files</a></li></ul></li><li class="l2"><a href="#implementation-javascript">Implementation - JavaScript</a><ul><li class="l3"><a href="#implementation-javascript/interface-creation">Interface creation</a></li><li class="l3"><a href="#implementation-javascript/creating-manager-entity">Creating Manager entity</a></li><li class="l3"><a href="#implementation-javascript/properties-definition">Properties definition</a></li><li class="l3"><a href="#implementation-javascript/methods-definition">Methods definition</a></li><li class="l3"><a href="#implementation-javascript/exporting-interface">Exporting interface</a></li><li class="l3"><a href="#implementation-javascript/utils">Utils</a></li><li class="l3"><a href="#implementation-javascript/exceptions">Exceptions</a></li><li class="l3"><a href="#implementation-javascript/synchronous-methods">Synchronous methods</a></li><li class="l3"><a href="#implementation-javascript/asynchronous-methods">Asynchronous methods</a></li><li class="l3"><a href="#implementation-javascript/listeners">Listeners</a></li></ul></li><li class="l2"><a href="#implementation-c">Implementation - C++</a><ul><li class="l3"><a href="#implementation-c/lifecycle-and-plugin-state">Lifecycle and plugin state</a></li><li class="l3"><a href="#implementation-c/privileges">Privileges</a></li><li class="l3"><a href="#implementation-c/namespace-and-entry-points">Namespace and entry points</a></li><li class="l3"><a href="#implementation-c/plugin-structure">Plugin structure</a></li><li class="l3"><a href="#implementation-c/asynchronous-calls">Asynchronous calls</a></li><li class="l3"><a href="#implementation-c/listeners">Listeners</a></li><li class="l3"><a href="#implementation-c/logger">Logger</a></li><li class="l3"><a href="#implementation-c/error-handling">Error handling</a></li></ul></li><li class="l2"><a href="#devel-package">Devel package</a><ul><li class="l3"><a href="#devel-package/package-structure">Package structure</a></li><li class="l3"><a href="#devel-package/creating-custom-web-device-plugins-module">Creating custom web device plugins module</a></li></ul></li></ul>
 	<div class="separator"></div>
 	<div class="extra generated">
 		Generated by <a href="https://github.com/DimitarChristoff/doctor" target="_blank" title="generate documentation from markdown">Doctor, MD</a>
@@ -35,43 +35,43 @@
 <td>0.1.0</td>
 <td>2015-05-15</td>
 <td>Initial Draft</td>
-<td>Wojciech Kosowicz<br><a href="mailto:w.kosowicz@samsung.com">&#119;&#x2e;&#x6b;&#111;&#115;&#x6f;&#119;&#x69;&#99;&#x7a;&#x40;&#115;&#x61;&#x6d;&#x73;&#x75;&#x6e;&#x67;&#46;&#99;&#x6f;&#x6d;</a></td>
+<td>Wojciech Kosowicz<br><a href="mailto:w.kosowicz@samsung.com">&#x77;&#46;&#107;&#x6f;&#115;&#x6f;&#x77;&#x69;&#x63;&#x7a;&#x40;&#115;&#97;&#109;&#x73;&#117;&#110;&#103;&#x2e;&#x63;&#x6f;&#109;</a></td>
 </tr>
 <tr>
 <td>0.2.0</td>
 <td>2015-05-22</td>
 <td>Extended version</td>
-<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#x70;&#x2e;&#x6b;&#x61;&#99;&#x7a;&#109;&#x61;&#x72;&#101;&#x6b;&#51;&#64;&#115;&#97;&#x6d;&#x73;&#117;&#110;&#x67;&#46;&#x63;&#x6f;&#x6d;</a></td>
+<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#112;&#x2e;&#107;&#x61;&#x63;&#122;&#109;&#x61;&#x72;&#x65;&#107;&#x33;&#x40;&#x73;&#97;&#109;&#115;&#117;&#x6e;&#103;&#x2e;&#x63;&#x6f;&#x6d;</a></td>
 </tr>
 <tr>
 <td>0.2.1</td>
 <td>2015-06-01</td>
 <td>Proofreading</td>
-<td>Rafal Galka<br><a href="mailto:r.galka@samsung.com">&#114;&#46;&#103;&#x61;&#x6c;&#107;&#97;&#x40;&#115;&#97;&#109;&#x73;&#117;&#x6e;&#103;&#46;&#99;&#x6f;&#x6d;</a></td>
+<td>Rafal Galka<br><a href="mailto:r.galka@samsung.com">&#x72;&#46;&#103;&#97;&#108;&#x6b;&#97;&#64;&#115;&#x61;&#x6d;&#115;&#x75;&#x6e;&#103;&#x2e;&#x63;&#x6f;&#x6d;</a></td>
 </tr>
 <tr>
 <td>0.3.0</td>
 <td>2015-06-08</td>
 <td>Supplemented C++ implementation guide</td>
-<td>Rafal Galka<br><a href="mailto:r.galka@samsung.com">&#114;&#46;&#x67;&#97;&#108;&#107;&#x61;&#x40;&#115;&#97;&#109;&#x73;&#x75;&#x6e;&#x67;&#x2e;&#x63;&#111;&#109;</a></td>
+<td>Rafal Galka<br><a href="mailto:r.galka@samsung.com">&#x72;&#46;&#x67;&#97;&#108;&#107;&#97;&#x40;&#x73;&#x61;&#109;&#115;&#117;&#110;&#x67;&#x2e;&#99;&#x6f;&#x6d;</a></td>
 </tr>
 <tr>
 <td>0.4.0</td>
 <td>2015-06-16</td>
 <td>Guideline</td>
-<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#x70;&#x2e;&#x6b;&#x61;&#x63;&#x7a;&#109;&#97;&#114;&#x65;&#x6b;&#x33;&#x40;&#115;&#97;&#109;&#x73;&#x75;&#x6e;&#103;&#46;&#99;&#111;&#109;</a></td>
+<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#112;&#x2e;&#107;&#x61;&#99;&#x7a;&#x6d;&#x61;&#x72;&#101;&#107;&#51;&#64;&#115;&#x61;&#109;&#x73;&#117;&#110;&#x67;&#46;&#x63;&#111;&#109;</a></td>
 </tr>
 <tr>
 <td>0.5.0</td>
 <td>2015-06-18</td>
 <td>Devel package</td>
-<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#x70;&#x2e;&#x6b;&#97;&#x63;&#x7a;&#x6d;&#x61;&#x72;&#101;&#107;&#51;&#x40;&#x73;&#97;&#109;&#x73;&#x75;&#110;&#103;&#46;&#99;&#x6f;&#x6d;</a></td>
+<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#112;&#46;&#x6b;&#97;&#x63;&#122;&#109;&#x61;&#114;&#101;&#107;&#51;&#x40;&#x73;&#x61;&#x6d;&#x73;&#117;&#x6e;&#x67;&#46;&#99;&#111;&#x6d;</a></td>
 </tr>
 <tr>
 <td>0.5.1</td>
 <td>2015-06-24</td>
 <td>Add info about WAPIOven.py</td>
-<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#x70;&#x2e;&#x6b;&#x61;&#x63;&#122;&#x6d;&#97;&#x72;&#x65;&#107;&#51;&#64;&#x73;&#x61;&#109;&#115;&#x75;&#x6e;&#x67;&#46;&#99;&#x6f;&#109;</a></td>
+<td>Pawel Kaczmarek<br><a href="mailto:p.kaczmarek3@samsung.com">&#112;&#x2e;&#x6b;&#97;&#99;&#122;&#109;&#97;&#x72;&#101;&#x6b;&#x33;&#x40;&#x73;&#x61;&#109;&#115;&#x75;&#110;&#x67;&#x2e;&#99;&#x6f;&#109;</a></td>
 </tr>
 </tbody>
 </table>
@@ -83,7 +83,7 @@ Each plugin should be written with great attention on JavaScript.</p>
 <h2 id="guideline">Guideline</h2>
 <h3 id="guideline/languages">Languages</h3>
 <p>C++, JavaScript</p>
-<h3 id="guideline/codding-style">Codding style</h3>
+<h3 id="guideline/coding-style">Coding style</h3>
 <p>Use Google style guide,
 C++: <a href="http://google-styleguide.googlecode.com/svn/trunk/cppguide.html">http://google-styleguide.googlecode.com/svn/trunk/cppguide.html</a></p>
 <p>JavaScript: <a href="http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml">http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml</a></p>
@@ -157,7 +157,7 @@ These files are responsible for communication between JavaScript layer and Nativ
 This file contains all methods required by each API.
 All operation should be done by JavaScript as much as possible.
 If JavaScript can do something, it should do it.
-This file is responsible for checking privileges, checking arguments, calling C++ methods etc.</li>
+This file is responsible for checking arguments, calling C++ methods etc.</li>
 </ul>
 <h3 id="plugin-structure/plugin-flow">Plugin flow</h3>
 <p><img src="images/plugin_flow.png" alt="Plugin flow"></p>
@@ -319,7 +319,6 @@ $ python WAPIOven.py -d ../../src/notification/ /web-device-api/web/widl/tizen/n
 <p>What should be done when skeleton code was generated?</p>
 <ul>
 <li><code>&lt;pluginname&gt;.gyp</code> file should be added</li>
-<li>required privileges should be added in JavaScript file</li>
 <li>entry points should be checked in <code>&lt;pluginname&gt;_extension.cc</code> file</li>
 <li>each method should be implemented in <code>&lt;pluginname&gt;_instance.cc</code> file</li>
 </ul>
@@ -410,15 +409,6 @@ var args = validator_.validateArgs(arguments, [
   {name: &#39;count&#39;, type: types_.LONG}
 ]);
 </code></pre>
-<h4 id="privileges">Privileges</h4>
-<p>Some of the API methods require privilege access, then it&#39;s the first step
-in JavaScript file which should be checked.</p>
-<p>Below can be found example of using Privilege in Alarm API:</p>
-<pre class="prettyprint linenums"><code class="lang-js">var Privilege = xwalk.utils.privilege;
-
-// inside add, remove, removeAll methods:
-xwalk.utils.checkPrivilegeAccess(Privilege.ALARM);
-</code></pre>
 <h3 id="implementation-javascript/exceptions">Exceptions</h3>
 <p>At some point whether improper data is received or given to JavaScript might
 require to throw exceptions. The example below shows how to throw properly
@@ -495,6 +485,15 @@ no strict reference between JavaScript and native data.<br>
 Example: If operation should change some object retrieved from platform,
 identifier should be passed again and additional check if object still exists
 should be made.</p>
+<h3 id="implementation-c/privileges">Privileges</h3>
+<p>Some of the API methods require privilege access. In Tizen 3.0 checking if application has privilege
+to call method has been moved to C++ layer. It&#39;s the first step which should be checked.</p>
+<p>Below can be found example of using Privilege in Alarm API:</p>
+<pre class="prettyprint linenums"><code class="lang-cpp">const std::string kPrivilegeAlarm = &quot;http://tizen.org/privilege/alarm.get&quot;;
+
+// inside add, remove, removeAll methods:
+CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &amp;out);
+</code></pre>
 <h3 id="implementation-c/namespace-and-entry-points">Namespace and entry points</h3>
 <p>Extension namespace and other objects exported by JavaScript layer are defined
 inside <code>&lt;pluginname&gt;_extension.cc</code> file.</p>
@@ -545,13 +544,13 @@ MediaControllerInstance::MediaControllerInstance() {
 <li><code>out</code> - object containing response data returned synchronously to JavaScript
 layer.</li>
 </ul>
-<p><code>ReportSuccess()</code> or <code>ReportError()</code> helpers should be used to ensure
-proper structure of <code>out</code> object.</p>
+<p><code>ReportSuccess()</code>, <code>ReportError()</code> or <code>LogAndReportError()</code> helpers should be used to ensure
+proper structure of <code>out</code> object. <code>LogAndReportError()</code> expands <code>ReportError()</code> function.
+It sets error in <code>out</code> object but additionally prints message if <code>ERROR</code> log priority is on.</p>
 <pre class="prettyprint linenums"><code class="lang-cpp">picojson::value data = picojson::value&lt;picojson::object());
 const PlatformResult&amp; result = model_-&gt;DoSomethingWithData(&amp;data);
 if (!result) {
-  LOGGER(ERROR) &lt;&lt; result.message();
-  ReportError(result, &amp;out);
+  LogAndReportError(result, &amp;out);
   return;
 }
 
@@ -577,7 +576,7 @@ call the appropriate user callback in JS async message handler.</p>
   if (result) {
     ReportSuccess(servers, response_obj);
   } else {
-    ReportError(result, &amp;response_obj);
+    LogAndReportError(result, &amp;response_obj);
   }
 
   // post JSON string to JS layer
@@ -593,7 +592,7 @@ passed from JavaScript layer.</p>
 <pre class="prettyprint linenums"><code class="lang-cpp">auto listener = [this, args](picojson::value* data) -&gt; void {
 
   if (!data) {
-    LOGGER(ERROR) &lt;&lt; &quot;No data passed to json callback&quot;;
+    LoggerW(&quot;No data passed to json callback&quot;);
     return;
   }
 
@@ -604,26 +603,32 @@ passed from JavaScript layer.</p>
 };
 </code></pre>
 <h3 id="implementation-c/logger">Logger</h3>
-<p>Logger is available from <code>common/logger.h</code> header. There are macros:</p>
+<p>Logger is available from <code>common/logger.h</code>
+Available log priorities are: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code> and <code>ERROR</code>. Each priority
+has macro which should be used to filter messages based on level of importance:</p>
 <ul>
-<li><code>LOGGER(priority)</code> prints message with given priority</li>
-<li><code>LOGGER_IF(priority, condition)</code> prints message with given priority when condition is met</li>
+<li><code>LoggerD()</code> prints message with DEBUG priority</li>
+<li><code>LoggerI()</code> prints message with INFO priority</li>
+<li><code>LoggerW()</code> prints message with WARNING priority</li>
+<li><p><code>LoggerE()</code> prints message with ERROR priority</p>
+<p>Example:</p>
+</li>
 </ul>
-<p>Available log priorities are: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>
-and should be used to filter messages based on level of importance. Example:</p>
-<pre class="prettyprint linenums"><code class="lang-cpp">LOGGER(ERROR) &lt;&lt; &quot;Scan file failed, error: &quot; &lt;&lt; res;
-LOGGER_IF(DEBUG, variable &lt; 0) &lt;&lt; &quot;Value is lower than zero&quot;;
+<pre class="prettyprint linenums"><code class="lang-cpp">LoggerD(&quot;Entered to getAll() function&quot;);
+LoggerI(&quot;Data size: %d&quot;, object-&gt;data-&gt;size);
+LoggerW(&quot;Data in %s object is empty&quot;, object-&gt;name);
+LoggerE(&quot;Error occurred while getting data [%d]&quot;, error);
 </code></pre>
 <h3 id="implementation-c/error-handling">Error handling</h3>
 <p>Regarding to <a href="http://google-styleguide.googlecode.com/svn/trunk/cppguide.html#Exceptions">Google C++ Style Guide</a> we do not use Exceptions.</p>
 <p>To deliver error conditions to JavaScript layer, that can occur in the platform,
-<code>PlatformResult</code> class should be used. All available error codes are defined
+<code>LogAndReportError</code> or <code>ReportError</code> method should be used. All available error codes are defined
 in <code>common/platform_result.h</code></p>
-<p>PlatformResult can be returned anywhere in native layer and it should be
-converted to exception and thrown in JavaScript layer:</p>
+<p>LogAndReportError can be used anywhere in native layer. It sets PlatformResult error object in response
+object which should be converted to exception and thrown in JavaScript layer:</p>
 <pre class="prettyprint linenums"><code class="lang-cpp">// C++ layer
-return PlatformResult(ErrorCode::NOT_FOUND_ERR, &quot;Cannot remove notification error&quot;);
-return PlatformResult(ErrorCode::UNKNOWN_ERR, &quot;Cannot get notification id error&quot;);
+LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, &quot;Cannot remove notification error&quot;), &amp;out);
+LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, &quot;Cannot get notification id error&quot;), &amp;out);
 </code></pre>
 <pre class="prettyprint linenums"><code class="lang-js">// JavaScript layer
 var native_ = new xwalk.utils.NativeManager(extension);

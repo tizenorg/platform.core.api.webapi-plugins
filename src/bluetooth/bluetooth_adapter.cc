@@ -1563,10 +1563,10 @@ void BluetoothAdapter::OnSocketConnected(
             ErrorCode::NOT_FOUND_ERR, "Not found"), &response->get<picojson::object>());
       }
 
-      object->instance_.AsyncResponse(request->second->callback_handle_, response);
-
-      // request has been handled, can be safely removed
+      // request will be handled, can be safely removed
       object->connection_requests_.erase(request);
+
+      object->instance_.SyncResponse(request->second->callback_handle_, response);
     } else {  // disconnected when Client
       if (result == BT_ERROR_NONE) {
         object->RemoveSocket(connection->socket_fd);

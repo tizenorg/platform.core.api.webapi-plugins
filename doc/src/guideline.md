@@ -4,7 +4,7 @@
 
 C++, JavaScript
 
-### Codding style
+### Coding style
 
 Use Google style guide,
 C++: http://google-styleguide.googlecode.com/svn/trunk/cppguide.html

@@ -20,6 +20,7 @@
 #include <gesture_recognition.h>
 #include <location_batch.h>
 #include <sensor.h>
+#include <sensor_internal.h>
 
 #include "common/logger.h"
 #include "common/optional.h"
@@ -50,6 +51,85 @@ const std::string kSampleInterval = "sampleInterval";
 
 const std::string kStatus = "status";
 const std::string kTimestamp = "timestamp";
+
+const std::string kStepStatus = "stepStatus";
+const std::string kSpeed = "speed";
+const std::string kWalkingFrequency = "walkingFrequency";
+const std::string kCumulativeDistance = "cumulativeDistance";
+const std::string kCumulativeCalorie = "cumulativeCalorie";
+const std::string kCumulativeTotalStepCount = "cumulativeTotalStepCount";
+const std::string kCumulativeWalkStepCount = "cumulativeWalkStepCount";
+const std::string kCumulativeRunStepCount = "cumulativeRunStepCount";
+const std::string kStepCountDifferences = "stepCountDifferences";
+const std::string kStepCountDifference = "stepCountDifference";
+
+const std::string kAccumulativeDistance = "accumulativeDistance";
+const std::string kAccumulativeCalorie = "accumulativeCalorie";
+const std::string kAccumulativeTotalStepCount = "accumulativeTotalStepCount";
+const std::string kAccumulativeWalkStepCount = "accumulativeWalkStepCount";
+const std::string kAccumulativeRunStepCount = "accumulativeRunStepCount";
+
+// helper structure, allows easier access to data values
+struct PedometerDataWrapper : public sensor_pedometer_data_t {
+  inline float steps() const {
+    return values[0];
+  }
+
+  inline float walk_steps() const {
+    return values[1];
+  }
+
+  inline float run_steps() const {
+    return values[2];
+  }
+
+  inline float distance() const {
+    return values[3];
+  }
+
+  inline float calories() const {
+    return values[4];
+  }
+
+  inline float speed() const {
+    return values[5];
+  }
+
+  inline float frequency() const {
+    return values[6];
+  }
+
+  inline sensor_pedometer_state_e state() const {
+    return static_cast<sensor_pedometer_state_e>(values[7]);
+  }
+};
+
+void InsertStepDifference(float step_difference, float timestamp, picojson::array* out) {
+  ScopeLogger();
+
+  picojson::object d;
+
+  d.insert(std::make_pair(kStepCountDifference, picojson::value(step_difference)));
+  d.insert(std::make_pair(kTimestamp, picojson::value(timestamp)));
+
+  out->push_back(picojson::value{d});
+}
+
+std::string FromSensorPedometerState(sensor_pedometer_state_e e) {
+  switch (e) {
+    case SENSOR_PEDOMETER_STATE_STOP:
+      return "NOT_MOVING";
+
+    case SENSOR_PEDOMETER_STATE_WALK:
+      return "WALKING";
+
+    case SENSOR_PEDOMETER_STATE_RUN:
+      return "RUNNING";
+
+    default:
+      return "UNKNOWN";
+  }
+}
 
 }  // namespace
 
@@ -318,6 +398,13 @@ class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivity
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                                   "Failed to create sensor listener",
                                   ("Failed to create (%d) sensor listener, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+
+      ret = sensor_listener_set_option(handle_, SENSOR_OPTION_ALWAYS_ON);
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set sensor listener option",
+                                  ("Failed to set (%d) sensor listener option, error: %d (%s)", sensor_, ret, get_error_message(ret)));
       }
 
       int interval = 0;
@@ -808,6 +895,51 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     : activity_recognition_(std::make_shared<ActivityRecognition>()) {
   ScopeLogger();
 
+  auto convert_pedometer = [](sensor_event_s* event, picojson::object* data) -> PlatformResult {
+    ScopeLogger("convert_pedometer");
+
+    const auto pedometer_data = (PedometerDataWrapper*)event;
+
+    static const auto initial_pedometer_data = *pedometer_data;  // will be initialized only once
+    static float steps_so_far = 0.0;
+
+    const auto state = pedometer_data->state();
+
+    if (SENSOR_PEDOMETER_STATE_UNKNOWN == state) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown sensor step state");
+    }
+
+    data->insert(std::make_pair(kStepStatus, picojson::value(FromSensorPedometerState(state))));
+    data->insert(std::make_pair(kSpeed, picojson::value(pedometer_data->speed())));
+    data->insert(std::make_pair(kWalkingFrequency, picojson::value(pedometer_data->frequency())));
+
+    data->insert(std::make_pair(kCumulativeDistance, picojson::value(pedometer_data->distance() - initial_pedometer_data.distance())));
+    data->insert(std::make_pair(kCumulativeCalorie, picojson::value(pedometer_data->calories() - initial_pedometer_data.calories())));
+    data->insert(std::make_pair(kCumulativeTotalStepCount, picojson::value(pedometer_data->steps() - initial_pedometer_data.steps())));
+    data->insert(std::make_pair(kCumulativeWalkStepCount, picojson::value(pedometer_data->walk_steps() - initial_pedometer_data.walk_steps())));
+    data->insert(std::make_pair(kCumulativeRunStepCount, picojson::value(pedometer_data->run_steps() - initial_pedometer_data.run_steps())));
+
+    data->insert(std::make_pair(kAccumulativeDistance, picojson::value(pedometer_data->distance())));
+    data->insert(std::make_pair(kAccumulativeCalorie, picojson::value(pedometer_data->calories())));
+    data->insert(std::make_pair(kAccumulativeTotalStepCount, picojson::value(pedometer_data->steps())));
+    data->insert(std::make_pair(kAccumulativeWalkStepCount, picojson::value(pedometer_data->walk_steps())));
+    data->insert(std::make_pair(kAccumulativeRunStepCount, picojson::value(pedometer_data->run_steps())));
+
+    auto& diffs = data->insert(std::make_pair(kStepCountDifferences, picojson::value{picojson::array{}})).first->second.get<picojson::array>();
+
+    if (pedometer_data->diffs_count > 0) {
+      for (int i = 0; i < pedometer_data->diffs_count; ++i) {
+        InsertStepDifference(pedometer_data->diffs[i].steps, pedometer_data->diffs[i].timestamp, &diffs);
+      }
+    } else {
+      InsertStepDifference(steps_so_far > 0.0 ? pedometer_data->steps() - steps_so_far : 0.0, pedometer_data->timestamp, &diffs);
+    }
+
+    steps_so_far = pedometer_data->steps();
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  };
+
   auto convert_hrm = [](sensor_event_s* event, picojson::object* data) -> PlatformResult {
     ScopeLogger("convert_hrm");
 
@@ -872,7 +1004,7 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     return PlatformResult(ErrorCode::NO_ERROR);
   };
 
-  monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor>(kActivityTypePedometer)));  // not supported
+  monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor::SensorMonitor>(kActivityTypePedometer, SENSOR_HUMAN_PEDOMETER, convert_pedometer)));
   monitors_.insert(std::make_pair(kActivityTypeWristUp, std::make_shared<Monitor::GestureMonitor>(kActivityTypeWristUp)));
   monitors_.insert(std::make_pair(kActivityTypeHrm, std::make_shared<Monitor::SensorMonitor>(kActivityTypeHrm, SENSOR_HRM, convert_hrm)));
   monitors_.insert(std::make_pair(kActivityTypeGps, std::make_shared<Monitor::GpsMonitor>(kActivityTypeGps)));

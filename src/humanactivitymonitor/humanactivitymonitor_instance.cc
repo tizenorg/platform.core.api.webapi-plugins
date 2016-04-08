@@ -54,10 +54,6 @@ HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
                 HumanActivityMonitorManagerStart);
   REGISTER_SYNC("HumanActivityMonitorManager_stop",
                 HumanActivityMonitorManagerStop);
-  REGISTER_SYNC("HumanActivityMonitorManager_setAccumulativePedometerListener",
-                HumanActivityMonitorManagerSetAccumulativePedometerListener);
-  REGISTER_SYNC("HumanActivityMonitorManager_unsetAccumulativePedometerListener",
-                HumanActivityMonitorManagerUnsetAccumulativePedometerListener);
   REGISTER_SYNC("HumanActivityMonitorManager_addActivityRecognitionListener",
                 HumanActivityMonitorManagerAddActivityRecognitionListener);
   REGISTER_SYNC("HumanActivityMonitorManager_removeActivityRecognitionListener",
@@ -202,24 +198,6 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
   } else {
     LogAndReportError(result, &out, ("Failed: manager_->UnsetListener()"));
   }
-}
-
-void HumanActivityMonitorInstance::HumanActivityMonitorManagerSetAccumulativePedometerListener(
-    const picojson::value& args, picojson::object& out) {
-  LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
-
-  // TODO(r.galka) implement
-}
-
-void HumanActivityMonitorInstance::HumanActivityMonitorManagerUnsetAccumulativePedometerListener(
-    const picojson::value& args, picojson::object& out) {
-  LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
-
-  // TODO(r.galka) implement
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerAddActivityRecognitionListener(

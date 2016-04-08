@@ -137,6 +137,8 @@ const std::string kDataModelVersion = "dataModelVersion";
 const std::string kResultType = "resultType";
 const std::string kTriggerType = "triggerType";
 
+const std::string kResult = "result";
+
 using common::TizenResult;
 using common::TizenSuccess;
 
@@ -1146,7 +1148,7 @@ common::TizenResult IotconUtils::ResponseToJson(iotcon_response_h handle,
         LogAndReturnTizenError(result, ("iotcon_response_get_result() failed"));
       }
       std::string result_str = FromResponseResultType(response);
-      res->insert(std::make_pair(kResultType, picojson::value{result_str}));
+      res->insert(std::make_pair(kResult, picojson::value{result_str}));
     }
 
     {

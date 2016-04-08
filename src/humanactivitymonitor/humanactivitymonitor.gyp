@@ -25,6 +25,7 @@
               'motion',
               'capi-system-sensor',
               'capi-location-manager',
+              'sensor',
             ]
           },
         }],

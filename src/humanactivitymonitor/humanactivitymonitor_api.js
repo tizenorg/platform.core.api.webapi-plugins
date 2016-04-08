@@ -32,6 +32,8 @@ function SetReadOnlyProperty(obj, n, v) {
   Object.defineProperty(obj, n, {value: v, writable: false});
 }
 
+var ACCUMULATIVE_PEDOMETER_DATA = 'ACCUMULATIVE_PEDOMETER_DATA';
+
 var HumanActivityType = {
   PEDOMETER: 'PEDOMETER',
   WRIST_UP: 'WRIST_UP',
@@ -67,8 +69,9 @@ var SleepStatus = {
 function convertActivityData(type, data) {
   switch (type) {
     case HumanActivityType.PEDOMETER:
-      // TODO(r.galka) Not Supported in current implementation
-      return undefined;
+      return new HumanActivityPedometerData(data);
+    case ACCUMULATIVE_PEDOMETER_DATA:
+      return new HumanActivityAccumulativePedometerData(data);
     case HumanActivityType.WRIST_UP:
       return null;
     case HumanActivityType.HRM:
@@ -206,6 +209,22 @@ function stopListener(listenerId, method, data) {
   native_.removeListener(listenerId);
 }
 
+// Pedometer listener and accumulative pedometer listener are handled by a single
+// callback. Native side sends both objects, JS side needs to pass the data to
+// appropriate listeners.
+var pedometerListener = null;
+var accumulativePedometerListener = null;
+
+function pedometerCallback(result) {
+  if (pedometerListener) {
+    pedometerListener(convertActivityData(HumanActivityType.PEDOMETER, result));
+  }
+
+  if (accumulativePedometerListener) {
+    accumulativePedometerListener(convertActivityData(ACCUMULATIVE_PEDOMETER_DATA, result));
+  }
+}
+
 HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
@@ -241,11 +260,13 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
     break;
   }
 
+  var listener = HumanActivityType.PEDOMETER === args.type ? pedometerCallback : function(result) {
+    native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
+  };
+
   console.log("callbackInterval = " + callbackInterval + ", sampleInterval = " + sampleInterval);
   startListener(listenerId,
-                function(result) {
-                  native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
-                },
+                listener,
                 'HumanActivityMonitorManager_start',
                 { type: args.type,
                   listenerId: listenerId,
@@ -253,6 +274,10 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
                   sampleInterval: sampleInterval
                 }
                );
+
+  if (HumanActivityType.PEDOMETER === args.type) {
+    pedometerListener = args.changedCallback;
+  }
 };
 
 HumanActivityMonitorManager.prototype.stop = function(type) {
@@ -263,29 +288,34 @@ HumanActivityMonitorManager.prototype.stop = function(type) {
   stopListener('HumanActivityMonitor_'  + args.type,
                'HumanActivityMonitorManager_stop',
                { type: args.type });
+
+  if (HumanActivityType.PEDOMETER === args.type) {
+    pedometerListener = null;
+  }
 };
 
-var accumulativePedometerListenerId = 'HumanActivityMonitor_AccumulativePedometerListener';
-
-HumanActivityMonitorManager.prototype.setAccumulativePedometerListener = function(changeCallback) {
+HumanActivityMonitorManager.prototype.setAccumulativePedometerListener = function() {
   var args = validator_.validateArgs(arguments, [
     {name: 'changeCallback', type: types_.FUNCTION}
   ]);
 
-  var listenerId = accumulativePedometerListenerId;
+  var oldPedometerListener = pedometerListener;
 
-  startListener(listenerId,
-                function(result) {
-                  args.changeCallback(convertActivityData(HumanActivityType.PEDOMETER, result));
-                },
-                'HumanActivityMonitorManager_setAccumulativePedometerListener',
-                { listenerId: listenerId });
+  // calling start() will overwrite pedometerListener, needs to be restored afterwards
+  this.start(HumanActivityType.PEDOMETER, args.changeCallback);
+
+  accumulativePedometerListener = args.changeCallback;
+  pedometerListener = oldPedometerListener;
 };
 
 HumanActivityMonitorManager.prototype.unsetAccumulativePedometerListener = function() {
-  stopListener(accumulativePedometerListenerId,
-               'HumanActivityMonitorManager_unsetAccumulativePedometerListener',
-               {});
+  var oldPedometerListener = pedometerListener;
+
+  // calling stop() will overwrite pedometerListener, needs to be restored afterwards
+  this.stop(HumanActivityType.PEDOMETER);
+
+  accumulativePedometerListener = null;
+  pedometerListener = oldPedometerListener;
 };
 
 
@@ -327,9 +357,9 @@ HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = functi
   activityRecognitionListener.removeListener(args.watchId);
 };
 
-function StepDifference() {
-  SetReadOnlyProperty(this, 'stepCountDifference', null);
-  SetReadOnlyProperty(this, 'timestamp', null);
+function StepDifference(data) {
+  SetReadOnlyProperty(this, 'stepCountDifference', data.stepCountDifference);
+  SetReadOnlyProperty(this, 'timestamp', data.timestamp);
 }
 
 
@@ -337,32 +367,42 @@ function HumanActivityData() {
 }
 
 
-function HumanActivityPedometerData() {
-  SetReadOnlyProperty(this, 'stepStatus', null);
-  SetReadOnlyProperty(this, 'speed', null);
-  SetReadOnlyProperty(this, 'walkingFrequency', null);
-  SetReadOnlyProperty(this, 'cumulativeDistance', null);
-  SetReadOnlyProperty(this, 'cumulativeCalorie', null);
-  SetReadOnlyProperty(this, 'cumulativeTotalStepCount', null);
-  SetReadOnlyProperty(this, 'cumulativeWalkStepCount', null);
-  SetReadOnlyProperty(this, 'cumulativeRunStepCount', null);
-  SetReadOnlyProperty(this, 'stepCountDifferences', null);
+function HumanActivityPedometerData(data) {
+  SetReadOnlyProperty(this, 'stepStatus', data.stepStatus);
+  SetReadOnlyProperty(this, 'speed', data.speed);
+  SetReadOnlyProperty(this, 'walkingFrequency', data.walkingFrequency);
+  SetReadOnlyProperty(this, 'cumulativeDistance', data.cumulativeDistance);
+  SetReadOnlyProperty(this, 'cumulativeCalorie', data.cumulativeCalorie);
+  SetReadOnlyProperty(this, 'cumulativeTotalStepCount', data.cumulativeTotalStepCount);
+  SetReadOnlyProperty(this, 'cumulativeWalkStepCount', data.cumulativeWalkStepCount);
+  SetReadOnlyProperty(this, 'cumulativeRunStepCount', data.cumulativeRunStepCount);
+
+  var steps = [];
+  for (var i = 0; i < data.stepCountDifferences.length; ++i) {
+    steps.push(new StepDifference(data.stepCountDifferences[i]));
+  }
+  SetReadOnlyProperty(this, 'stepCountDifferences', steps);
 }
 
 HumanActivityPedometerData.prototype = new HumanActivityData();
 HumanActivityPedometerData.prototype.constructor = HumanActivityPedometerData;
 
 
-function HumanActivityAccumulativePedometerData() {
-  SetReadOnlyProperty(this, 'stepStatus', null);
-  SetReadOnlyProperty(this, 'speed', null);
-  SetReadOnlyProperty(this, 'walkingFrequency', null);
-  SetReadOnlyProperty(this, 'accumulativeDistance', null);
-  SetReadOnlyProperty(this, 'accumulativeCalorie', null);
-  SetReadOnlyProperty(this, 'accumulativeTotalStepCount', null);
-  SetReadOnlyProperty(this, 'accumulativeWalkStepCount', null);
-  SetReadOnlyProperty(this, 'accumulativeRunStepCount', null);
-  SetReadOnlyProperty(this, 'stepCountDifferences', null);
+function HumanActivityAccumulativePedometerData(data) {
+  SetReadOnlyProperty(this, 'stepStatus', data.stepStatus);
+  SetReadOnlyProperty(this, 'speed', data.speed);
+  SetReadOnlyProperty(this, 'walkingFrequency', data.walkingFrequency);
+  SetReadOnlyProperty(this, 'accumulativeDistance', data.accumulativeDistance);
+  SetReadOnlyProperty(this, 'accumulativeCalorie', data.accumulativeCalorie);
+  SetReadOnlyProperty(this, 'accumulativeTotalStepCount', data.accumulativeTotalStepCount);
+  SetReadOnlyProperty(this, 'accumulativeWalkStepCount', data.accumulativeWalkStepCount);
+  SetReadOnlyProperty(this, 'accumulativeRunStepCount', data.accumulativeRunStepCount);
+
+  var steps = [];
+  for (var i = 0; i < data.stepCountDifferences.length; ++i) {
+    steps.push(new StepDifference(data.stepCountDifferences[i]));
+  }
+  SetReadOnlyProperty(this, 'stepCountDifferences', steps);
 }
 
 HumanActivityAccumulativePedometerData.prototype = new HumanActivityData();

@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.62
+Version:    0.63
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -112,6 +112,8 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nbs_support                     0
 %endif
 
+%define tizen_feature_tvinputdevice_support           0
+
 %endif # tizen_profile_mobile
 
 ####################################################################
@@ -193,6 +195,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_web_setting_support             0
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             1
+%define tizen_feature_tvinputdevice_support           0
 
 #- telephony related APIs
 # CallHistory API is optional in Tizen Wearable Profile.
@@ -255,7 +258,8 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
 %define tizen_feature_wi_fi_support                   1
-%define tizen_feature_inputdevice_support             1
+%define tizen_feature_inputdevice_support             0
+%define tizen_feature_tvinputdevice_support           1
 
 %endif # tizen_profile_tv
 
@@ -338,6 +342,7 @@ BuildRequires: pkgconfig(capi-web-url-download)
 BuildRequires: pkgconfig(motion)
 BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires: pkgconfig(capi-location-manager)
+BuildRequires: pkgconfig(sensor)
 %endif
 
 %if 0%{?tizen_feature_iotcon_support}
@@ -424,6 +429,7 @@ BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires:  pkgconfig(capi-system-media-key)
 %endif
 
+
 %description
 Tizen Web APIs implemented.
 
@@ -491,6 +497,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{?tizen_feature_time_sup
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
 
 ./tools/gyp/gyp $GYP_OPTIONS src/tizen-wrt.gyp
 

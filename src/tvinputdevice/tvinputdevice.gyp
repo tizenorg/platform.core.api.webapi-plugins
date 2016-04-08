@@ -4,28 +4,25 @@
   ],
   'targets': [
     {
-      'target_name': 'tizen_mediakey',
+      'target_name': 'tizen_tvinputdevice',
       'type': 'loadable_module',
       'dependencies': [
         '../common/common.gyp:tizen_common',
       ],
       'sources': [
-        'mediakey_api.js',
-        'mediakey_extension.cc',
-        'mediakey_extension.h',
-        'mediakey_instance.cc',
-        'mediakey_instance.h',
-        'mediakey_manager.cc',
-        'mediakey_manager.h'
+        'tvinputdevice_api.js',
+        'tvinputdevice_extension.cc',
+        'tvinputdevice_extension.h',
+        'tvinputdevice_instance.cc',
+        'tvinputdevice_instance.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
       ],
       'conditions': [
         ['tizen == 1', {
-         'variables': {
+          'variables': {
             'packages': [
-              'capi-system-media-key',
             ]
           },
         }],

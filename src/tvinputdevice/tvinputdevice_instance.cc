@@ -15,20 +15,20 @@
  */
  
 
-#include "../inputdevice/inputdevice_instance.h"
+#include "../tvinputdevice/tvinputdevice_instance.h"
 #include "common/logger.h"
 
 
 namespace extension {
-namespace inputdevice {
+namespace tvinputdevice {
 
-InputDeviceInstance::InputDeviceInstance() {
+TVInputDeviceInstance::TVInputDeviceInstance() {
     LoggerD("Enter");
 }
 
-InputDeviceInstance::~InputDeviceInstance() {
+TVInputDeviceInstance::~TVInputDeviceInstance() {
     LoggerD("Enter");
 }
 
-}  // namespace inputdevice
+}  // namespace tvinputdevice
 }  // namespace extension

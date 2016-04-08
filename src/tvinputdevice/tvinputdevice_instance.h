@@ -13,22 +13,26 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
 
-#include "../inputdevice/inputdevice_instance.h"
-#include "common/logger.h"
+#ifndef SRC_TVINPUTDEVICE_TVINPUTDEVICE_INSTANCE_H_
+#define SRC_TVINPUTDEVICE_TVINPUTDEVICE_INSTANCE_H_
+
+#include "common/picojson.h"
+#include "common/extension.h"
 
 
 namespace extension {
-namespace inputdevice {
+namespace tvinputdevice {
 
-InputDeviceInstance::InputDeviceInstance() {
-    LoggerD("Enter");
-}
+class TVInputDeviceInstance : public common::ParsedInstance {
+ public:
+    TVInputDeviceInstance();
+    virtual ~TVInputDeviceInstance();
 
-InputDeviceInstance::~InputDeviceInstance() {
-    LoggerD("Enter");
-}
+ private:
+};
 
-}  // namespace inputdevice
+}  // namespace tvinputdevice
 }  // namespace extension
+
+#endif  // SRC_TVINPUTDEVICE_TVINPUTDEVICE_INSTANCE_H_

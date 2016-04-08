@@ -287,6 +287,13 @@
             ],
           },
         ],
+        [
+          'tizen_feature_tvinputdevice_support==1', {
+            'dependencies': [
+              'tvinputdevice/tvinputdevice.gyp:*'
+            ],
+          },
+        ],
       ], # end conditions
     },
   ], # end targets

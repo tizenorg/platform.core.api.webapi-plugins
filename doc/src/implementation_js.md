@@ -110,20 +110,6 @@ var args = validator_.validateArgs(arguments, [
 ]);
 ```
 
-#### Privileges
-
-Some of the API methods require privilege access, then it's the first step
-in JavaScript file which should be checked.
-
-Below can be found example of using Privilege in Alarm API:
-
-```js
-var Privilege = xwalk.utils.privilege;
-
-// inside add, remove, removeAll methods:
-xwalk.utils.checkPrivilegeAccess(Privilege.ALARM);
-```
-
 ### Exceptions
 
 At some point whether improper data is received or given to JavaScript might

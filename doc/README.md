@@ -34,3 +34,10 @@ git config --global url.https://.insteadOf git://
 Server certificate verification failed? - try this command:
 
 git config --global http.sslverify false
+
+If you meet generating error:(weird error 127)
+sudo npm install npm -g
+npm install
+sudo apt-get install node
+sudo apt-get install nodejs-legacy
+

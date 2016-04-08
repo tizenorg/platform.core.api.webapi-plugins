@@ -16,6 +16,19 @@ Example: If operation should change some object retrieved from platform,
 identifier should be passed again and additional check if object still exists
 should be made.
 
+### Privileges
+
+Some of the API methods require privilege access. In Tizen 3.0 checking if application has privilege
+to call method has been moved to C++ layer. It's the first step which should be checked.
+
+Below can be found example of using Privilege in Alarm API:
+
+```cpp
+const std::string kPrivilegeAlarm = "http://tizen.org/privilege/alarm.get";
+
+// inside add, remove, removeAll methods:
+CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
+```
 ### Namespace and entry points
 
 Extension namespace and other objects exported by JavaScript layer are defined
@@ -79,15 +92,15 @@ void InstanceClass::HandlerName(const picojson::value& args, picojson::object& o
 - ```out``` - object containing response data returned synchronously to JavaScript
   layer.
 
-```ReportSuccess()``` or ```ReportError()``` helpers should be used to ensure
-proper structure of ```out``` object.
+```ReportSuccess()```, ```ReportError()``` or ```LogAndReportError()``` helpers should be used to ensure
+proper structure of ```out``` object. ```LogAndReportError()``` expands ```ReportError()``` function.
+It sets error in ```out``` object but additionally prints message if ```ERROR``` log priority is on.
 
 ```cpp
 picojson::value data = picojson::value<picojson::object());
 const PlatformResult& result = model_->DoSomethingWithData(&data);
 if (!result) {
-  LOGGER(ERROR) << result.message();
-  ReportError(result, &out);
+  LogAndReportError(result, &out);
   return;
 }
 
@@ -118,7 +131,7 @@ auto search = [this, args]() -> void {
   if (result) {
     ReportSuccess(servers, response_obj);
   } else {
-    ReportError(result, &response_obj);
+    LogAndReportError(result, &response_obj);
   }
 
   // post JSON string to JS layer
@@ -138,7 +151,7 @@ passed from JavaScript layer.
 auto listener = [this, args](picojson::value* data) -> void {
 
   if (!data) {
-    LOGGER(ERROR) << "No data passed to json callback";
+    LoggerW("No data passed to json callback");
     return;
   }
 
@@ -151,16 +164,21 @@ auto listener = [this, args](picojson::value* data) -> void {
 
 ### Logger
 
-Logger is available from ```common/logger.h``` header. There are macros:
-* ```LOGGER(priority)``` prints message with given priority
-* ```LOGGER_IF(priority, condition)``` prints message with given priority when condition is met
+Logger is available from ```common/logger.h```
+Available log priorities are: ```DEBUG```, ```INFO```, ```WARN``` and ```ERROR```. Each priority
+has macro which should be used to filter messages based on level of importance:
+* ```LoggerD()``` prints message with DEBUG priority
+* ```LoggerI()``` prints message with INFO priority
+* ```LoggerW()``` prints message with WARNING priority
+* ```LoggerE()``` prints message with ERROR priority
 
-Available log priorities are: ```DEBUG```, ```INFO```, ```WARN```, ```ERROR```
-and should be used to filter messages based on level of importance. Example:
+ Example:
 
 ```cpp
-LOGGER(ERROR) << "Scan file failed, error: " << res;
-LOGGER_IF(DEBUG, variable < 0) << "Value is lower than zero";
+LoggerD("Entered to getAll() function");
+LoggerI("Data size: %d", object->data->size);
+LoggerW("Data in %s object is empty", object->name);
+LoggerE("Error occurred while getting data [%d]", error);
 ```
 
 ### Error handling
@@ -168,16 +186,16 @@ LOGGER_IF(DEBUG, variable < 0) << "Value is lower than zero";
 Regarding to [Google C++ Style Guide][2] we do not use Exceptions.
 
 To deliver error conditions to JavaScript layer, that can occur in the platform,
-```PlatformResult``` class should be used. All available error codes are defined
+```LogAndReportError``` or ```ReportError``` method should be used. All available error codes are defined
 in ```common/platform_result.h```
 
-PlatformResult can be returned anywhere in native layer and it should be
-converted to exception and thrown in JavaScript layer:
+LogAndReportError can be used anywhere in native layer. It sets PlatformResult error object in response
+object which should be converted to exception and thrown in JavaScript layer:
 
 ```cpp
 // C++ layer
-return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot remove notification error");
-return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get notification id error");
+LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot remove notification error"), &out);
+LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get notification id error"), &out);
 ```
 
 ```js
