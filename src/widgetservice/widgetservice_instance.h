@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#ifndef WIDGET_WIDGET_INSTANCE_H_
-#define WIDGET_WIDGET_INSTANCE_H_
+#ifndef WIDGETSERVICE_WIDGET_INSTANCE_H_
+#define WIDGETSERVICE_WIDGET_INSTANCE_H_
 
 #include <mutex>
 #include <map>
@@ -23,12 +23,12 @@
 #include "common/tizen_instance.h"
 
 namespace extension {
-namespace widget {
+namespace widgetservice {
 
-class WidgetInstance : public common::TizenInstance {
+class WidgetServiceInstance : public common::TizenInstance {
  public:
-  WidgetInstance();
-  virtual ~WidgetInstance();
+  WidgetServiceInstance();
+  virtual ~WidgetServiceInstance();
   void CallWidgetLifecycleListener(const std::string& widget_id, const picojson::value& response);
  private:
   //WidgetManager
@@ -52,7 +52,7 @@ class WidgetInstance : public common::TizenInstance {
   std::map<std::string, int> listener_map_;
 };
 
-} // namespace widget
+} // namespace widgetservice
 } // namespace extension
 
-#endif // WIDGET_WIDGET_INSTANCE_H_
+#endif // WIDGETSERVICE_WIDGET_INSTANCE_H_

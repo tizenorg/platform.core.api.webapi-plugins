@@ -391,10 +391,10 @@ Widget.prototype.removeChangeListener = function() {
   }
 };
 
-function WidgetManager() {
+function WidgetServiceManager() {
 };
 
-WidgetManager.prototype.getWidget = function() {
+WidgetServiceManager.prototype.getWidget = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'widgetId',
     type : types.STRING,
@@ -403,7 +403,7 @@ WidgetManager.prototype.getWidget = function() {
   var callArgs = {};
   callArgs.widgetId = args.widgetId;
 
-  var ret = native.callSync('WidgetManager_getWidget', callArgs);
+  var ret = native.callSync('WidgetServiceManager_getWidget', callArgs);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -412,7 +412,7 @@ WidgetManager.prototype.getWidget = function() {
   }
 };
 
-WidgetManager.prototype.getWidgets = function() {
+WidgetServiceManager.prototype.getWidgets = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'successCallback',
     type : types.FUNCTION,
@@ -442,13 +442,13 @@ WidgetManager.prototype.getWidgets = function() {
     callArgs.packageId = args.packageId;
   }
 
-  var result = native.call('WidgetManager_getWidgets', callArgs, callback);
+  var result = native.call('WidgetServiceManager_getWidgets', callArgs, callback);
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   }
 };
 
-WidgetManager.prototype.getPrimaryWidgetId = function() {
+WidgetServiceManager.prototype.getPrimaryWidgetId = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'id',
     type : types.STRING,
@@ -457,7 +457,7 @@ WidgetManager.prototype.getPrimaryWidgetId = function() {
   var callArgs = {};
   callArgs.id = args.id;
 
-  var ret = native.callSync('WidgetManager_getPrimaryWidgetId', callArgs);
+  var ret = native.callSync('WidgetServiceManager_getPrimaryWidgetId', callArgs);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -466,7 +466,7 @@ WidgetManager.prototype.getPrimaryWidgetId = function() {
   }
 };
 
-WidgetManager.prototype.getSize = function() {
+WidgetServiceManager.prototype.getSize = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'sizeType',
     type: types.ENUM,
@@ -476,7 +476,7 @@ WidgetManager.prototype.getSize = function() {
   var callArgs = {};
   callArgs.sizeType = args.sizeType;
 
-  var ret = native.callSync('WidgetManager_getSize', callArgs);
+  var ret = native.callSync('WidgetServiceManager_getSize', callArgs);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -486,4 +486,4 @@ WidgetManager.prototype.getSize = function() {
 };
 
 //Exports
-exports = new WidgetManager();
+exports = new WidgetServiceManager();

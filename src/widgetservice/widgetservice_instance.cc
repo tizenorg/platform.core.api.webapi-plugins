@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include "widget/widget_instance.h"
+#include "widgetservice/widgetservice_instance.h"
 
 #include <thread>
 
@@ -23,16 +23,16 @@
 #include <bundle.h>
 #include <bundle_internal.h>
 
-#include "widget/widget_utils.h"
+#include "widgetservice/widgetservice_utils.h"
 #include "common/scope_exit.h"
 
 namespace extension {
-namespace widget {
+namespace widgetservice {
 
 using common::TizenResult;
 using common::TizenSuccess;
 
-std::mutex WidgetInstance::listener_mutex_;
+std::mutex WidgetServiceInstance::listener_mutex_;
 
 namespace {
 const common::ListenerToken kWidgetChangeCallbackToken{"WidgetChangeCallback"};
@@ -59,7 +59,7 @@ int WidgetListCb(const char* pkgid, const char* widget_id, int is_primary, void*
 
   picojson::value val = picojson::value(picojson::object());
 
-  auto result = WidgetUtils::WidgetToJson(widget_id, &val.get<picojson::object>(), pkgid);
+  auto result = WidgetServiceUtils::WidgetToJson(widget_id, &val.get<picojson::object>(), pkgid);
   if (result) {
     array->push_back(val);
   }
@@ -80,7 +80,7 @@ int WidgetListByPkgIdCb(const char* widget_id, int is_primary, void* data) {
 
   picojson::value val = picojson::value(picojson::object());
 
-  auto result = WidgetUtils::WidgetToJson(widget_id, &val.get<picojson::object>());
+  auto result = WidgetServiceUtils::WidgetToJson(widget_id, &val.get<picojson::object>());
   if (result) {
     array->push_back(val);
   }
@@ -113,7 +113,7 @@ int WidgetLifecycleCb(const char* widget_id, widget_lifecycle_event_e lifecycle_
     return WIDGET_ERROR_NONE;
   }
 
-  WidgetInstance* instance = static_cast<WidgetInstance*>(data);
+  WidgetServiceInstance* instance = static_cast<WidgetServiceInstance*>(data);
 
   if (!instance) {
     LoggerW("User data is null");
@@ -125,7 +125,7 @@ int WidgetLifecycleCb(const char* widget_id, widget_lifecycle_event_e lifecycle_
 
   obj.insert(std::make_pair(kWidgetId, picojson::value(widget_id)));
   obj.insert(std::make_pair(kInstanceId, picojson::value(widget_instance_id)));
-  obj.insert(std::make_pair(kEvent, picojson::value(WidgetUtils::FromEventType(lifecycle_event))));
+  obj.insert(std::make_pair(kEvent, picojson::value(WidgetServiceUtils::FromEventType(lifecycle_event))));
 
   instance->CallWidgetLifecycleListener(widget_id, response);
 
@@ -134,17 +134,17 @@ int WidgetLifecycleCb(const char* widget_id, widget_lifecycle_event_e lifecycle_
 
 }  // namespace
 
-WidgetInstance::WidgetInstance() {
+WidgetServiceInstance::WidgetServiceInstance() {
   ScopeLogger();
   using std::placeholders::_1;
   using std::placeholders::_2;
 
 #define REGISTER_SYNC(c, x) \
-  RegisterSyncHandler(c, std::bind(&WidgetInstance::x, this, _1));
+  RegisterSyncHandler(c, std::bind(&WidgetServiceInstance::x, this, _1));
 
-  REGISTER_SYNC("WidgetManager_getWidget", GetWidget);
-  REGISTER_SYNC("WidgetManager_getPrimaryWidgetId", GetPrimaryWidgetId);
-  REGISTER_SYNC("WidgetManager_getSize", GetSize);
+  REGISTER_SYNC("WidgetServiceManager_getWidget", GetWidget);
+  REGISTER_SYNC("WidgetServiceManager_getPrimaryWidgetId", GetPrimaryWidgetId);
+  REGISTER_SYNC("WidgetServiceManager_getSize", GetSize);
   REGISTER_SYNC("Widget_getName", GetName);
   REGISTER_SYNC("Widget_getVariant", GetVariant);
   REGISTER_SYNC("Widget_addChangeListener", AddChangeListener);
@@ -155,16 +155,16 @@ WidgetInstance::WidgetInstance() {
 #undef REGISTER_SYNC
 
 #define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&WidgetInstance::x, this, _1, _2));
+  RegisterHandler(c, std::bind(&WidgetServiceInstance::x, this, _1, _2));
 
-  REGISTER_ASYNC("WidgetManager_getWidgets", GetWidgets);
+  REGISTER_ASYNC("WidgetServiceManager_getWidgets", GetWidgets);
   REGISTER_ASYNC("Widget_getInstances", GetInstances);
   REGISTER_ASYNC("Widget_getVariants", GetVariants);
   REGISTER_ASYNC("WidgetInstance_getContent", GetContent);
 #undef REGISTER_ASYNC
 }
 
-WidgetInstance::~WidgetInstance() {
+WidgetServiceInstance::~WidgetServiceInstance() {
   ScopeLogger();
 
   std::lock_guard<std::mutex> lock(listener_mutex_);
@@ -178,7 +178,7 @@ WidgetInstance::~WidgetInstance() {
   listener_map_.clear();
 }
 
-TizenResult WidgetInstance::GetWidget(const picojson::object& args) {
+TizenResult WidgetServiceInstance::GetWidget(const picojson::object& args) {
   ScopeLogger();
 
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
@@ -189,7 +189,7 @@ TizenResult WidgetInstance::GetWidget(const picojson::object& args) {
   picojson::value value {picojson::object{}};
   auto* obj = &value.get<picojson::object>();
 
-  auto result = WidgetUtils::WidgetToJson(widget_id.c_str(), obj);
+  auto result = WidgetServiceUtils::WidgetToJson(widget_id.c_str(), obj);
   if (!result) {
     LogAndReturnTizenError(result, ("GetWidget() failed"));
   }
@@ -197,7 +197,7 @@ TizenResult WidgetInstance::GetWidget(const picojson::object& args) {
   return TizenSuccess(value);
 }
 
-TizenResult WidgetInstance::GetWidgets(const picojson::object& args,
+TizenResult WidgetServiceInstance::GetWidgets(const picojson::object& args,
                                                const common::AsyncToken& token) {
   ScopeLogger();
 
@@ -224,7 +224,7 @@ TizenResult WidgetInstance::GetWidgets(const picojson::object& args,
 
     if (WIDGET_ERROR_NONE != ret) {
       LoggerE("widget_service_get_widget_list() failed");
-      result = WidgetUtils::ConvertErrorCode(ret);
+      result = WidgetServiceUtils::ConvertErrorCode(ret);
     } else {
       result = TizenSuccess{response};
     }
@@ -237,7 +237,7 @@ TizenResult WidgetInstance::GetWidgets(const picojson::object& args,
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::GetPrimaryWidgetId(const picojson::object& args) {
+TizenResult WidgetServiceInstance::GetPrimaryWidgetId(const picojson::object& args) {
   ScopeLogger();
 
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
@@ -248,7 +248,7 @@ TizenResult WidgetInstance::GetPrimaryWidgetId(const picojson::object& args) {
   char* widget_id = widget_service_get_widget_id(id.c_str());
   if (!widget_id) {
     LogAndReturnTizenError(
-        WidgetUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_widget_id() failed"));
+        WidgetServiceUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_widget_id() failed"));
   }
 
   SCOPE_EXIT {
@@ -258,12 +258,12 @@ TizenResult WidgetInstance::GetPrimaryWidgetId(const picojson::object& args) {
   return TizenSuccess(picojson::value(widget_id));
 }
 
-TizenResult WidgetInstance::GetSize(const picojson::object& args) {
+TizenResult WidgetServiceInstance::GetSize(const picojson::object& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kSizeType, out)
 
-  widget_size_type_e type = WidgetUtils::ToSizeType(args.find(kSizeType)->second.get<std::string>());
+  widget_size_type_e type = WidgetServiceUtils::ToSizeType(args.find(kSizeType)->second.get<std::string>());
   if (WIDGET_SIZE_TYPE_UNKNOWN == type) {
     LogAndReturnTizenError(common::InvalidValuesError(), ("incorrect size type"));
   }
@@ -271,7 +271,7 @@ TizenResult WidgetInstance::GetSize(const picojson::object& args) {
   picojson::value value{picojson::object{}};
   auto* obj = &value.get<picojson::object>();
 
-  auto result = WidgetUtils::SizeToJson(type, obj);
+  auto result = WidgetServiceUtils::SizeToJson(type, obj);
   if (!result) {
     LogAndReturnTizenError(result, ("GetSize() failed"));
   }
@@ -279,7 +279,7 @@ TizenResult WidgetInstance::GetSize(const picojson::object& args) {
   return TizenSuccess(value);
 }
 
-TizenResult WidgetInstance::GetName(picojson::object const& args) {
+TizenResult WidgetServiceInstance::GetName(picojson::object const& args) {
   ScopeLogger();
 
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
@@ -296,7 +296,7 @@ TizenResult WidgetInstance::GetName(picojson::object const& args) {
   char* name = widget_service_get_name(widget_id.c_str(), lang);
   if (!name) {
     LogAndReturnTizenError(
-        WidgetUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_name() failed"));
+        WidgetServiceUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_name() failed"));
   }
 
   SCOPE_EXIT {
@@ -306,7 +306,7 @@ TizenResult WidgetInstance::GetName(picojson::object const& args) {
   return TizenSuccess(picojson::value(name));
 }
 
-TizenResult WidgetInstance::GetInstances(picojson::object const& args, const common::AsyncToken& token) {
+TizenResult WidgetServiceInstance::GetInstances(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -323,7 +323,7 @@ TizenResult WidgetInstance::GetInstances(picojson::object const& args, const com
 
     if (WIDGET_ERROR_NONE != ret) {
       LoggerE("widget_service_get_widget_instance_list() failed");
-      result = WidgetUtils::ConvertErrorCode(ret);
+      result = WidgetServiceUtils::ConvertErrorCode(ret);
     } else {
       result = TizenSuccess{response};
     }
@@ -336,7 +336,7 @@ TizenResult WidgetInstance::GetInstances(picojson::object const& args, const com
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
+TizenResult WidgetServiceInstance::GetVariant(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -345,7 +345,7 @@ TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
   const auto& type = args.find(kSizeType)->second.get<std::string>();
 
-  widget_size_type_e size_type = WidgetUtils::ToSizeType(type);
+  widget_size_type_e size_type = WidgetServiceUtils::ToSizeType(type);
   if (WIDGET_SIZE_TYPE_UNKNOWN == size_type) {
     LogAndReturnTizenError(common::InvalidValuesError(), ("incorrect size type"));
   }
@@ -353,12 +353,12 @@ TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
   picojson::value value{picojson::object{}};
   auto* obj = &value.get<picojson::object>();
 
-  auto result = WidgetUtils::SizeToJson(size_type, obj);
+  auto result = WidgetServiceUtils::SizeToJson(size_type, obj);
   if (!result) {
     LogAndReturnTizenError(result, ("GetVariant() failed"));
   }
 
-  result = WidgetUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
+  result = WidgetServiceUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
   if (!result) {
     LogAndReturnTizenError(result, ("GetVariant() failed"));
   }
@@ -369,7 +369,7 @@ TizenResult WidgetInstance::GetVariant(picojson::object const& args) {
   return TizenSuccess(value);
 }
 
-TizenResult WidgetInstance::GetVariants(picojson::object const& args, const common::AsyncToken& token) {
+TizenResult WidgetServiceInstance::GetVariants(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
@@ -384,7 +384,7 @@ TizenResult WidgetInstance::GetVariants(picojson::object const& args, const comm
 
     if (WIDGET_ERROR_NONE != ret) {
       LoggerE("widget_service_get_supported_size_types() failed");
-      this->Post(token, WidgetUtils::ConvertErrorCode(ret));
+      this->Post(token, WidgetServiceUtils::ConvertErrorCode(ret));
       return;
     }
 
@@ -404,17 +404,17 @@ TizenResult WidgetInstance::GetVariants(picojson::object const& args, const comm
       picojson::object* obj = &val.get<picojson::object>();
 
       widget_size_type_e size_type = static_cast<widget_size_type_e>(type_array[i]);
-      result = WidgetUtils::SizeToJson(size_type, obj);
+      result = WidgetServiceUtils::SizeToJson(size_type, obj);
       if (!result) {
         break;
       }
 
-      result = WidgetUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
+      result = WidgetServiceUtils::WidgetVariantToJson(widget_id.c_str(), size_type, obj);
       if (!result) {
         break;
       }
 
-      obj->insert(std::make_pair(kSizeType, picojson::value(WidgetUtils::FromSizeType(size_type))));
+      obj->insert(std::make_pair(kSizeType, picojson::value(WidgetServiceUtils::FromSizeType(size_type))));
       array.push_back(val);
     }
 
@@ -430,7 +430,7 @@ TizenResult WidgetInstance::GetVariants(picojson::object const& args, const comm
   return TizenSuccess();
 }
 
-void WidgetInstance::CallWidgetLifecycleListener(const std::string& widget_id,
+void WidgetServiceInstance::CallWidgetLifecycleListener(const std::string& widget_id,
                                                  const picojson::value& response) {
   ScopeLogger();
 
@@ -444,7 +444,7 @@ void WidgetInstance::CallWidgetLifecycleListener(const std::string& widget_id,
   LoggerW("widget id was not found.");
 }
 
-TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
+TizenResult WidgetServiceInstance::AddChangeListener(picojson::object const& args) {
   ScopeLogger();
 
   //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
@@ -462,7 +462,7 @@ TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
   int ret = widget_service_set_lifecycle_event_cb(widget_id.c_str(), WidgetLifecycleCb , this);
   if (WIDGET_ERROR_NONE != ret) {
     LogAndReturnTizenError(
-        WidgetUtils::ConvertErrorCode(ret), ("widget_service_set_lifecycle_event_cb() failed"));
+        WidgetServiceUtils::ConvertErrorCode(ret), ("widget_service_set_lifecycle_event_cb() failed"));
   }
 
   listener_map_[widget_id]++;
@@ -470,7 +470,7 @@ TizenResult WidgetInstance::AddChangeListener(picojson::object const& args) {
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
+TizenResult WidgetServiceInstance::RemoveChangeListener(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -488,7 +488,7 @@ TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
     int ret = widget_service_unset_lifecycle_event_cb(widget_id.c_str(), nullptr);
     if (WIDGET_ERROR_NONE != ret) {
       LogAndReturnTizenError(
-          WidgetUtils::ConvertErrorCode(ret), ("widget_service_unset_lifecycle_event_cb() failed"));
+          WidgetServiceUtils::ConvertErrorCode(ret), ("widget_service_unset_lifecycle_event_cb() failed"));
     }
     listener_map_.erase(it);
   }
@@ -496,7 +496,7 @@ TizenResult WidgetInstance::RemoveChangeListener(picojson::object const& args) {
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {
+TizenResult WidgetServiceInstance::ChangeUpdatePeriod(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -511,13 +511,13 @@ TizenResult WidgetInstance::ChangeUpdatePeriod(picojson::object const& args) {
 
   if (WIDGET_ERROR_NONE != ret) {
     LogAndReturnTizenError(
-        WidgetUtils::ConvertErrorCode(ret), ("widget_service_change_period() failed"));
+        WidgetServiceUtils::ConvertErrorCode(ret), ("widget_service_change_period() failed"));
   }
 
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::SendContent(picojson::object const& args) {
+TizenResult WidgetServiceInstance::SendContent(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -547,13 +547,13 @@ TizenResult WidgetInstance::SendContent(picojson::object const& args) {
   ret = widget_service_trigger_update(widget_id.c_str(), instance_id.c_str(), data, force);
   if (WIDGET_ERROR_NONE != ret) {
     LogAndReturnTizenError(
-        WidgetUtils::ConvertErrorCode(ret), ("widget_service_trigger_update() failed"));
+        WidgetServiceUtils::ConvertErrorCode(ret), ("widget_service_trigger_update() failed"));
   }
 
   return TizenSuccess();
 }
 
-TizenResult WidgetInstance::GetContent(picojson::object const& args, const common::AsyncToken& token) {
+TizenResult WidgetServiceInstance::GetContent(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -580,7 +580,7 @@ TizenResult WidgetInstance::GetContent(picojson::object const& args, const commo
                                                         instance_id.c_str(), &bundle_data);
     if (WIDGET_ERROR_NONE != ret) {
       LoggerE("widget_service_get_content_of_widget_instance() failed");
-      this->Post(token, WidgetUtils::ConvertErrorCode(ret));
+      this->Post(token, WidgetServiceUtils::ConvertErrorCode(ret));
       return;
     }
 
@@ -609,5 +609,5 @@ TizenResult WidgetInstance::GetContent(picojson::object const& args, const commo
   return TizenSuccess();
 }
 
-} // namespace widget
+} // namespace widgetservice
 } // namespace extension

@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
-#define WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
+#ifndef WEBAPI_PLUGINS_WIDGETSERVICE_WIDGET_UTILS_H__
+#define WEBAPI_PLUGINS_WIDGETSERVICE_WIDGET_UTILS_H__
 
 #include <string>
 
@@ -24,7 +24,7 @@
 #include "common/tizen_result.h"
 
 namespace extension {
-namespace widget {
+namespace widgetservice {
 
 #define CHECK_EXIST(args, name, out) \
   if (args.end() == args.find(name)) { \
@@ -38,7 +38,7 @@ extern const std::string kSizeType;
 extern const std::string kWidth;
 extern const std::string kHeight;
 
-class WidgetUtils {
+class WidgetServiceUtils {
  public:
   static widget_size_type_e ToSizeType(const std::string& e);
   static std::string FromSizeType(widget_size_type_e e);
@@ -50,7 +50,7 @@ class WidgetUtils {
 
 };
 
-} // widget
+} // widgetservice
 } // extension
 
-#endif // WEBAPI_PLUGINS_WIDGET_WIDGET_UTILS_H__
+#endif // WEBAPI_PLUGINS_WIDGETSERVICE_WIDGET_UTILS_H__
