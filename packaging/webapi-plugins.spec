@@ -80,6 +80,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
+%define tizen_feature_preference_support              1
 %define tizen_feature_push_support                    1
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_se_support                      0
@@ -180,6 +181,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
+%define tizen_feature_preference_support              1
 %define tizen_feature_push_support                    1
 %if 0%{?model_build_feature_smartcard }
 %define tizen_feature_se_support                      1
@@ -248,6 +250,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            0
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   0
+%define tizen_feature_preference_support              0
 %define tizen_feature_push_support                    0
 %define tizen_feature_se_support                      0
 %define tizen_feature_sensor_support                  0
@@ -485,6 +488,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_nfc_support=%{?tizen_feature_nfc_suppo
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_notification_support=%{?tizen_feature_notification_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_package_support=%{?tizen_feature_package_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_power_support=%{?tizen_feature_power_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_preference_support=%{?tizen_feature_preference_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_push_support=%{?tizen_feature_push_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_sap_support=%{?tizen_feature_sap_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_sensor_support=%{?tizen_feature_sensor_support}"
