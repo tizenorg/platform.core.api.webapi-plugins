@@ -301,6 +301,13 @@
             ],
           },
         ],
+        [
+          'tizen_feature_widget_support==1', {
+            'dependencies': [
+              'widget/widget.gyp:*',
+            ],
+          },
+        ],
       ], # end conditions
     },
   ], # end targets
