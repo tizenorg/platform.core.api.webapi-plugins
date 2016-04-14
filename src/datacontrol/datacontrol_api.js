@@ -112,7 +112,6 @@ DataControlManager.prototype.getDataControlConsumer = function(providerId, dataI
   return getDataControlConsumer.apply(null, arguments);
 };
 
-
 function DataControlConsumerObject() {
   // constructor of DataControlConsumerObject
 }
@@ -134,11 +133,17 @@ SQLDataControlConsumer.prototype.insert = function(reqId, insertionData) {
     {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  // doing conversion of all elements to string
+  var ins = validator_.validateArgs([args.insertionData.columns, args.insertionData.values], [
+    {name : 'columns', type : types_.ARRAY, values : types_.STRING},
+    {name : 'values', type : types_.ARRAY, values : types_.STRING}
+  ]);
+
   var nativeParam = {
     'providerId': this.providerId,
     'dataId': this.dataId,
     'reqId': args.reqId,
-    'insertionData': insertionData
+    'insertionData': args.insertionData
   };
   try {
     var syncResult =
