@@ -23,6 +23,7 @@
 #include "common/logger.h"
 #include "common/optional.h"
 #include "common/platform_exception.h"
+#include "common/scope_exit.h"
 #include "common/task-queue.h"
 #include "common/tools.h"
 
@@ -191,6 +192,7 @@ class SensorData {
   virtual PlatformResult SetChangeListener(unsigned int interval);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
+  virtual PlatformResult GetHardwareInfo(picojson::object* data);
 
   sensor_type_e type() const { return type_enum_; }
   bool is_supported();
@@ -444,6 +446,98 @@ PlatformResult SensorData::GetSensorData(picojson::object* data) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult SensorData::GetHardwareInfo(picojson::object* data) {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+
+  auto res = CheckInitialization();
+
+  if (!res) {
+    LoggerE("Sensor initialization for sensor %s failed", type_to_string_map[type_enum_].c_str());
+    return res;
+  }
+
+  sensor_type_e type = type_enum_;
+  char *vendor = nullptr;
+  char *name = nullptr;
+  float min_range = 0;
+  float max_range = 0;
+  float resolution = 0;
+  int min_interval = 0;
+  int max_batch_count = 0;
+
+  SCOPE_EXIT {
+    free(name);
+    free(vendor);
+  };
+
+  auto native_result = [](int ret) -> PlatformResult{
+    switch(ret){
+      case SENSOR_ERROR_IO_ERROR:
+        return PlatformResult(ErrorCode::IO_ERR);
+
+      case SENSOR_ERROR_OPERATION_FAILED:
+        return PlatformResult(ErrorCode::ABORT_ERR);
+
+      default:
+        return PlatformResult(ErrorCode::ABORT_ERR);
+    }
+  };
+
+  int ret = sensor_get_name(handle_, &name);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_name error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_vendor(handle_, &vendor);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_vendor error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_type(handle_, &type);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_type error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_min_range(handle_, &min_range);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_min_range error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_max_range(handle_, &max_range);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_max_range error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_resolution(handle_, &resolution);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_resolution error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_min_interval(handle_, &min_interval);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_min_interval error code: %d", &ret);
+    return native_result(ret);
+  }
+  ret = sensor_get_max_batch_count(handle_, &max_batch_count);
+  if (ret != SENSOR_ERROR_NONE) {
+    LoggerE("Failed to sensor_get_max_batch_count error code: %d", &ret);
+    return native_result(ret);
+  }
+
+  (*data)["name"] = picojson::value(std::string(name));
+  (*data)["type"] = picojson::value(type_to_string_map[type]);
+  (*data)["vendor"] = picojson::value(std::string(vendor));
+  (*data)["minValue"] = picojson::value(static_cast<double>(min_range));
+  (*data)["maxValue"] = picojson::value(static_cast<double>(max_range));
+  (*data)["resolution"] = picojson::value(static_cast<double>(resolution));
+  (*data)["minInterval"] = picojson::value(static_cast<double>(min_interval));
+  (*data)["batchCount"] = picojson::value(static_cast<double>(max_batch_count));
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+
+
 class HrmSensorData : public SensorData {
  public:
   explicit HrmSensorData(SensorInstance& instance);
@@ -454,6 +548,7 @@ class HrmSensorData : public SensorData {
   virtual PlatformResult SetChangeListener(unsigned int interval);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
+  virtual PlatformResult GetHardwareInfo(picojson::object* data);
 
  private:
   void AddSensor(SensorData* sensor);
@@ -490,7 +585,6 @@ PlatformResult HrmSensorData::CallMember(PlatformResult (SensorData::*member) ()
       }
     }
   }
-
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -500,7 +594,7 @@ PlatformResult HrmSensorData::IsSupportedImpl(bool* supported) const {
 
   bool hrm_supported = false;
   int ret = sensor_is_supported(SENSOR_HRM, &hrm_supported);
-  if (ret == SENSOR_ERROR_NONE){
+  if (ret == SENSOR_ERROR_NONE) {
     LoggerD("HRM support is: %d", hrm_supported);
     result |= hrm_supported;
   }
@@ -539,7 +633,6 @@ PlatformResult HrmSensorData::SetChangeListener(unsigned int interval) {
       }
     }
   }
-
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -568,6 +661,17 @@ PlatformResult HrmSensorData::GetSensorData(picojson::object* data) {
   (*data)[kListenerId] = picojson::value(kSensorChangedListener);
   (*data)[kSensorTypeTag] = picojson::value(type_to_string_map[default_sensor_type]);
   return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HrmSensorData::GetHardwareInfo(picojson::object* data) {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  for (const auto& sensor : hrm_sensors_) {
+    if (sensor.second->is_supported()) {
+      return sensor.second->GetHardwareInfo(data);
+    }
+  }
+
+  return PlatformResult(ErrorCode::ABORT_ERR);
 }
 
 SensorService::SensorService(SensorInstance& instance)
@@ -774,6 +878,49 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
       get_data_result,
       data);
 
+  ReportSuccess(out);
+}
+
+void SensorService::GetSensorHardwareInfo(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  CHECK_EXIST(args, "callbackId", out);
+  CHECK_EXIST(args, "type", out);
+
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+  sensor_type_e sensor_type = string_to_type_map[args.get("type").get<std::string>()];
+
+  auto get_info = [this, sensor_type](const std::shared_ptr<picojson::value>& result) {
+    picojson::object& object = result->get<picojson::object>();
+
+    auto sensor_data = this->GetSensor(sensor_type);
+
+    if (!sensor_data) {
+      LogAndReportError(PlatformResult(ErrorCode::ABORT_ERR, "Sensor data is null"), &(result->get<picojson::object>()));
+      return;
+    }
+
+    PlatformResult res = sensor_data->GetHardwareInfo(&object);
+
+    if (!res) {
+      LogAndReportError(res, &object, ("Failed to read data for sensor: %s", type_to_string_map[sensor_type].c_str()));
+
+    }else {
+      ReportSuccess(object);
+    }
+  };
+
+  auto get_info_result = [this, callback_id](const std::shared_ptr<picojson::value>& result){
+    result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
+    Instance::PostMessage(&instance_, result->serialize().c_str());
+  };
+
+  auto info = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      get_info,
+      get_info_result,
+      info);
   ReportSuccess(out);
 }
 
