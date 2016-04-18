@@ -98,7 +98,7 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
-%define tizen_feature_widget_support                  0
+%define tizen_feature_widget_service_support          0
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_wi_fi_support                   0
 %else
@@ -196,7 +196,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_telephony_support               0
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             0
-%define tizen_feature_widget_support                  0
+%define tizen_feature_widget_service_support          0
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             1
 %define tizen_feature_tvinputdevice_support           0
@@ -262,7 +262,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_telephony_support               0
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
-%define tizen_feature_widget_support                  0
+%define tizen_feature_widget_service_support          0
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             0
 %define tizen_feature_tvinputdevice_support           1
@@ -504,7 +504,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_telephony_support=%{?tizen_feature_tel
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{?tizen_feature_time_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_widget_support=%{?tizen_feature_widget_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_widget_service_support=%{?tizen_feature_widget_service_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
 

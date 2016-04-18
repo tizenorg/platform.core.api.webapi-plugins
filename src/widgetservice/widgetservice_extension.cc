@@ -14,18 +14,24 @@
  *    limitations under the License.
  */
 
-#ifndef WIDGET_WIDGET_EXTENSION_H_
-#define WIDGET_WIDGET_EXTENSION_H_
+#include "widgetservice/widgetservice_extension.h"
 
-#include "common/extension.h"
+#include "widgetservice/widgetservice_instance.h"
 
-class WidgetExtension : public common::Extension {
- public:
-  WidgetExtension();
-  virtual ~WidgetExtension();
+// This will be generated from widget_api.js
+extern const char kSource_widgetservice_api[];
 
- private:
-  virtual common::Instance* CreateInstance();
-};
+common::Extension* CreateExtension() {
+  return new WidgetExtension;
+}
 
-#endif  // WIDGET_WIDGET_EXTENSION_H_
+WidgetExtension::WidgetExtension() {
+  SetExtensionName("tizen.widgetservice");
+  SetJavaScriptAPI(kSource_widgetservice_api);
+}
+
+WidgetExtension::~WidgetExtension() {}
+
+common::Instance* WidgetExtension::CreateInstance() {
+  return new extension::widgetservice::WidgetServiceInstance();
+}

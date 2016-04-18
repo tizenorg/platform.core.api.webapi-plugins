@@ -302,9 +302,9 @@
           },
         ],
         [
-          'tizen_feature_widget_support==1', {
+          'tizen_feature_widget_service_support==1', {
             'dependencies': [
-              'widget/widget.gyp:*',
+              'widgetservice/widgetservice.gyp:*',
             ],
           },
         ],

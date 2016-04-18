@@ -14,12 +14,12 @@
  *    limitations under the License.
  */
 
-#include "widget_utils.h"
+#include "widgetservice_utils.h"
 
 #include <widget_errno.h>
 
 namespace extension {
-namespace widget {
+namespace widgetservice {
 
 namespace {
 
@@ -65,7 +65,7 @@ const std::string kPreviewImagePath = "previewImagePath";
 using common::TizenResult;
 using common::TizenSuccess;
 
-TizenResult WidgetUtils::ConvertErrorCode(int error) {
+TizenResult WidgetServiceUtils::ConvertErrorCode(int error) {
   switch (error) {
     case WIDGET_ERROR_NONE:
       return TizenSuccess();
@@ -95,7 +95,7 @@ TizenResult WidgetUtils::ConvertErrorCode(int error) {
   }
 }
 
-TizenResult WidgetUtils::WidgetToJson(const char* id, picojson::object* out, const char* pkgid) {
+TizenResult WidgetServiceUtils::WidgetToJson(const char* id, picojson::object* out, const char* pkgid) {
   ScopeLogger();
 
   //applicationId
@@ -144,7 +144,7 @@ TizenResult WidgetUtils::WidgetToJson(const char* id, picojson::object* out, con
   return TizenSuccess();
 }
 
-TizenResult WidgetUtils::SizeToJson(widget_size_type_e type, picojson::object* out) {
+TizenResult WidgetServiceUtils::SizeToJson(widget_size_type_e type, picojson::object* out) {
   ScopeLogger();
 
   int width = 0;
@@ -161,7 +161,7 @@ TizenResult WidgetUtils::SizeToJson(widget_size_type_e type, picojson::object* o
   return TizenSuccess();
 }
 
-TizenResult WidgetUtils::WidgetVariantToJson(
+TizenResult WidgetServiceUtils::WidgetVariantToJson(
     const char* id, widget_size_type_e type, picojson::object* out) {
   ScopeLogger();
 
@@ -209,7 +209,7 @@ TizenResult WidgetUtils::WidgetVariantToJson(
     LoggerE("Unknown value: %d, returning default: %s", e, s); \
     return s;
 
-std::string WidgetUtils::FromSizeType(widget_size_type_e e) {
+std::string WidgetServiceUtils::FromSizeType(widget_size_type_e e) {
   ScopeLogger();
 
   switch (e) {
@@ -217,7 +217,7 @@ std::string WidgetUtils::FromSizeType(widget_size_type_e e) {
   }
 }
 
-std::string WidgetUtils::FromEventType(widget_lifecycle_event_e e) {
+std::string WidgetServiceUtils::FromEventType(widget_lifecycle_event_e e) {
   ScopeLogger();
 
   switch (e) {
@@ -233,7 +233,7 @@ std::string WidgetUtils::FromEventType(widget_lifecycle_event_e e) {
   LoggerE("Unknown value: %s, returning default: %d", e.c_str(), v); \
   return v;
 
-widget_size_type_e WidgetUtils::ToSizeType(const std::string& e) {
+widget_size_type_e WidgetServiceUtils::ToSizeType(const std::string& e) {
   ScopeLogger();
 
   WIDGET_SIZE_TYPE_E
@@ -242,5 +242,5 @@ widget_size_type_e WidgetUtils::ToSizeType(const std::string& e) {
 #undef X
 #undef XD
 
-} // widget
+} // widgetservice
 } // extension
