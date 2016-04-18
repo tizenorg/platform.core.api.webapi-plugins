@@ -50,6 +50,10 @@ const std::string kNoDisplay = "noDisplay";
 const std::string kSizeType = "sizeType";
 const std::string kWidth = "width";
 const std::string kHeight = "height";
+const std::string kNeedsMouseEvents = "needsMouseEvents";
+const std::string kNeedsTouchEffect = "needsTouchEffect";
+const std::string kNeedsFrame = "needsFrame";
+const std::string kPreviewImagePath = "previewImagePath";
 
 using common::TizenResult;
 using common::TizenSuccess;
@@ -132,6 +136,82 @@ TizenResult WidgetUtils::WidgetToJson(const char* id, picojson::object* out, con
 
   return TizenSuccess();
 }
+
+TizenResult WidgetUtils::SizeToJson(widget_size_type_e type, picojson::object* out) {
+  ScopeLogger();
+
+  int width = 0;
+  int height = 0;
+
+  int ret = widget_service_get_size(type, &width, &height);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(ConvertErrorCode(ret), ("widget_service_get_size() failed"));
+  }
+
+  out->insert(std::make_pair(kWidth, picojson::value(static_cast<double>(width))));
+  out->insert(std::make_pair(kHeight, picojson::value(static_cast<double>(height))));
+
+  return TizenSuccess();
+}
+
+TizenResult WidgetUtils::WidgetVariantToJson(
+    const char* id, widget_size_type_e type, picojson::object* out) {
+  ScopeLogger();
+
+  bool tmp = false;
+
+  //needsMouseEvents
+  int ret = widget_service_get_need_of_mouse_event(id, type, &tmp);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        ConvertErrorCode(ret), ("widget_service_get_need_of_mouse_event() failed"));
+  }
+  out->insert(std::make_pair(kNeedsMouseEvents, picojson::value(tmp)));
+
+  //needsTouchEffect
+  ret = widget_service_get_need_of_touch_effect(id, type, &tmp);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        ConvertErrorCode(ret), ("widget_service_get_need_of_touch_effect() failed"));
+  }
+  out->insert(std::make_pair(kNeedsTouchEffect, picojson::value(tmp)));
+
+  //needsFrame
+  ret = widget_service_get_need_of_frame(id, type, &tmp);
+  if (WIDGET_ERROR_NONE != ret) {
+    LogAndReturnTizenError(
+        ConvertErrorCode(ret), ("widget_service_get_need_of_frame() failed"));
+  }
+  out->insert(std::make_pair(kNeedsFrame, picojson::value(tmp)));
+
+  //previewImagePath
+  char* path = widget_service_get_preview_image_path(id, type);
+  if (!path) {
+    LogAndReturnTizenError(
+        ConvertErrorCode(get_last_result()), ("widget_service_get_preview_image_path() failed"));
+  }
+  out->insert(std::make_pair(kPreviewImagePath, picojson::value(path)));
+  free(path);
+
+  return TizenSuccess();
+}
+
+#define X(v, s) case v: return s;
+#define XD(v, s) \
+  default: \
+    LoggerE("Unknown value: %d, returning default: %s", e, s); \
+    return s;
+
+std::string WidgetUtils::FromSizeType(widget_size_type_e e) {
+  ScopeLogger();
+
+  switch (e) {
+    WIDGET_SIZE_TYPE_E
+  }
+}
+
+#undef X
+#undef XD
 
 #define X(v, s) if (e == s) return v;
 #define XD(v, s) \
