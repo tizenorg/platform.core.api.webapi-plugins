@@ -16,11 +16,106 @@
 
 var validator = xwalk.utils.validator;
 var converter = xwalk.utils.converter;
-var type = xwalk.utils.type;
+var types = validator.Types;
 var native = new xwalk.utils.NativeManager(extension);
 
+function createWidgets(e) {
+  var widgets_array = [];
+  var widgets = native.getResultObject(e);
+
+  widgets.forEach(function (data) {
+    widgets_array.push(new Widget(data));
+  });
+
+  return widgets_array;
+};
+
+function Widget(data) {
+  Object.defineProperties(this, {
+    id: {
+      value: data.id,
+      writable: false,
+      enumerable: true
+    },
+    applicationId: {
+      value: data.applicationId,
+      writable: false,
+      enumerable: true
+    },
+    setupApplicationId: {
+      value: data.setupApplicationId ? data.setupApplicationId : null,
+      writable: false,
+      enumerable: true
+    },
+    packageId: {
+      value: data.packageId,
+      writable: false,
+      enumerable: true
+    },
+    noDisplay: {
+      value: data.noDisplay,
+      writable: false,
+      enumerable: true
+    },
+  });
+};
+
 function WidgetManager() {
-}
+};
+
+WidgetManager.prototype.getWidget = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'widgetId',
+    type : types.STRING,
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = args.widgetId;
+
+  var ret = native.callSync('WidgetManager_getWidget', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  } else {
+    return new Widget(native.getResultObject(ret));
+  }
+};
+
+WidgetManager.prototype.getWidgets = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'successCallback',
+    type : types.FUNCTION,
+  }, {
+    name : 'errorCallback',
+    type : types.FUNCTION,
+    optional : true,
+    nullable : true
+  }, {
+    name : 'packageId',
+    type : types.STRING,
+    optional : true,
+    nullable : true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      var widgets = createWidgets(result);
+      args.successCallback(widgets);
+    }
+  };
+
+  var callArgs = {};
+  if (args.packageId) {
+    callArgs.packageId = args.packageId;
+  }
+
+  var result = native.call('WidgetManager_getWidgets', callArgs, callback);
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
 
 //Exports
 exports = new WidgetManager();

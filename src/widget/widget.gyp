@@ -15,6 +15,8 @@
         'widget_extension.h',
         'widget_instance.cc',
         'widget_instance.h',
+        'widget_utils.cc',
+        'widget_utils.h',
       ],
       'conditions': [
         ['tizen == 1', {
