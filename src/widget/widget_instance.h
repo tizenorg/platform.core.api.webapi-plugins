@@ -31,6 +31,8 @@ class WidgetInstance : public common::TizenInstance {
   //WidgetManager
   common::TizenResult GetWidget(picojson::object const& args);
   common::TizenResult GetWidgets(picojson::object const& args, const common::AsyncToken& token);
+  common::TizenResult GetPrimaryWidgetId(picojson::object const& args);
+  common::TizenResult GetSize(picojson::object const& args);
 
 };
 

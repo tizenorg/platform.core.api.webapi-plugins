@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include <widget_service.h>
+
 #include "common/tizen_result.h"
 
 namespace extension {
@@ -31,10 +33,14 @@ namespace widget {
 
 extern const std::string kWidgetId;
 extern const std::string kPackageId;
-
+extern const std::string kId;
+extern const std::string kSizeType;
+extern const std::string kWidth;
+extern const std::string kHeight;
 
 class WidgetUtils {
  public:
+  static widget_size_type_e ToSizeType(const std::string& e);
   static common::TizenResult ConvertErrorCode(int error);
   static common::TizenResult WidgetToJson(const char* id, picojson::object* out, const char* pkgid = nullptr);
 

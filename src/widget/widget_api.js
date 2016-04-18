@@ -17,7 +17,39 @@
 var validator = xwalk.utils.validator;
 var converter = xwalk.utils.converter;
 var types = validator.Types;
+var T = xwalk.utils.type;
 var native = new xwalk.utils.NativeManager(extension);
+
+var WidgetSizeType = {
+  S_1x1 : '1x1',
+  S_2x1 : '2x1',
+  S_2x2 : '2x2',
+  S_4x1 : '4x1',
+  S_4x2 : '4x2',
+  S_4x3 : '4x3',
+  S_4x4 : '4x4',
+  S_4x5 : '4x5',
+  S_4x6 : '4x6',
+  EASY_1x1 : 'EASY_1x1',
+  EASY_3x1 : 'EASY_3x1',
+  EASY_3x3 : 'EASY_3x3',
+  FULL : 'FULL',
+};
+
+function WidgetSize(data) {
+  Object.defineProperties(this, {
+    width: {
+      value: data.width,
+      writable: false,
+      enumerable: true
+    },
+    height: {
+      value: data.height,
+      writable: false,
+      enumerable: true
+    },
+  });
+};
 
 function createWidgets(e) {
   var widgets_array = [];
@@ -114,6 +146,43 @@ WidgetManager.prototype.getWidgets = function() {
   var result = native.call('WidgetManager_getWidgets', callArgs, callback);
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
+  }
+};
+
+WidgetManager.prototype.getPrimaryWidgetId = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'id',
+    type : types.STRING,
+  }]);
+
+  var callArgs = {};
+  callArgs.id = args.id;
+
+  var ret = native.callSync('WidgetManager_getPrimaryWidgetId', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  } else {
+    return native.getResultObject(ret);
+  }
+};
+
+WidgetManager.prototype.getSize = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'sizeType',
+    type: types.ENUM,
+    values: T.getValues(WidgetSizeType)
+  }]);
+
+  var callArgs = {};
+  callArgs.sizeType = args.sizeType;
+
+  var ret = native.callSync('WidgetManager_getSize', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  } else {
+    return new WidgetSize(native.getResultObject(ret));
   }
 };
 
