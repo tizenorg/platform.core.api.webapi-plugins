@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.63
+Version:    0.64
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -80,6 +80,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
+%define tizen_feature_preference_support              1
 %define tizen_feature_push_support                    1
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_se_support                      0
@@ -97,6 +98,7 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
+%define tizen_feature_widget_service_support          0
 %if 0%{?tizen_is_emulator}
 %define tizen_feature_wi_fi_support                   0
 %else
@@ -180,6 +182,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
+%define tizen_feature_preference_support              1
 %define tizen_feature_push_support                    1
 %if 0%{?model_build_feature_smartcard }
 %define tizen_feature_se_support                      1
@@ -193,6 +196,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_telephony_support               0
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             0
+%define tizen_feature_widget_service_support          0
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             1
 %define tizen_feature_tvinputdevice_support           0
@@ -248,6 +252,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            0
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   0
+%define tizen_feature_preference_support              0
 %define tizen_feature_push_support                    0
 %define tizen_feature_se_support                      0
 %define tizen_feature_sensor_support                  0
@@ -257,6 +262,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_telephony_support               0
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
+%define tizen_feature_widget_service_support          0
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             0
 %define tizen_feature_tvinputdevice_support           1
@@ -297,6 +303,7 @@ BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
 BuildRequires: pkgconfig(libtzplatform-config)
+BuildRequires: pkgconfig(widget_service)
 
 %if %{with wayland}
 %define display_type wayland
@@ -485,6 +492,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_nfc_support=%{?tizen_feature_nfc_suppo
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_notification_support=%{?tizen_feature_notification_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_package_support=%{?tizen_feature_package_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_power_support=%{?tizen_feature_power_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_preference_support=%{?tizen_feature_preference_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_push_support=%{?tizen_feature_push_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_sap_support=%{?tizen_feature_sap_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_sensor_support=%{?tizen_feature_sensor_support}"
@@ -496,6 +504,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_telephony_support=%{?tizen_feature_tel
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{?tizen_feature_time_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_widget_service_support=%{?tizen_feature_widget_service_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
 

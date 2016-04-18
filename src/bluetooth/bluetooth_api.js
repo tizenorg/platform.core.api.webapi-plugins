@@ -1370,6 +1370,9 @@ var _bleAdvertiseListener = _singleListenerBuilder('BluetoothLEAdvertiseCallback
     case 'onstate':
       if (successCallback) {
         successCallback(native.getResultObject(event));
+        if (native.getResultObject(event) == 'STOPPED') {
+          _bleAdvertiseListener.removeListener();
+        }
       }
       return ret;
 
@@ -1481,7 +1484,6 @@ BluetoothLEAdapter.prototype.startAdvertise = function() {
 BluetoothLEAdapter.prototype.stopAdvertise = function() {
   console.log('Entered BluetoothLEAdapter.stopAdvertise()');
 
-  _bleAdvertiseListener.removeListener();
   var result = native.callSync('BluetoothLEAdapter_stopAdvertise', {});
 
   if (native.isFailure(result)) {

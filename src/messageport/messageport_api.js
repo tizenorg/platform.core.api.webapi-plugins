@@ -17,6 +17,7 @@
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var type_ = xwalk.utils.type;
+var converter_ = xwalk.utils.converter;
 
 var callbackId = 0;
 var callbacks = {};
@@ -337,6 +338,9 @@ RemoteMessagePort.prototype.sendMessage = function() {
         }
         filtered_data[i] = { key: key, value: value, valueType: 'byteStreamArrayValueType'};
       }
+    } else {
+      // convert any other value to string -> backward compatibility
+      filtered_data[i] = { key: key, value: converter_.toString(value), valueType: 'stringValueType'};
     }
     unique_data_key[key] = true;
   }

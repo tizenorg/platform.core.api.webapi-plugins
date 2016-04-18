@@ -693,15 +693,6 @@ void BluetoothLEAdapter::StopAdvertise(const picojson::value& data, picojson::ob
       return;
     }
 
-    ret = bt_adapter_le_destroy_advertiser(bt_advertiser_);
-    if (BT_ERROR_NONE != ret && BT_ERROR_NOT_IN_PROGRESS != ret) {
-      LogAndReportError(
-          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to destroy advertiser"), &out,
-          ("bt_adapter_le_destroy_advertiser() failed with: %d (%s)",
-            ret, get_error_message(ret)));
-      return;
-    }
-
     bt_advertiser_ = nullptr;
   } else {
     LoggerD("Advertising is not in progress");
@@ -790,6 +781,17 @@ void BluetoothLEAdapter::OnAdvertiseResult(
     LoggerD("Advertise state is: %s", state);
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnAdvertiseState)));
     ReportSuccess(picojson::value(state), *data_obj);
+    if (adv_state == BT_ADAPTER_LE_ADVERTISING_STOPPED){
+      LoggerD("Advertiser destroy");
+      int  ret = bt_adapter_le_destroy_advertiser(advertiser);
+      if (BT_ERROR_NONE != ret && BT_ERROR_NOT_IN_PROGRESS != ret) {
+        LogAndReportError(
+            PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to destroy advertiser"), data_obj,
+            ("bt_adapter_le_destroy_advertiser() failed with: %d (%s)",
+              ret, get_error_message(ret)));
+        return;
+      }
+    }
   }
 
   adapter->instance_.FireEvent(kAdvertiseEvent, value);

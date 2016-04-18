@@ -70,9 +70,7 @@ var Contact = function(data) {
     }
     for (var i = 0; i < arr.length; ++i) {
       if (type_.isString(type)) {
-        if (!type_.isString(arr[i])) {
-          return previousValue;
-        }
+        arr[i] = converter_.toString(arr[i]);
       } else if (_editGuard.isEditEnabled()) {
         arr[i] = new type(arr[i]);
       } else if (!(arr[i] instanceof type)) {

@@ -565,10 +565,13 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
         break;
       }
 
-      std::string& columnName = column.get<std::string>();
-      std::string valueString = value.get<std::string>();
+      const std::string& columnName = column.get<std::string>();
+      const std::string& valueString = value.get<std::string>();
 
-      bundle_add_str(b, columnName.c_str(), valueString.c_str());
+      int result = bundle_add_str(b, columnName.c_str(), valueString.c_str());
+      if (BUNDLE_ERROR_NONE != result) {
+        return result;
+      }
     }
 
     return ::data_control_sql_insert(handle, b, requestId);

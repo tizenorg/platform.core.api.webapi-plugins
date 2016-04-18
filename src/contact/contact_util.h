@@ -132,6 +132,10 @@ common::PlatformResult ImportContactNotesFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonValue *val);
 common::PlatformResult ExportNotesToContactsRecord(
     contacts_record_h contacts_record, const std::string &value);
+common::PlatformResult ImportGroupIdsFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonValue *val);
+common::PlatformResult ExportGroupIdsToContactsRecord(
+    contacts_record_h contacts_record, int value);
 common::PlatformResult ImportContactFromContactsRecord(
     contacts_record_h contacts_record, JsonObject *out);
 common::PlatformResult ExportPersonToContactsRecord(contacts_record_h record,

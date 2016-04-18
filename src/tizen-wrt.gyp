@@ -225,6 +225,13 @@
           },
         ],
         [
+          'tizen_feature_preference_support==1', {
+            'dependencies': [
+              'preference/preference.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_push_support==1', {
             'dependencies': [
               'push/push.gyp:*',
@@ -291,6 +298,13 @@
           'tizen_feature_tvinputdevice_support==1', {
             'dependencies': [
               'tvinputdevice/tvinputdevice.gyp:*'
+            ],
+          },
+        ],
+        [
+          'tizen_feature_widget_service_support==1', {
+            'dependencies': [
+              'widgetservice/widgetservice.gyp:*',
             ],
           },
         ],

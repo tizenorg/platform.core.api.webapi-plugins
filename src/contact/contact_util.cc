@@ -2367,6 +2367,86 @@ PlatformResult ExportNotesToContactsRecord(contacts_record_h contacts_record,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ImportGroupIdsFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonValue* val) {
+
+  LoggerD("Enter");
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
+  if (!contacts_record) {
+    LoggerE("Contacts record is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+  }
+
+  contacts_record_h record = nullptr;
+  int err = contacts_record_get_child_record_at_p(
+      contacts_record, _contacts_contact.group_relation, index, &record);
+  if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
+    // ignoring this record
+    LoggerW("Skipping record with index %i. error code: %i", index, err);
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  int group_id = -1;
+  PlatformResult status =
+      ContactUtil::GetIntFromRecord(record, _contacts_group_relation.id, &group_id);
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  if (-1 == group_id) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Fetching groupId failed");
+  }
+  *val = JsonValue{std::to_string(group_id)};
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ExportGroupIdsToContactsRecord(contacts_record_h contacts_record,
+                                           int value) {
+
+  LoggerD("Enter");
+  contacts_record_h notes_record = nullptr;
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
+  if (!contacts_record) {
+    LoggerE("Contacts record is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+  }
+
+  int err = contacts_record_create(_contacts_group_relation._uri, &notes_record);
+  PlatformResult status =
+      ContactUtil::ErrorChecker(err, "Fail to create note record in database");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  ContactsRecordHPtr record(&notes_record, ContactsDeleter);
+
+  status = ContactUtil::SetIntInRecord(notes_record, _contacts_group_relation.group_id,
+                                       value);
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  err = contacts_record_add_child_record(contacts_record,
+                                         _contacts_contact.group_relation, notes_record);
+  status =
+      ContactUtil::ErrorChecker(err, "Fail to save note record in database");
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
+
+  // Do not delete record, it is passed to the platform
+  record.release();
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult ImportContactFromContactsRecord(
     contacts_record_h contacts_record, JsonObject* out_ptr) {
 
@@ -2593,6 +2673,29 @@ PlatformResult ImportContactFromContactsRecord(
             "vibrationURI",
             value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
+
+    //### groupIds: ###
+    JsonArray& group_ids = out.insert(std::make_pair(std::string("groupIds"),
+        picojson::value(JsonArray()))).first->second.get<JsonArray>();
+
+    status = ContactUtil::GetNumberOfChildRecord(
+        contacts_record, _contacts_contact.group_relation, &child_rec_count);
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
+
+    for (int i = 0; i < child_rec_count; ++i) {
+      JsonValue val{JsonObject{}};
+
+      status = ImportGroupIdsFromContactsRecord(contacts_record, static_cast<unsigned int>(i), &val);
+      if (status.IsError()) {
+        LoggerE("Error: %s", status.message().c_str());
+        return status;
+      }
+
+      group_ids.push_back(val);
+    }
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2781,6 +2884,26 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
       return status;
     }
   }
+
+  {
+    //### groupIds: ###
+    PlatformResult status = ContactUtil::ClearAllContactRecord(
+        contacts_record, _contacts_contact.group_relation);
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
+
+    const JsonArray& elements = FromJson<JsonArray>(in, "groupIds");
+    for (auto& element : elements) {
+      auto& str = JsonCast<JsonString>(element);
+      if (str.empty()) {
+        continue;
+      }
+      ExportGroupIdsToContactsRecord(contacts_record, atoi(str.c_str()));
+    }
+  }
+
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
