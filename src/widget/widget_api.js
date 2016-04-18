@@ -36,6 +36,24 @@ var WidgetSizeType = {
   FULL : 'FULL',
 };
 
+var WidgetLifecycleEventType = {
+  CREATE : 'CREATE',
+  DESTROY : 'DESTROY',
+  PAUSE : 'PAUSE',
+  RESUME : 'RESUME',
+};
+
+function createObjects(data, func, widget) {
+  var array = [];
+  var objects = native.getResultObject(data);
+
+  objects.forEach(function (d) {
+    array.push(new func(d, widget));
+  });
+
+  return array;
+};
+
 function WidgetSize(data) {
   Object.defineProperties(this, {
     width: {
@@ -51,15 +69,128 @@ function WidgetSize(data) {
   });
 };
 
-function createWidgets(e) {
-  var widgets_array = [];
-  var widgets = native.getResultObject(e);
-
-  widgets.forEach(function (data) {
-    widgets_array.push(new Widget(data));
+function WidgetVariant(data) {
+  Object.defineProperties(this, {
+    sizeType: {
+      value: data.sizeType,
+      writable: false,
+      enumerable: true
+    },
+    width: {
+      value: data.width,
+      writable: false,
+      enumerable: true
+    },
+    height: {
+      value: data.height,
+      writable: false,
+      enumerable: true
+    },
+    previewImagePath: {
+      value: data.previewImagePath,
+      writable: false,
+      enumerable: true
+    },
+    needsMouseEvents: {
+      value: data.needsMouseEvents,
+      writable: false,
+      enumerable: true
+    },
+    needsTouchEffect: {
+      value: data.needsTouchEffect,
+      writable: false,
+      enumerable: true
+    },
+    needsFrame: {
+      value: data.needsFrame,
+      writable: false,
+      enumerable: true
+    },
   });
+};
 
-  return widgets_array;
+function WidgetInstance(data, widget) {
+  Object.defineProperties(this, {
+    widget: {
+      value: widget,
+      writable: false,
+      enumerable: true
+    },
+    id: {
+      value: data.id,
+      writable: false,
+      enumerable: true
+    },
+  });
+};
+
+WidgetInstance.prototype.changeUpdatePeriod = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'period',
+    type : types.DOUBLE,
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = this.widget.id;
+  callArgs.instanceId = this.id;
+  callArgs.period = args.period;
+
+  var ret = native.callSync('WidgetInstance_changeUpdatePeriod', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+};
+
+WidgetInstance.prototype.sendContent = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'data',
+    type : types.ARRAY,
+    values: types.BYTE
+  }, {
+    name : 'force',
+    type : types.BOOLEAN,
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = this.widget.id;
+  callArgs.instanceId = this.id;
+  callArgs.data = args.data;
+  callArgs.force = args.force;
+
+  var ret = native.callSync('WidgetInstance_sendContent', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+};
+
+WidgetInstance.prototype.getContent = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'successCallback',
+    type : types.FUNCTION,
+  }, {
+    name : 'errorCallback',
+    type : types.FUNCTION,
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = this.widget.id;
+  callArgs.instanceId = this.id;
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      args.errorCallback(native.getErrorObject(result));
+    } else {
+      //TODO what is type of returned data
+      args.successCallback(native.getResultObject(result));
+    }
+  };
+
+  var result = native.call('WidgetInstance_getContent', callArgs, callback);
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
 function Widget(data) {
@@ -90,6 +221,177 @@ function Widget(data) {
       enumerable: true
     },
   });
+};
+
+Widget.prototype.getName = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'lang',
+    type : types.STRING,
+    optional : true,
+    nullable : true
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = this.id;
+  callArgs.lang = args.lang;
+
+  var ret = native.callSync('Widget_getName', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  } else {
+    return native.getResultObject(ret).name;
+  }
+};
+
+Widget.prototype.getInstances = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'successCallback',
+    type : types.FUNCTION,
+  }, {
+    name : 'errorCallback',
+    type : types.FUNCTION,
+    optional : true,
+    nullable : true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      var instances = createObjects(result, WidgetInstance, this);
+      args.successCallback(instances);
+    }
+  };
+
+  var callArgs = {};
+  callArgs.widgetId = this.id;
+
+  var result = native.call('Widget_getInstances', callArgs, callback);
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Widget.prototype.getVariant = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'sizeType',
+    type: types.ENUM,
+    values: T.getValues(WidgetSizeType)
+  }]);
+
+  var callArgs = {};
+  callArgs.widgetId = this.id;
+  callArgs.sizeType = args.sizeType;
+
+  var ret = native.callSync('Widget_getVariant', callArgs);
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  } else {
+    return new WidgetVariant(native.getResultObject(ret));
+  }
+};
+
+Widget.prototype.getVariants = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'successCallback',
+    type : types.FUNCTION,
+  }, {
+    name : 'errorCallback',
+    type : types.FUNCTION,
+    optional : true,
+    nullable : true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      var variants = createObjects(result, WidgetVariant);
+      args.successCallback(variants);
+    }
+  };
+
+  var callArgs = {};
+  callArgs.widgetId = this.id;
+
+  var result = native.call('Widget_getVariants', callArgs, callback);
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+function ListenerManager(native, listenerName) {
+  this.listeners = {};
+  this.nextId = 1;
+  this.nativeSet = false;
+  this.native = native;
+  this.listenerName = listenerName;
+};
+
+ListenerManager.prototype.onListenerCalled = function(msg) {
+  for (var watchId in this.listeners) {
+    if (this.listeners.hasOwnProperty(watchId) && this.listeners[watchId][msg.action]) {
+      this.listeners[watchId][msg.action](msg.id, msg.event);
+    }
+  }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+  var id = this.nextId;
+  if (!this.nativeSet) {
+    this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+    this.nativeSet = true;
+  }
+  this.listeners[id] = callback;
+  ++this.nextId;
+  return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId) {
+  if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
+    throw new WebAPIException(0, 'Watch id not found.', 'NotFoundError');
+  }
+
+  if (this.listeners.hasOwnProperty(watchId)) {
+    delete this.listeners[watchId];
+  }
+};
+
+var WIDGET_CHANGE_LISTENER = 'WidgetChangeCallback';
+var widgetChangeListener = new ListenerManager(native, WIDGET_CHANGE_LISTENER);
+
+Widget.prototype.addChangeListener = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'eventCallback',
+    type : types.FUNCTION,
+  }]);
+
+  if (T.isEmptyObject(widgetChangeListener.listeners)) {
+    var result = native.callSync('Widget_addChangeListener', {widgetId : this.id});
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
+
+  return widgetChangeListener.addListener(args.eventCallback);
+};
+
+Widget.prototype.removeChangeListener = function() {
+  var args = validator.validateMethod(arguments, [{
+    name : 'watchId',
+    type : types.LONG,
+  }]);
+
+  widgetChangeListener.removeListener(args.watchId);
+
+  if (T.isEmptyObject(widgetChangeListener.listeners)) {
+    var result = native.callSync('Widget_removeChangeListener', {widgetId : this.id});
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
 };
 
 function WidgetManager() {
@@ -133,7 +435,7 @@ WidgetManager.prototype.getWidgets = function() {
     if (native.isFailure(result)) {
       native.callIfPossible(args.errorCallback, native.getErrorObject(result));
     } else {
-      var widgets = createWidgets(result);
+      var widgets = createObjects(result, Widget);
       args.successCallback(widgets);
     }
   };
