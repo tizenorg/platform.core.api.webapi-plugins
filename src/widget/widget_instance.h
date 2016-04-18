@@ -33,6 +33,17 @@ class WidgetInstance : public common::TizenInstance {
   common::TizenResult GetWidgets(picojson::object const& args, const common::AsyncToken& token);
   common::TizenResult GetPrimaryWidgetId(picojson::object const& args);
   common::TizenResult GetSize(picojson::object const& args);
+  //Widget
+  common::TizenResult GetName(picojson::object const& args);
+  common::TizenResult GetInstances(picojson::object const& args, const common::AsyncToken& token);
+  common::TizenResult GetVariant(picojson::object const& args);
+  common::TizenResult GetVariants(picojson::object const& args, const common::AsyncToken& token);
+  common::TizenResult AddChangeListener(picojson::object const& args);
+  common::TizenResult RemoveChangeListener(picojson::object const& args);
+  //WidgetInstance
+  common::TizenResult ChangeUpdatePeriod(picojson::object const& args);
+  common::TizenResult SendContent(picojson::object const& args);
+  common::TizenResult GetContent(picojson::object const& args, const common::AsyncToken& token);
 
 };
 
