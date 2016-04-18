@@ -17,6 +17,8 @@
 #ifndef PREFERENCE_PREFERENCE_MANAGER_H_
 #define PREFERENCE_PREFERENCE_MANAGER_H_
 
+#include <mutex>
+
 #include "common/picojson.h"
 #include "common/tizen_instance.h"
 
@@ -25,17 +27,20 @@ namespace preference {
 
 class PreferenceManager {
 public:
+  ~PreferenceManager();
+  common::TizenResult GetAll(const common::PostCallback& callback);
   common::TizenResult SetValue(const std::string& key, const picojson::value& value);
   common::TizenResult GetValue(const std::string& key);
   common::TizenResult Remove(const std::string& key);
   common::TizenResult RemoveAll(void);
   common::TizenResult Exists(const std::string& key);
-  common::TizenResult SetChangeListener(const std::string& key, common::PostCallback callback);
+  common::TizenResult SetChangeListener(const std::string& key, const common::PostCallback callback);
   common::TizenResult UnsetChangeListener(const std::string& key);
 
 private:
-  static void ChangedCb(const char* key, void* user_data);
-  common::PostCallback post_callback_;
+  common::PostCallback post_changed_callback_;
+  std::vector<std::string> key_listeners_;
+  static std::mutex key_listener_mtx_;
 };
 
 } // namespace preference
