@@ -36,13 +36,6 @@ var WidgetSizeType = {
   FULL : 'FULL',
 };
 
-var WidgetLifecycleEventType = {
-  CREATE : 'CREATE',
-  DESTROY : 'DESTROY',
-  PAUSE : 'PAUSE',
-  RESUME : 'RESUME',
-};
-
 function createObjects(data, func, widget) {
   var array = [];
   var objects = native.getResultObject(data);
@@ -335,7 +328,7 @@ function ListenerManager(native, listenerName) {
 ListenerManager.prototype.onListenerCalled = function(msg) {
   for (var watchId in this.listeners) {
     if (this.listeners.hasOwnProperty(watchId) && this.listeners[watchId][msg.action]) {
-      this.listeners[watchId][msg.action](msg.id, msg.event);
+      this.listeners[watchId](this.native.getResultObject(msg));
     }
   }
 };
@@ -370,14 +363,18 @@ Widget.prototype.addChangeListener = function() {
     type : types.FUNCTION,
   }]);
 
-  if (T.isEmptyObject(widgetChangeListener.listeners)) {
-    var result = native.callSync('Widget_addChangeListener', {widgetId : this.id});
-    if (native.isFailure(result)) {
-      throw native.getErrorObject(result);
-    }
+  var result = native.callSync('Widget_addChangeListener', {widgetId : this.id});
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
   }
 
-  return widgetChangeListener.addListener(args.eventCallback);
+  var func = function(msg) {
+    if (msg.widgetId === this.id) {
+      args.eventCallback(msg.instanceId, msg.event);
+    }
+  }.bind(this);
+
+  return widgetChangeListener.addListener(func);
 };
 
 Widget.prototype.removeChangeListener = function() {
@@ -388,11 +385,9 @@ Widget.prototype.removeChangeListener = function() {
 
   widgetChangeListener.removeListener(args.watchId);
 
-  if (T.isEmptyObject(widgetChangeListener.listeners)) {
-    var result = native.callSync('Widget_removeChangeListener', {widgetId : this.id});
-    if (native.isFailure(result)) {
-      throw native.getErrorObject(result);
-    }
+  var result = native.callSync('Widget_removeChangeListener', {widgetId : this.id});
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
   }
 };
 

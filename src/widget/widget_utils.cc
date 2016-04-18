@@ -39,6 +39,13 @@ namespace {
   X(WIDGET_SIZE_TYPE_FULL, "FULL") \
   XD(WIDGET_SIZE_TYPE_UNKNOWN, "unknown")
 
+#define WIDGET_LIFECYCLE_EVENT_E \
+  X(WIDGET_LIFE_CYCLE_EVENT_CREATE, "CREATE") \
+  X(WIDGET_LIFE_CYCLE_EVENT_DESTROY, "DESTROY") \
+  X(WIDGET_LIFE_CYCLE_EVENT_PAUSE, "PAUSE") \
+  X(WIDGET_LIFE_CYCLE_EVENT_RESUME, "RESUME") \
+  XD(WIDGET_LIFE_CYCLE_EVENT_MAX, "unknown")
+
 } // namespace
 
 const std::string kWidgetId = "widgetId";
@@ -207,6 +214,14 @@ std::string WidgetUtils::FromSizeType(widget_size_type_e e) {
 
   switch (e) {
     WIDGET_SIZE_TYPE_E
+  }
+}
+
+std::string WidgetUtils::FromEventType(widget_lifecycle_event_e e) {
+  ScopeLogger();
+
+  switch (e) {
+    WIDGET_LIFECYCLE_EVENT_E
   }
 }
 
