@@ -145,8 +145,7 @@ WidgetInstance.prototype.changeUpdatePeriod = function() {
 WidgetInstance.prototype.sendContent = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'data',
-    type : types.ARRAY,
-    values: types.BYTE
+    type: types.DICTIONARY,
   }, {
     name : 'force',
     type : types.BOOLEAN,
@@ -265,7 +264,7 @@ Widget.prototype.getInstances = function() {
       var instances = createObjects(result, WidgetInstance, this);
       args.successCallback(instances);
     }
-  };
+  }.bind(this);
 
   var callArgs = {};
   callArgs.widgetId = this.id;
