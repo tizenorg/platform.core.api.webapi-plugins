@@ -37,6 +37,7 @@
               'capi-appfw-package-manager',
               'pkgmgr',
               'pkgmgr-info',
+              'pkgmgr-installer',
             ]
           },
         }],
