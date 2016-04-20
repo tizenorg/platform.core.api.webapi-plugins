@@ -80,7 +80,7 @@ function Utils() {
     BLUETOOTH_GAP: 'http://tizen.org/privilege/bluetooth',
     BLUETOOTH_HEALTH: 'http://tizen.org/privilege/bluetooth',
     BLUETOOTH_SPP: 'http://tizen.org/privilege/bluetooth',
-    BLUETOOTHMANAGER: 'http://tizen.org/privilege/bluetooth',
+    BLUETOOTHMANAGER: 'http://tizen.org/privilege/bluetooth.admin',
     BLUETOOTH: 'http://tizen.org/privilege/bluetooth',
     BOOKMARK_READ: 'http://tizen.org/privilege/bookmark.admin',
     BOOKMARK_WRITE: 'http://tizen.org/privilege/bookmark.admin',
@@ -92,6 +92,7 @@ function Utils() {
     CONTACT_WRITE: 'http://tizen.org/privilege/contact.write',
     CONTENT_READ: 'http://tizen.org/privilege/content.write',
     CONTENT_WRITE: 'http://tizen.org/privilege/content.write',
+    D2D_DATASHARING: 'http://tizen.org/privilege/d2d.datasharing',
     DATACONTROL_CONSUMER: 'http://tizen.org/privilege/datasharing',
     DATASYNC: 'http://tizen.org/privilege/notexist',
     DOWNLOAD: 'http://tizen.org/privilege/download',
@@ -119,7 +120,7 @@ function Utils() {
     SECUREELEMENT: 'http://tizen.org/privilege/secureelement',
     SETTING: 'http://tizen.org/privilege/systemsettings.admin',
     SYSTEM: 'http://tizen.org/privilege/telephony',
-    SYSTEMMANAGER: 'http://tizen.org/privilege/systemmanager',
+    SYSTEMMANAGER: 'http://tizen.org/privilege/telephony',
     TELEPHONY: 'http://tizen.org/privilege/telephony',
     VOLUME_SET: 'http://tizen.org/privilege/volume.set'
   };
