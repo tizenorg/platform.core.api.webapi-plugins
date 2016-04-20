@@ -35,7 +35,6 @@ class IotconServerManager {
  public:
   static IotconServerManager& GetInstance();
 
-  common::TizenResult RestoreHandles();
   common::TizenResult CreateResource(const std::string& uri_path,
                                      const picojson::array& interfaces_array,
                                      const picojson::array& types_array,

@@ -33,7 +33,6 @@ class IotconClientManager {
  public:
   static IotconClientManager& GetInstance();
 
-  common::TizenResult RestoreHandles();
   common::TizenResult AddPresenceEventListener(const char* host,
                                                const iotcon_connectivity_type_e con_type_e,
                                                const char* resource_type,

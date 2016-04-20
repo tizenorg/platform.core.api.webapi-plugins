@@ -43,41 +43,6 @@ IotconClientManager& IotconClientManager::GetInstance() {
   return instance;
 }
 
-TizenResult IotconClientManager::RestoreHandles() {
-  ScopeLogger();
-
-  for (const auto& it : presence_map_) {
-    LoggerD("Restoring handle for presence event with id: %lld", it.first);
-
-    PresenceEventPtr presence = it.second;
-    char* host = nullptr;
-    char* resource_type = nullptr;
-    iotcon_connectivity_type_e con_type = IOTCON_CONNECTIVITY_IPV4;
-
-    auto res = IotconUtils::ExtractFromPresenceEvent(presence, &host,
-                                                   &con_type, &resource_type);
-    if (!res){
-      return res;
-    }
-
-    const iotcon_presence_h old_handle = presence->handle;
-    int ret = iotcon_add_presence_cb(host, con_type, resource_type,
-                                     PresenceHandler, this,&(presence->handle));
-    if (IOTCON_ERROR_NONE != ret || nullptr == presence->handle) {
-      LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
-                             ("iotcon_add_presence_cb() failed: %d (%s)",
-                                 ret, get_error_message(ret)));
-    }
-    if (old_handle) {
-      LoggerD("destroy handle which is currently invalid: %p", old_handle);
-      iotcon_remove_presence_cb(old_handle);
-    }
-    LoggerD("new handle: %p", (presence->handle));
-  }
-
-  return TizenSuccess();
-}
-
 void IotconClientManager::PresenceHandler(iotcon_presence_h presence,
                                          iotcon_error_e err,
                                          iotcon_presence_response_h response,
