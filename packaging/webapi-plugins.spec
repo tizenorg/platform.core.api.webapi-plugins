@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.65
+Version:    0.66
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -281,6 +281,7 @@ BuildRequires: pkgconfig(minizip)
 BuildRequires: pkgconfig(zlib)
 BuildRequires: pkgconfig(pkgmgr)
 BuildRequires: pkgconfig(pkgmgr-info)
+BuildRequires: pkgconfig(pkgmgr-installer)
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(ecore)
 BuildRequires: pkgconfig(icu-i18n)
