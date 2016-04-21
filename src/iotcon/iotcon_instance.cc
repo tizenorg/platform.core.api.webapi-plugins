@@ -17,7 +17,6 @@
 #include "iotcon/iotcon_instance.h"
 
 #include <thread>
-#include <iotcon-internal.h>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -135,18 +134,11 @@ IotconInstance::IotconInstance() {
 #undef REGISTER_ASYNC
 
   // initialize connection to iotcon service
-  int ret = iotcon_connect();
+  int ret = iotcon_initialize();
   if (IOTCON_ERROR_NONE != ret) {
     LoggerE("Could not connnect to iotcon service: %s", get_error_message(ret));
   } else {
     LoggerD("Iotcon service connected");
-    ret = iotcon_add_connection_changed_cb(ConnectionChangedCallback, this);
-    if (IOTCON_ERROR_NONE != ret) {
-      LoggerE("Could not add connection changed callback for iotcon service: %s",
-              get_error_message(ret));
-    } else {
-      LoggerD("Iotcon connection changed callback is registered");
-    }
 
     ret = iotcon_start_presence(0);
     if (IOTCON_ERROR_NONE != ret) {
@@ -158,37 +150,11 @@ IotconInstance::IotconInstance() {
   }
 }
 
-void IotconInstance::ConnectionChangedCallback(bool is_connected, void* user_data) {
-  ScopeLogger();
-
-  if (!is_connected) {
-    LoggerD("Connection lost, need to wait for connection recovery");
-  } else {
-    IotconInstance* instance = static_cast<IotconInstance*>(user_data);
-    if (!instance) {
-      LoggerE("instance is NULL");
-      return;
-    }
-
-    LoggerD("Connection recovered, restoring handles");
-    auto ret = IotconServerManager::GetInstance().RestoreHandles();
-    if (!ret) {
-      LoggerD("Connection recovered, but restoring handles failed");
-    }
-
-    ret = IotconClientManager::GetInstance().RestoreHandles();
-    if (!ret) {
-      LoggerD("Connection recovered, but restoring presence failed");
-    }
-  }
-}
-
 IotconInstance::~IotconInstance() {
   ScopeLogger();
 
   iotcon_stop_presence();
-  iotcon_remove_connection_changed_cb(ConnectionChangedCallback, this);
-  iotcon_disconnect();
+  iotcon_deinitialize();
 }
 
 common::TizenResult IotconInstance::ResourceGetObserverIds(const picojson::object& args) {
