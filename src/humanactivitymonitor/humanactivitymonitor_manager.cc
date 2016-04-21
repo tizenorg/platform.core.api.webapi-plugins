@@ -104,6 +104,28 @@ struct PedometerDataWrapper : public sensor_pedometer_data_t {
   }
 };
 
+static int64_t getCurrentTimeStamp(unsigned long long evTime)
+{
+  LoggerD("Enter");
+  struct timespec t;
+  unsigned long long systemCurrentTime = 0;
+  unsigned long long realCurrentTime = 0;
+  unsigned long long timeDiff = 0;
+  int64_t timeStamp = 0;
+
+  //get current system monotonic  time
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  systemCurrentTime = ((unsigned long long)(t.tv_sec)*1000000000LL + t.tv_nsec) /1000000; //convert millisecond
+  timeDiff = (systemCurrentTime - (evTime/1000));
+
+  //get current epoch time(millisecond)
+  clock_gettime(CLOCK_REALTIME, &t);
+  realCurrentTime = ((unsigned long long)(t.tv_sec)*1000000000LL + t.tv_nsec) /1000000;
+  timeStamp =static_cast<int64_t>(realCurrentTime -timeDiff);
+
+  return timeStamp;
+}
+
 void InsertStepDifference(float step_difference, float timestamp, picojson::array* out) {
   ScopeLogger();
 
@@ -929,10 +951,10 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
 
     if (pedometer_data->diffs_count > 0) {
       for (int i = 0; i < pedometer_data->diffs_count; ++i) {
-        InsertStepDifference(pedometer_data->diffs[i].steps, pedometer_data->diffs[i].timestamp, &diffs);
+        InsertStepDifference(pedometer_data->diffs[i].steps, getCurrentTimeStamp(pedometer_data->diffs[i].timestamp) / 1000, &diffs);
       }
     } else {
-      InsertStepDifference(steps_so_far > 0.0 ? pedometer_data->steps() - steps_so_far : 0.0, pedometer_data->timestamp, &diffs);
+      InsertStepDifference(steps_so_far > 0.0 ? pedometer_data->steps() - steps_so_far : 0.0, getCurrentTimeStamp(pedometer_data->timestamp) / 1000, &diffs);
     }
 
     steps_so_far = pedometer_data->steps();
