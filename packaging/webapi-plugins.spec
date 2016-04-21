@@ -272,6 +272,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 %endif # tizen_profile_tv
 
+BuildRequires: pkgconfig(security-privilege-manager)
 BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dlog)

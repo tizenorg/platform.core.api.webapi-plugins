@@ -29,7 +29,7 @@ namespace networkbearerselection {
 
 namespace {
 // The privileges that required in NetworkBearerSelection API
-const std::string kPrivilegeNetworkBearerSelection = "http://tizen.org/privilege/network.set";
+const std::string kPrivilegeNetworkBearerSelection = "http://tizen.org/privilege/networkbearerselection";
 const std::string kPrivilegeInternet = "http://tizen.org/privilege/internet";
 const std::vector<std::string> kNbsPrivileges{kPrivilegeNetworkBearerSelection, kPrivilegeInternet};
 
