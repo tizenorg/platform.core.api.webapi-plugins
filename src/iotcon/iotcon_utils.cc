@@ -1988,7 +1988,6 @@ common::TizenResult IotconUtils::ConvertIotconError(int error) {
     case IOTCON_ERROR_OUT_OF_MEMORY:
     case IOTCON_ERROR_IOTIVITY:
     case IOTCON_ERROR_REPRESENTATION:
-    case IOTCON_ERROR_DBUS:
     case IOTCON_ERROR_SYSTEM:
     default:
       return common::AbortError(error);

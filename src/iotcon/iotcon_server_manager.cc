@@ -41,57 +41,6 @@ IotconServerManager& IotconServerManager::GetInstance() {
   return instance;
 }
 
-TizenResult IotconServerManager::RestoreHandles() {
-  ScopeLogger();
-
-  for (const auto& it : resource_map_) {
-    LoggerD("Restoring handle for resource with id: %lld", it.first);
-
-    ResourceInfoPtr resource = it.second;
-    char* uri_path = nullptr;
-    iotcon_resource_types_h res_types = nullptr;
-    iotcon_resource_interfaces_h ifaces = 0;
-    int properties = 0;
-
-    auto res = IotconUtils::ExtractFromResource(resource, &uri_path,
-                                                &res_types, &ifaces, &properties);
-    if (!res){
-      return res;
-    }
-
-    const iotcon_resource_h old_handle = resource->handle;
-    LoggerD("Create resource from backup data, uri: %s, res_types: %p, ifaces: %d, properties: %d",
-            uri_path, res_types, ifaces, properties);
-
-    int ret = iotcon_resource_create(uri_path, res_types, ifaces, properties,
-                                     RequestHandler, // request_callback
-                                     this, // user_data
-                                     &(resource->handle));
-    if (IOTCON_ERROR_NONE != ret || nullptr == resource->handle) {
-      LogAndReturnTizenError(IotconUtils::ConvertIotconError(ret),
-                             ("iotcon_resource_create() failed: %d (%s)",
-                                 ret, get_error_message(ret)));
-    }
-    LoggerD("new handle: %p", (resource->handle));
-    if (old_handle) {
-      LoggerD("destroy handle which is currently invalid: %p", old_handle);
-      iotcon_resource_destroy(old_handle);
-    }
-  }
-
-  // rebind children
-  for (const auto& it : resource_map_) {
-    for (const auto& child : it.second->children) {
-      auto result = IotconUtils::ConvertIotconError(iotcon_resource_bind_child_resource(it.second->handle, child->handle));
-      if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_resource_bind_child_resource() failed"));
-      }
-    }
-  }
-
-  return TizenSuccess();
-}
-
 void IotconServerManager::RequestHandler(iotcon_resource_h resource,
                                          iotcon_request_h request, void *user_data) {
   ScopeLogger();
