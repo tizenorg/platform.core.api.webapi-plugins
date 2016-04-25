@@ -21,6 +21,7 @@
 #include <location_batch.h>
 #include <sensor.h>
 #include <sensor_internal.h>
+#include <system_info.h>
 
 #include "common/logger.h"
 #include "common/optional.h"
@@ -557,13 +558,16 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
   virtual PlatformResult IsSupportedImpl(bool* s) const override {
     ScopeLogger(type());
 
-    *s = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
+    int ret = 0;
+    ret = system_info_get_platform_bool("http://tizen.org/feature/location.batch", s);
 
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   virtual PlatformResult SetListenerImpl(const picojson::value& args) override {
     ScopeLogger(type());
+
+    int ret = 0;
 
     if (!handle_) {
       int ret = location_manager_create(LOCATIONS_METHOD_GPS, &handle_);
@@ -572,10 +576,14 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
                                   "Failed to create location manager",
                                   ("Failed to create location manager, error: %d (%s)", ret, get_error_message(ret)));
       }
+    } else {
+      ret = location_manager_stop_batch(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to stop location manager",
+                                  ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
 
-      int callback_interval = static_cast<int>(args.get(kCallbackInterval).get<double>() / 1000);
-      int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
-      LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
 
       ret = location_manager_set_setting_changed_cb(LOCATIONS_METHOD_GPS,
                                                    OnGpsSettingEvent,
@@ -585,24 +593,33 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
                                   "Failed to set setting listener",
                                   ("Failed to set setting listener, error: %d (%s)", ret, get_error_message(ret)));
       }
+    }
 
-      ret = location_manager_set_location_batch_cb(handle_,
-                                                   OnGpsEvent,
-                                                   sample_interval, // batch_interval
-                                                   callback_interval, // batch_period
-                                                   this);
-      if (LOCATIONS_ERROR_NONE != ret) {
-        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+    int callback_interval = static_cast<int>(args.get(kCallbackInterval).get<double>() / 1000);
+    int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
+    LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
+
+    ret = location_manager_set_location_batch_cb(handle_,
+                                                 OnGpsEvent,
+                                                 sample_interval, // batch_interval
+                                                 callback_interval, // batch_period
+                                                 this);
+    if (LOCATIONS_ERROR_NONE != ret) {
+      if (LOCATIONS_ERROR_INVALID_PARAMETER == ret) {
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                                   "Failed to set location listener",
                                   ("Failed to set location listener, error: %d (%s)", ret, get_error_message(ret)));
       }
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to set location listener",
+                                ("Failed to set location listener, error: %d (%s)", ret, get_error_message(ret)));
+    }
 
-      ret = location_manager_start_batch(handle_);
-      if (LOCATIONS_ERROR_NONE != ret) {
-        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                  "Failed to start location manager",
-                                  ("Failed to start location manager, error: %d (%s)", ret, get_error_message(ret)));
-      }
+    ret = location_manager_start_batch(handle_);
+    if (LOCATIONS_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to start location manager",
+                                ("Failed to start location manager, error: %d (%s)", ret, get_error_message(ret)));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);

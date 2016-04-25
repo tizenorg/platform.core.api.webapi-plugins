@@ -246,17 +246,9 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   switch (args.type) {
   case HumanActivityType.GPS:
     callbackInterval = !type_.isNullOrUndefined(args.option) ?
-        args.option.callbackInterval : 120000;
+        args.option.callbackInterval : 150000;
     sampleInterval = !type_.isNullOrUndefined(args.option) ?
         args.option.sampleInterval : 1000;
-    if (callbackInterval < 120000 || callbackInterval > 600000) {
-      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                                'callbackInterval is out of range');
-    }
-    if (sampleInterval < 1000 || sampleInterval > 120000) {
-      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                                'sampleInterval is out of range');
-    }
     break;
   case HumanActivityType.HRM:
     callbackInterval = !type_.isNullOrUndefined(args.option) ?
