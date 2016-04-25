@@ -681,7 +681,7 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
     auto& callback = monitor->event_callback();
 
     if (!callback) {
-      LOGGER(ERROR) << "No GPS event callback registered, skipping.";
+      LoggerE("No GPS event callback registered, skipping.");
       return;
     }
 
