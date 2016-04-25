@@ -260,7 +260,7 @@ void SensorData::SensorCallback(sensor_h sensor, sensor_event_s* event, void* us
 }
 
 bool SensorData::DefaultEventComparator(sensor_event_s* l, sensor_event_s* r) {
-  return (l->values[0] == r->values[0]);
+  return (l->timestamp == r->timestamp);
 }
 
 PlatformResult SensorData::CheckInitialization() {
