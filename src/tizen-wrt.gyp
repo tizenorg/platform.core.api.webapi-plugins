@@ -120,6 +120,13 @@
           },
         ],
         [
+          'tizen_feature_feedback_support==1', {
+            'dependencies': [
+              'feedback/feedback.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_filesystem_support==1', {
             'dependencies': [
               'filesystem/filesystem.gyp:*',
