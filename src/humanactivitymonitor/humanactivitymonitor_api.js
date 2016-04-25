@@ -225,10 +225,18 @@ function pedometerCallback(result) {
   }
 }
 
+var GPSListener = null;
+function GPSCallback(result) {
+  if (GPSListener) {
+    GPSListener(result);
+  }
+}
+
 HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
     {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name : 'option', type : types_.DICTIONARY, optional : true, nullable : true}
   ]);
 
@@ -260,9 +268,19 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
     break;
   }
 
-  var listener = HumanActivityType.PEDOMETER === args.type ? pedometerCallback : function(result) {
-    native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
-  };
+  var listener = null;
+  switch (args.type) {
+    case HumanActivityType.PEDOMETER:
+      listener = pedometerCallback;
+      break;
+    case HumanActivityType.GPS:
+      listener = GPSCallback;
+      break;
+    default:
+      listener = function(result) {
+        native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
+      };
+  }
 
   console.log("callbackInterval = " + callbackInterval + ", sampleInterval = " + sampleInterval);
   startListener(listenerId,
@@ -278,6 +296,18 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   if (HumanActivityType.PEDOMETER === args.type) {
     pedometerListener = args.changedCallback;
   }
+
+  if (HumanActivityType.GPS === args.type) {
+    var callback = function(result) {
+      if (native_.isFailure(result)) {
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      } else {
+        native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
+      }
+    };
+
+    GPSListener = callback;
+  }
 };
 
 HumanActivityMonitorManager.prototype.stop = function(type) {
@@ -291,6 +321,10 @@ HumanActivityMonitorManager.prototype.stop = function(type) {
 
   if (HumanActivityType.PEDOMETER === args.type) {
     pedometerListener = null;
+  }
+
+  if (HumanActivityType.GPS === args.type) {
+    GPSListener = null;
   }
 };
 

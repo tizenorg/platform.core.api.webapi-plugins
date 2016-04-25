@@ -577,6 +577,15 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
       int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
       LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
 
+      ret = location_manager_set_setting_changed_cb(LOCATIONS_METHOD_GPS,
+                                                   OnGpsSettingEvent,
+                                                   this);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set setting listener",
+                                  ("Failed to set setting listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+
       ret = location_manager_set_location_batch_cb(handle_,
                                                    OnGpsEvent,
                                                    sample_interval, // batch_interval
@@ -660,6 +669,34 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
   }
 
  private:
+  static void OnGpsSettingEvent(location_method_e method, bool enable, void *user_data) {
+    ScopeLogger();
+
+    if (LOCATIONS_METHOD_GPS != method) {
+      LoggerD("Location method different from GPS");
+      return;
+    }
+
+    auto monitor = static_cast<GpsMonitor*>(user_data);
+    auto& callback = monitor->event_callback();
+
+    if (!callback) {
+      LOGGER(ERROR) << "No GPS event callback registered, skipping.";
+      return;
+    }
+
+    if (!enable) {
+      picojson::value val{picojson::object{}};
+      auto& obj = val.get<picojson::object>();
+
+      LogAndReportError(
+          PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "GPS service is not available"),
+          &obj, ("GPS service is not available"));
+
+      callback(&val);
+    }
+  }
+
   static void OnGpsEvent(int num_of_location, void* user_data) {
     ScopeLogger();
 
