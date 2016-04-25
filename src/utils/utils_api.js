@@ -98,6 +98,7 @@ function Utils() {
     DOWNLOAD: 'http://tizen.org/privilege/download',
     FILESYSTEM_READ: 'http://tizen.org/privilege/filesystem.read',
     FILESYSTEM_WRITE: 'http://tizen.org/privilege/filesystem.write',
+    HAPTIC: 'http://tizen.org/privilege/haptic',
     HEALTHINFO: 'http://tizen.org/privilege/healthinfo',
     INTERNET: 'http://tizen.org/privilege/internet',
     LED: 'http://tizen.org/privilege/led',
