@@ -576,14 +576,6 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
                                   "Failed to create location manager",
                                   ("Failed to create location manager, error: %d (%s)", ret, get_error_message(ret)));
       }
-    } else {
-      ret = location_manager_stop_batch(handle_);
-      if (LOCATIONS_ERROR_NONE != ret) {
-        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                  "Failed to stop location manager",
-                                  ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
-      }
-
 
       ret = location_manager_set_setting_changed_cb(LOCATIONS_METHOD_GPS,
                                                    OnGpsSettingEvent,
@@ -592,6 +584,13 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                                   "Failed to set setting listener",
                                   ("Failed to set setting listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+    } else {
+      ret = location_manager_stop_batch(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to stop location manager",
+                                  ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
       }
     }
 
