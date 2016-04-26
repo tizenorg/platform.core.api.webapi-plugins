@@ -21,6 +21,7 @@
 #include <location_batch.h>
 #include <sensor.h>
 #include <sensor_internal.h>
+#include <system_info.h>
 
 #include "common/logger.h"
 #include "common/optional.h"
@@ -103,6 +104,28 @@ struct PedometerDataWrapper : public sensor_pedometer_data_t {
     return static_cast<sensor_pedometer_state_e>(values[7]);
   }
 };
+
+static int64_t getCurrentTimeStamp(unsigned long long evTime)
+{
+  LoggerD("Enter");
+  struct timespec t;
+  unsigned long long systemCurrentTime = 0;
+  unsigned long long realCurrentTime = 0;
+  unsigned long long timeDiff = 0;
+  int64_t timeStamp = 0;
+
+  //get current system monotonic  time
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  systemCurrentTime = ((unsigned long long)(t.tv_sec)*1000000000LL + t.tv_nsec) /1000000; //convert millisecond
+  timeDiff = (systemCurrentTime - (evTime/1000));
+
+  //get current epoch time(millisecond)
+  clock_gettime(CLOCK_REALTIME, &t);
+  realCurrentTime = ((unsigned long long)(t.tv_sec)*1000000000LL + t.tv_nsec) /1000000;
+  timeStamp =static_cast<int64_t>(realCurrentTime -timeDiff);
+
+  return timeStamp;
+}
 
 void InsertStepDifference(float step_difference, float timestamp, picojson::array* out) {
   ScopeLogger();
@@ -535,13 +558,16 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
   virtual PlatformResult IsSupportedImpl(bool* s) const override {
     ScopeLogger(type());
 
-    *s = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
+    int ret = 0;
+    ret = system_info_get_platform_bool("http://tizen.org/feature/location.batch", s);
 
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   virtual PlatformResult SetListenerImpl(const picojson::value& args) override {
     ScopeLogger(type());
+
+    int ret = 0;
 
     if (!handle_) {
       int ret = location_manager_create(LOCATIONS_METHOD_GPS, &handle_);
@@ -551,27 +577,48 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
                                   ("Failed to create location manager, error: %d (%s)", ret, get_error_message(ret)));
       }
 
-      int callback_interval = static_cast<int>(args.get(kCallbackInterval).get<double>() / 1000);
-      int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
-      LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
-
-      ret = location_manager_set_location_batch_cb(handle_,
-                                                   OnGpsEvent,
-                                                   sample_interval, // batch_interval
-                                                   callback_interval, // batch_period
+      ret = location_manager_set_setting_changed_cb(LOCATIONS_METHOD_GPS,
+                                                   OnGpsSettingEvent,
                                                    this);
       if (LOCATIONS_ERROR_NONE != ret) {
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set setting listener",
+                                  ("Failed to set setting listener, error: %d (%s)", ret, get_error_message(ret)));
+      }
+    } else {
+      ret = location_manager_stop_batch(handle_);
+      if (LOCATIONS_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to stop location manager",
+                                  ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
+      }
+    }
+
+    int callback_interval = static_cast<int>(args.get(kCallbackInterval).get<double>() / 1000);
+    int sample_interval = static_cast<int>(args.get(kSampleInterval).get<double>() / 1000);
+    LoggerD("callbackInterval: %d, sampleInterval: %d", callback_interval, sample_interval);
+
+    ret = location_manager_set_location_batch_cb(handle_,
+                                                 OnGpsEvent,
+                                                 sample_interval, // batch_interval
+                                                 callback_interval, // batch_period
+                                                 this);
+    if (LOCATIONS_ERROR_NONE != ret) {
+      if (LOCATIONS_ERROR_INVALID_PARAMETER == ret) {
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                                   "Failed to set location listener",
                                   ("Failed to set location listener, error: %d (%s)", ret, get_error_message(ret)));
       }
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to set location listener",
+                                ("Failed to set location listener, error: %d (%s)", ret, get_error_message(ret)));
+    }
 
-      ret = location_manager_start_batch(handle_);
-      if (LOCATIONS_ERROR_NONE != ret) {
-        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                  "Failed to start location manager",
-                                  ("Failed to start location manager, error: %d (%s)", ret, get_error_message(ret)));
-      }
+    ret = location_manager_start_batch(handle_);
+    if (LOCATIONS_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to start location manager",
+                                ("Failed to start location manager, error: %d (%s)", ret, get_error_message(ret)));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -638,6 +685,34 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
   }
 
  private:
+  static void OnGpsSettingEvent(location_method_e method, bool enable, void *user_data) {
+    ScopeLogger();
+
+    if (LOCATIONS_METHOD_GPS != method) {
+      LoggerD("Location method different from GPS");
+      return;
+    }
+
+    auto monitor = static_cast<GpsMonitor*>(user_data);
+    auto& callback = monitor->event_callback();
+
+    if (!callback) {
+      LoggerE("No GPS event callback registered, skipping.");
+      return;
+    }
+
+    if (!enable) {
+      picojson::value val{picojson::object{}};
+      auto& obj = val.get<picojson::object>();
+
+      LogAndReportError(
+          PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "GPS service is not available"),
+          &obj, ("GPS service is not available"));
+
+      callback(&val);
+    }
+  }
+
   static void OnGpsEvent(int num_of_location, void* user_data) {
     ScopeLogger();
 
@@ -929,10 +1004,10 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
 
     if (pedometer_data->diffs_count > 0) {
       for (int i = 0; i < pedometer_data->diffs_count; ++i) {
-        InsertStepDifference(pedometer_data->diffs[i].steps, pedometer_data->diffs[i].timestamp, &diffs);
+        InsertStepDifference(pedometer_data->diffs[i].steps, getCurrentTimeStamp(pedometer_data->diffs[i].timestamp) / 1000, &diffs);
       }
     } else {
-      InsertStepDifference(steps_so_far > 0.0 ? pedometer_data->steps() - steps_so_far : 0.0, pedometer_data->timestamp, &diffs);
+      InsertStepDifference(steps_so_far > 0.0 ? pedometer_data->steps() - steps_so_far : 0.0, getCurrentTimeStamp(pedometer_data->timestamp) / 1000, &diffs);
     }
 
     steps_so_far = pedometer_data->steps();

@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.68
+Version:    0.69
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -51,6 +51,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_datasync_support                0
 %define tizen_feature_download_support                1
 %define tizen_feature_exif_support                    1
+%define tizen_feature_feedback_support                1
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                1
 %if 0%{?tizen_is_emulator}
@@ -159,6 +160,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_download_support                0
 %endif
 %define tizen_feature_exif_support                    1
+%define tizen_feature_feedback_support                1
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                0
 %define tizen_feature_ham_support                     1
@@ -237,6 +239,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_datasync_support                0
 %define tizen_feature_download_support                1
 %define tizen_feature_exif_support                    1
+%define tizen_feature_feedback_support                0
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                0
 %define tizen_feature_ham_support                     0
@@ -412,6 +415,10 @@ BuildRequires:  pkgconfig(capi-network-nfc)
 BuildRequires: pkgconfig(capi-media-radio)
 %endif
 
+%if 0%{?tizen_feature_feedback_support}
+BuildRequires: pkgconfig(feedback)
+%endif
+
 %if 0%{?tizen_feature_se_support}
 BuildRequires:  pkgconfig(smartcard-service)
 BuildRequires:  pkgconfig(smartcard-service-common)
@@ -477,6 +484,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_datacontrol_support=%{?tizen_feature_d
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_datasync_support=%{?tizen_feature_datasync_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_download_support=%{?tizen_feature_download_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_exif_support=%{?tizen_feature_exif_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_feedback_support=%{?tizen_feature_feedback_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_filesystem_support=%{?tizen_feature_filesystem_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_fm_radio_support=%{?tizen_feature_fm_radio_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_ham_support=%{?tizen_feature_ham_support}"
