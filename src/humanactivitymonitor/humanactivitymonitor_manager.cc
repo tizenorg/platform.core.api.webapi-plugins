@@ -635,11 +635,11 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
                                   ("Failed to stop location manager, error: %d (%s)", ret, get_error_message(ret)));
       }
 
-      ret = location_manager_unset_location_batch_cb(handle_);
+      ret = location_manager_unset_setting_changed_cb(LOCATIONS_METHOD_GPS);
       if (LOCATIONS_ERROR_NONE != ret) {
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                  "Failed to unset location listener",
-                                  ("Failed to unset location listener, error: %d (%s)", ret, get_error_message(ret)));
+                                  "Failed to unset location setting changed cb",
+                                  ("Failed to unset location setting changed cb, error: %d (%s)", ret, get_error_message(ret)));
       }
 
       ret = location_manager_destroy(handle_);
@@ -757,7 +757,7 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
     gps_info_o["altitude"] = picojson::value(altitude);
     gps_info_o["speed"] = picojson::value(speed);
     // TODO(r.galka): errorRange not available in CAPI
-    gps_info_o["errorRange"] = picojson::value(static_cast<double>(0));
+    gps_info_o["errorRange"] = picojson::value(horizontal);
     gps_info_o[kTimestamp] = picojson::value(static_cast<double>(timestamp));
 
     gps_info_array->push_back(gps_info);
@@ -1074,7 +1074,7 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     }
 
     data->insert(std::make_pair(kStatus, picojson::value(sleep_state)));
-    data->insert(std::make_pair(kTimestamp, picojson::value(static_cast<double>(event->timestamp))));
+    data->insert(std::make_pair(kTimestamp, picojson::value(getCurrentTimeStamp(event->timestamp))));
 
     return PlatformResult(ErrorCode::NO_ERROR);
   };
