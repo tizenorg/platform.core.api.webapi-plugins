@@ -37,8 +37,8 @@ namespace {
   const char kParentId[] = "parentId";
   const char kUrl[] = "url";
 
-  const std::string kPrivilegeBookmarkRead = "http://tizen.org/privilege/bookmark.admin";
-  const std::string kPrivilegeBookmarkWrite = "http://tizen.org/privilege/bookmark.admin";
+  const std::string kPrivilegeBookmarkRead = "http://tizen.org/privilege/bookmark.read";
+  const std::string kPrivilegeBookmarkWrite = "http://tizen.org/privilege/bookmark.write";
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {

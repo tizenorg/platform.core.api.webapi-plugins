@@ -40,7 +40,7 @@ using common::PlatformResult;
 
 namespace {
 // The privileges that required in Package API
-const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.admin";
+const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.install";
 const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/packagemanager.info";
 }  // namespace
 

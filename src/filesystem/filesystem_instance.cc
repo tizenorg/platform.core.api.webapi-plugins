@@ -30,8 +30,8 @@ namespace filesystem {
 
 namespace {
 // The privileges that required in Filesystem API
-const std::string kPrivilegeFilesystemRead = "http://tizen.org/privilege/systemsettings.admin";
-const std::string kPrivilegeFilesystemWrite = "http://tizen.org/privilege/systemsettings.admin";
+const std::string kPrivilegeFilesystemRead = "http://tizen.org/privilege/filesystem.read";
+const std::string kPrivilegeFilesystemWrite = "http://tizen.org/privilege/filesystem.write";
 }
 
 using namespace common;
