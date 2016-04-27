@@ -74,6 +74,7 @@
               'capi-appfw-app-manager',
               'capi-appfw-package-manager',
               'storage',
+              'security-privilege-manager',
             ]
           },
           'conditions': [

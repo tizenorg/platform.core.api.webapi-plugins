@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.69
+Version:    0.70
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -272,6 +272,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 %endif # tizen_profile_tv
 
+BuildRequires: pkgconfig(security-privilege-manager)
 BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dlog)

@@ -38,6 +38,10 @@ using common::UnknownException;
 using common::NotFoundException;
 using common::QuotaExceededException;
 
+namespace {
+const std::string kPrivilegeHaptic = "http://tizen.org/privilege/haptic";
+} //namespace
+
 FeedbackInstance::FeedbackInstance()
     : m_feedbackMapsPtr(new FeedbackMaps),
       m_feedbackManagerPtr(new FeedbackManager(this->m_feedbackMapsPtr))
@@ -81,6 +85,8 @@ void FeedbackInstance::Play
   (const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHaptic, &out);
+
   const auto pattern = args.get("pattern").get<std::string>();
   const auto type = args.get("type").get<std::string>();
 
@@ -96,6 +102,9 @@ void FeedbackInstance::Play
 void FeedbackInstance::Stop
   (const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHaptic, &out);
+
   PlatformResult result =
       m_feedbackManagerPtr->stop();
   if (result.IsSuccess()) {

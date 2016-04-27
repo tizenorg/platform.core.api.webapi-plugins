@@ -28,10 +28,10 @@ namespace application {
 
 namespace {
 // The privileges that are required in Application API
-const std::string kPrivilegeAppManagerCertificate = "http://tizen.org/privilege/notexist";
+const std::string kPrivilegeAppManagerCertificate = "http://tizen.org/privilege/appmanager.certificate";
 const std::string kPrivilegeAppManagerKill = "http://tizen.org/privilege/appmanager.kill";
-const std::string kPrivilegeApplicationInfo = "http://tizen.org/privilege/packagemanager.info";
-const std::string kPrivilegeApplicationLaunch = "http://tizen.org/privilege/appmanager.launch";
+const std::string kPrivilegeApplicationInfo = "http://tizen.org/privilege/application.info";
+const std::string kPrivilegeApplicationLaunch = "http://tizen.org/privilege/application.launch";
 }  // namespace
 
 using namespace common;

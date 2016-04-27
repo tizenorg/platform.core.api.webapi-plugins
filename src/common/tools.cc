@@ -16,6 +16,10 @@
 
 #include "common/tools.h"
 
+#include <privilegemgr/privilege_manager.h>
+#include <app_manager.h>
+#include <pkgmgr-info.h>
+
 #ifdef PRIVILEGE_USE_DB
 #include <sqlite3.h>
 #include "common/current_application.h"
@@ -253,20 +257,115 @@ class AccessControl {
 
 } // namespace
 
+
 PlatformResult CheckAccess(const std::string& privilege) {
   return CheckAccess(std::vector<std::string>{privilege});
 }
 
 PlatformResult CheckAccess(const std::vector<std::string>& privileges) {
   LoggerD("Enter");
-  if (AccessControl::GetInstance().CheckAccess(privileges)) {
-    return PlatformResult(ErrorCode::NO_ERROR);
-  } else {
-    for (const auto& privilege : privileges) {
-      LoggerD("Access to privilege: %s has been denied.", privilege.c_str());
-    }
-    return PlatformResult(ErrorCode::SECURITY_ERR, "Permission denied");
+
+  std::string api_version;
+  PlatformResult res = common::tools::GetPkgApiVersion(&api_version);
+  if (res.IsError()) {
+    return res;
   }
+  LoggerD("Application api version: %s", api_version.c_str());
+
+  for (auto input_priv : privileges) {
+    LoggerD("Input privilege: %s", input_priv.c_str());
+    GList *input_glist = nullptr;
+    GList *mapped_glist = nullptr;
+
+    SCOPE_EXIT {
+      g_list_free(input_glist);
+      g_list_free(mapped_glist);
+    };
+
+    input_glist = g_list_append(input_glist, (void*)input_priv.c_str());
+    int ret = privilege_manager_get_mapped_privilege_list(api_version.c_str(),
+                                                          PRVMGR_PACKAGE_TYPE_WRT,
+                                                          input_glist,
+                                                          &mapped_glist);
+    if (ret != PRVMGR_ERR_NONE) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get mapped privilege list");
+    }
+
+    LoggerD("Mapped privileges:");
+    std::vector<std::string> mapped_vector;
+    auto push_elem = [](gpointer data, gpointer user_data) -> void {
+      if (data && user_data) {
+        std::vector<std::string>* mapped_vector =
+            static_cast<std::vector<std::string>*>(user_data);
+        char* char_data = static_cast<char*>(data);
+        mapped_vector->push_back(char_data);
+        LoggerD("mapped to: %s", char_data);
+      }
+    };
+    g_list_foreach (mapped_glist, push_elem, &mapped_vector);
+
+    if (!AccessControl::GetInstance().CheckAccess(mapped_vector)){
+      for (const auto& mapped_priv : mapped_vector) {
+        LoggerD("Access to privilege: %s has been denied.", mapped_priv.c_str());
+      }
+      return PlatformResult(ErrorCode::SECURITY_ERR, "Permission denied");
+    }
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult GetPkgApiVersion(std::string* api_version) {
+  LoggerD("Entered");
+
+  char* app_id = nullptr;
+  char* pkgid = nullptr;
+  char* api_ver = nullptr;
+  app_info_h app_handle = nullptr;
+  pkgmgrinfo_pkginfo_h pkginfo_handle = nullptr;
+
+  SCOPE_EXIT {
+    if (app_id) {
+      free(app_id);
+    }
+    if (pkgid) {
+      free(pkgid);
+    }
+    if (app_handle) {
+      app_info_destroy(app_handle);
+    }
+    if (pkginfo_handle) {
+      pkgmgrinfo_pkginfo_destroy_pkginfo(pkginfo_handle);
+    }
+  };
+
+  pid_t pid = getpid();
+  int ret = app_manager_get_app_id(pid, &app_id);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get app id");
+  }
+
+  ret = app_info_create(app_id, &app_handle);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get app info");
+  }
+
+  ret = app_info_get_package(app_handle, &pkgid);
+  if ((ret != APP_MANAGER_ERROR_NONE) || (pkgid == nullptr)) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get pkg id");
+  }
+
+  ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(pkgid, getuid(), &pkginfo_handle);
+  if (ret != PMINFO_R_OK) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get pkginfo_h");
+  }
+
+  ret = pkgmgrinfo_pkginfo_get_api_version(pkginfo_handle, &api_ver);
+  if (ret != PMINFO_R_OK) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail to get api version");
+  }
+
+  *api_version = api_ver;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::string GetErrorString(int error_code) {

@@ -35,6 +35,7 @@ void ReportError(const PlatformResult& error, picojson::object* out);
 
 common::PlatformResult CheckAccess(const std::string& privilege);
 common::PlatformResult CheckAccess(const std::vector<std::string>& privileges);
+common::PlatformResult GetPkgApiVersion(std::string* api_version);
 
 #define CHECK_PRIVILEGE_ACCESS(privilege, out) \
 do { \
