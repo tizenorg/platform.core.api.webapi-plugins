@@ -595,6 +595,11 @@ function RemoteResource(data) {
       }.bind(this),
       set: function() {},
       enumerable: true
+    },
+    options: {
+      value: null,
+      writable: true,
+      enumerable: true
     }
   });
 
