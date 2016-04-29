@@ -188,14 +188,6 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
     return status;
   }
 
-  //get information from view _contacts_person_usage
-  status = ContactSearchEngine::GetPersonUsage(person_id, out);
-  if (CONTACTS_ERROR_NONE != contacts_record_destroy(contacts_record, true)) {
-    LoggerE("failed to destroy contacts_record_h");
-  }
-  if (!status) {
-    return status;
-  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 }
@@ -449,14 +441,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
     status = Person::PersonPropertyFromString(attribute, &property);
     if (status.IsError()) return status;
 
-    //As neither _contacts_person_usage nor _contacts_person cover all filter attributes
-    //which result can be sorted it has to be checked which view can be used here.
-    if ("usageCount" == attribute) {
-      error_code = contacts_query_create(_contacts_person_usage._uri, &contacts_query);
-    } else {
-      error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
-    }
-
+    error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
     status = ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
     if (status.IsError()) return status;
 
@@ -488,11 +473,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       contacts_filter_h contacts_filter = nullptr;
       int error_code = CONTACTS_ERROR_NONE;
 
-      if ("usageCount" != name) {
-        error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
-      } else {
-        error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
-      }
+      error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
       status = ContactUtil::ErrorChecker(error_code,
                                          "Failed contacts_query_set_filter");
       if (status.IsError()) return status;
@@ -583,11 +564,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
       contacts_filter_h contacts_filter = nullptr;
       int error_code = CONTACTS_ERROR_NONE;
 
-      if ("usageCount" != name) {
-        error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
-      } else {
-        error_code = contacts_filter_create(_contacts_person_usage._uri, &contacts_filter);
-      }
+      error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
       status = ContactUtil::ErrorChecker(error_code,
                                          "Failed contacts_query_set_filter");
       if (status.IsError()) return status;
@@ -649,11 +626,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          if ("usageCount" != name) {
-            error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
-          } else {
-            error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
-          }
+          error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
           status = ContactUtil::ErrorChecker(error_code,
                                              "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
@@ -726,11 +699,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          if ("usageCount" != name) {
-            error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
-          } else {
-            error_code = contacts_filter_create(_contacts_person_usage._uri, &sub_filter);
-          }
+          error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
           status = ContactUtil::ErrorChecker(error_code,
                                              "Failed contacts_filter_add_bool");
           if (status.IsError()) return status;

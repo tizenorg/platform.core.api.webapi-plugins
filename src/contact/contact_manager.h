@@ -54,7 +54,6 @@ common::PlatformResult ContactManagerFind(const JsonObject& args,
 common::PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
                                                      JsonObject& out);
 
-
 common::PlatformResult ContactManagerUpdateBatch(const JsonObject& args);
 common::PlatformResult ContactManagerRemoveBatch(const JsonObject& args);
 
