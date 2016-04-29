@@ -42,6 +42,7 @@ SensorInstance::SensorInstance()
     RegisterSyncHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
   REGISTER_ASYNC("Sensor_start", SensorStart);
   REGISTER_ASYNC("Sensor_getData", SensorGetData);
+  REGISTER_ASYNC("Sensor_getSensorHardwareInfo", GetSensorHardwareInfo);
 #undef REGISTER_ASYNC
 }
 
@@ -78,6 +79,12 @@ void SensorInstance::SensorGetData(const picojson::value& args, picojson::object
   LoggerD("Entered");
 
   service_.GetSensorData(args, out);
+}
+
+void SensorInstance::GetSensorHardwareInfo(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  service_.GetSensorHardwareInfo(args, out);
 }
 
 } // namespace sensor

@@ -69,7 +69,7 @@ SensorListener.prototype.start = function (successCallback, errorCallback) {
         native_.call('Sensor_start', {'sensorType' : thisObject.sensorType},
                 function(result) {
                     if (native_.isFailure(result)) {
-                        if(!T_.isNullOrUndefined(errorCallback)) {
+                        if (!T_.isNullOrUndefined(errorCallback)) {
                             errorCallback(native_.getErrorObject(result));
                         }
                     } else {
@@ -130,7 +130,7 @@ SensorListener.prototype.getData = function (successCallback, errorCallback) {
         native_.call('Sensor_getData', { type : thisObj.sensorType },
                 function(result) {
             if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(errorCallback)) {
+                if (!T_.isNullOrUndefined(errorCallback)) {
                     errorCallback(native_.getErrorObject(result));
                 }
             } else {
@@ -204,9 +204,9 @@ function getDefaultSensor() {
         return new HRMRawSensor();
     } else if (_supportedSensors[index] === SensorType.GRAVITY) {
         return new GravitySensor();
-    } else if(_supportedSensors[index] === SensorType.GYROSCOPE){
+    } else if (_supportedSensors[index] === SensorType.GYROSCOPE){
         return new GyroscopeSensor();
-    } else if(_supportedSensors[index] === SensorType.GYROSCOPE_ROTATION_VECTOR){
+    } else if (_supportedSensors[index] === SensorType.GYROSCOPE_ROTATION_VECTOR){
         return new GyroscopeRotationVectorSensor();
     }
 };
@@ -277,6 +277,33 @@ Sensor.prototype.setChangeListener = function() {
 Sensor.prototype.unsetChangeListener = function() {
     _sensorListeners[this.sensorType].unsetListener();
 };
+
+Sensor.prototype.getSensorHardwareInfo = function(){
+  var args = validator_.validateArgs(arguments, [
+       {
+           name : 'successCallback',
+           type : types_.FUNCTION
+       },
+       {
+           name : 'errorCallback',
+           type : types_.FUNCTION,
+           optional : true,
+           nullable : true
+       }
+    ]);
+
+  var callback = function(result){
+    if (native_.isFailure(result)){
+      if (!T_.isNullOrUndefined(errorCallback)) {
+        errorCallback(native_.getErrorObject(result));
+      }
+    }else {
+      args.successCallback(new SensorHardwareInfo(result));
+    }
+  }
+
+  var result = native_.call("Sensor_getSensorHardwareInfo", {type: this.sensorType}, callback);
+}
 
 //// LightSensor
 var LightSensor = function(data) {
@@ -674,5 +701,18 @@ SensorGyroscopeRotationVectorData.prototype.constructor = SensorData;
 _sensorListeners[SensorType.GYROSCOPE_ROTATION_VECTOR] = new SensorListener(SensorType.GYROSCOPE_ROTATION_VECTOR,
         SensorGyroscopeRotationVectorData);
 
+//////////////////////SensorHardwareInfo classes//////////////////////////////////////////////////////////
+function SensorHardwareInfo(data) {
+    Object.defineProperties(this, {
+        name : {value: data.name, writable: false, enumerable: true},
+        type : {value: data.type, writable: false, enumerable: true},
+        vendor : {value: data.vendor, writable: false, enumerable: true},
+        minValue : {value: data.minValue, writable: false, enumerable: true},
+        maxValue : {value: data.maxValue, writable: false,  enumerable: true},
+        resolution : {value: data.resolution, writable: false, enumerable: true},
+        minInterval : {value: data.minInterval, writable: false, enumerable: true},
+        maxBatchCount : {value: data.batchCount, writable: false, enumerable: true}
+    });
+}
 // Exports
 exports = new SensorService();

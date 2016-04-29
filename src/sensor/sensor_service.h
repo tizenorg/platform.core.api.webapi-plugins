@@ -41,6 +41,7 @@ class SensorService {
   void SensorSetChangeListener(const picojson::value& args, picojson::object& out);
   void SensorUnsetChangeListener(const picojson::value& args, picojson::object& out);
   void GetSensorData(const picojson::value& args, picojson::object& out);
+  void GetSensorHardwareInfo(const picojson::value& args, picojson::object& out);
 
  private:
   std::shared_ptr<SensorData> GetSensor(sensor_type_e type_enum);
