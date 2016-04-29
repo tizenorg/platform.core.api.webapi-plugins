@@ -36,6 +36,7 @@ class SensorInstance : public common::ParsedInstance {
   void SensorUnsetChangeListener(const picojson::value& args, picojson::object& out);
   void SensorStart(const picojson::value& args, picojson::object& out);
   void SensorGetData(const picojson::value& args, picojson::object& out);
+  void GetSensorHardwareInfo(const picojson::value& args, picojson::object& out);
 
   SensorService service_;
 };
