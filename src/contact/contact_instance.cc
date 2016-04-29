@@ -60,6 +60,7 @@ ContactInstance::ContactInstance()
   REGISTER_SYNC("ContactManager_remove", ContactManagerRemove);
   REGISTER_ASYNC("ContactManager_removeBatch", ContactManagerRemoveBatch);
   REGISTER_ASYNC("ContactManager_find", ContactManagerFind);
+  REGISTER_ASYNC("ContactManager_findByUsageCount", ContactManagerFindByUsageCount);
   REGISTER_SYNC("ContactManager_importFromVCard",
                 ContactManagerImportFromVCard);
   REGISTER_SYNC("ContactManager_startListening", ContactManagerStartListening);
@@ -516,6 +517,36 @@ void ContactInstance::ContactManagerFind(const JsonValue& args,
     JsonValue result = JsonValue(JsonArray());
 
     PlatformResult status = ContactManager::ContactManagerFind(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+    if (status.IsSuccess()) {
+      ReportSuccess(result, response->get<JsonObject>());
+    } else {
+      LogAndReportError(status, &response->get<JsonObject>());
+    }
+  };
+
+  auto get_response =
+      [this, callback_id](const std::shared_ptr<JsonValue>& response) {
+    JsonObject& obj = response->get<JsonObject>();
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
+    Instance::PostMessage(this, response->serialize().c_str());
+  };
+
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response, data);
+}
+
+void ContactInstance::ContactManagerFindByUsageCount(const JsonValue& args, JsonObject& out) {
+  LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [this, args](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+
+    PlatformResult status = ContactManager::ContactManagerFindByUsageCount(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
     if (status.IsSuccess()) {
       ReportSuccess(result, response->get<JsonObject>());
