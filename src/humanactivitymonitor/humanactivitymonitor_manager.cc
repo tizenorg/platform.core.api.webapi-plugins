@@ -1074,7 +1074,7 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     }
 
     data->insert(std::make_pair(kStatus, picojson::value(sleep_state)));
-    data->insert(std::make_pair(kTimestamp, picojson::value(getCurrentTimeStamp(event->timestamp))));
+    data->insert(std::make_pair(kTimestamp, picojson::value(static_cast<double>(getCurrentTimeStamp(event->timestamp)))));
 
     return PlatformResult(ErrorCode::NO_ERROR);
   };
