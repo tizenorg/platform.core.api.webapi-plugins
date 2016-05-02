@@ -30,6 +30,17 @@ enum PrimitiveType {
   kPrimitiveTypeId
 };
 
+extern const std::string kUsageTypeOutgoingCall;
+extern const std::string kUsageTypeOutgoingMsg;
+extern const std::string kUsageTypeOutgoingEmail;
+extern const std::string kUsageTypeIncomingCall;
+extern const std::string kUsageTypeIncomingMsg;
+extern const std::string kUsageTypeIncomingEmail;
+extern const std::string kUsageTypeMissedCall;
+extern const std::string kUsageTypeRejectedCall;
+extern const std::string kUsageTypeBlockedCall;
+extern const std::string kUsageTypeBlockedMsg;
+
 namespace Person {
 
 struct PersonProperty {
@@ -41,9 +52,13 @@ typedef std::map<std::string, PersonProperty> PersonPropertyMap;
 
 common::PlatformResult PersonPropertyFromString(const std::string& name,
                                                 PersonProperty* person_prop);
+contacts_usage_type_e UsageTypeFromString(const std::string& type_str);
 
 common::PlatformResult PersonLink(const JsonObject& args, JsonObject&);
 common::PlatformResult PersonUnlink(const JsonObject& args, JsonObject&);
+common::PlatformResult GetUsageCount(const JsonObject& args, JsonObject&);
+common::PlatformResult ResetUsageCount(const long& person_id, const std::string& type);
+common::PlatformResult PersonResetUsageCount(const JsonObject& args);
 
 }  // Person
 }  // contact

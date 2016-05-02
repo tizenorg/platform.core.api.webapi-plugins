@@ -537,6 +537,26 @@ common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::obje
 
   std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
 
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(resource->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
+
   result = IotconUtils::ConvertIotconError(iotcon_remote_resource_get(resource->handle, query, RemoteResourceResponseCallback, data.get()));
   if (!result) {
     LogAndReturnTizenError(result, ("iotcon_remote_resource_get() failed"));
@@ -580,6 +600,26 @@ common::TizenResult IotconInstance::RemoteResourceMethodPut(const picojson::obje
   };
 
   std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
+
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(resource->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
 
   result = IotconUtils::ConvertIotconError(iotcon_remote_resource_put(resource->handle, representation, query, RemoteResourceResponseCallback, data.get()));
   if (!result) {
@@ -625,6 +665,26 @@ common::TizenResult IotconInstance::RemoteResourceMethodPost(const picojson::obj
 
   std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
 
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(resource->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
+
   result = IotconUtils::ConvertIotconError(iotcon_remote_resource_post(resource->handle, representation, query, RemoteResourceResponseCallback, data.get()));
   if (!result) {
     LogAndReturnTizenError(result, ("iotcon_remote_resource_post() failed"));
@@ -647,6 +707,26 @@ common::TizenResult IotconInstance::RemoteResourceMethodDelete(const picojson::o
   }
 
   std::unique_ptr<CallbackData> data{new CallbackData{PostForMethodCall(token, resource)}};
+
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(resource->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
 
   result = IotconUtils::ConvertIotconError(iotcon_remote_resource_delete(resource->handle, RemoteResourceResponseCallback, data.get()));
   if (!result) {
@@ -708,6 +788,26 @@ common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const p
     Post(kRemoteResourceStateChangeListener, common::TizenSuccess{response});
   };
 
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(ptr->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
+
   result = IotconUtils::ConvertIotconError(
       iotcon_remote_resource_observe_register(ptr->handle, observe_policy, query,
                                               ObserveCallback, ptr.get()));
@@ -724,6 +824,27 @@ common::TizenResult IotconInstance::RemoteResourceUnsetStateChangeListener(const
   if (!result) {
     LogAndReturnTizenError(result, ("Failed to create remote resource handle"));
   }
+
+  // set options to the remote resource
+  const auto& js_options = IotconUtils::GetArg(args, kOptions);
+
+  if (js_options.is<picojson::array>()) {
+    iotcon_options_h options = nullptr;
+
+    result = IotconUtils::OptionsFromJson(js_options.get<picojson::array>(), &options);
+    if (!result) {
+      LogAndReturnTizenError(result, ("OptionsFromJson() failed"));
+    }
+    SCOPE_EXIT {
+      iotcon_options_destroy(options);
+    };
+
+    result = IotconUtils::ConvertIotconError(iotcon_remote_resource_set_options(ptr->handle, options));
+    if (!result) {
+      LogAndReturnTizenError(result, ("iotcon_response_set_options() failed"));
+    }
+  }
+
   result = IotconUtils::ConvertIotconError(iotcon_remote_resource_observe_deregister(ptr->handle));
   if (!result) {
     return result;

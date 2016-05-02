@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.72
+Version:    0.74
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -179,8 +179,13 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_message_port_support            1
 %define tizen_feature_messaging_support               0
 
+%if 0%{?tizen_is_emulator}
+%define tizen_feature_nfc_emulation_support           0
+%define tizen_feature_nfc_support                     0
+%else
 %define tizen_feature_nfc_emulation_support           0
 %define tizen_feature_nfc_support                     1
+%endif
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1

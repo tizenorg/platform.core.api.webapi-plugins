@@ -24,7 +24,6 @@ var Person = function(data) {
   var _hasEmail = false;
   var _isFavorite = false;
   var _displayContactId = '';
-  var _usageCount = 0;
 
   if (data.hasOwnProperty('id') && type_.isString(data.id)) {
     _id = data.id;
@@ -46,9 +45,6 @@ var Person = function(data) {
   }
   if (data.hasOwnProperty('isFavorite') && type_.isBoolean(data.isFavorite)) {
     _isFavorite = data.isFavorite;
-  }
-  if (data.hasOwnProperty('usageCount') && type_.isNumber(data.usageCount)) {
-    _usageCount = data.usageCount;
   }
 
   Object.defineProperties(this, {
@@ -135,17 +131,6 @@ var Person = function(data) {
         _displayContactId = converter_.toString(v, false);
       },
       enumerable: true
-    },
-    usageCount: {
-      get: function() {
-        return _usageCount;
-      },
-      set: function(v) {
-        if (_editGuard.isEditEnabled()) {
-          _usageCount = converter_.toLong(v, false);
-        }
-      },
-      enumerable: true
     }
   });
 };
@@ -203,4 +188,43 @@ Person.prototype.unlink = function(contactId) {
     _this.contactCount = _this.contactCount - 1;
     return new Person(native_.getResultObject(result));
   });
+};
+
+// Gets person's usage count
+Person.prototype.getUsageCount = function() {
+  // validation
+  var args = validator_.validateArgs(arguments, [
+  {
+    name: 'usage_type',
+    type: types_.ENUM,
+    values: Object.keys(PersonUsageTypeEnum),
+    optional: true,
+    nullable: true
+  }]);
+
+  var usage_type = (args.usage_type === undefined ? null : args.usage_type);
+
+  var result = native_.callSync('Person_getUsageCount', { personId: this.id, usage_type: usage_type });
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  var res = native_.getResultObject(result);
+  return Number(res.usageCount);
+};
+
+// Resets a person's usageCount from the contact DB synchronously.
+Person.prototype.resetUsageCount = function() {
+// validation
+   var args = validator_.validateArgs(arguments, [{
+   name: 'usage_type',
+   type: types_.ENUM,
+   values: Object.keys(PersonUsageTypeEnum),
+   optional: true,
+   nullable: true
+  }]);
+
+  var usage_type = (args.usage_type === undefined ? null : args.usage_type);
+
+  var result = native_.callSync('Person_resetUsageCount', { personId: this.id, usage_type: usage_type });
+  _checkError(result);
 };

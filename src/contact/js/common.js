@@ -88,6 +88,19 @@ function _checkError(result) {
 
 var TypeEnum = ['VCARD_30'];
 
+var PersonUsageTypeEnum = {
+  OUTGOING_CALL: 'OUTGOING_CALL',
+  OUTGOING_MSG: 'OUTGOING_MSG',
+  OUTGOING_EMAIL: 'OUTGOING_EMAIL',
+  INCOMING_CALL: 'INCOMING_CALL',
+  INCOMING_MSG: 'INCOMING_MSG',
+  INCOMING_EMAIL: 'INCOMING_EMAIL',
+  MISSED_CALL: 'MISSED_CALL',
+  REJECTED_CALL: 'REJECTED_CALL',
+  BLOCKED_CALL: 'BLOCKED_CALL',
+  BLOCKED_MSG: 'BLOCKED_MSG'
+};
+
 // Edit Guard //////////////////////////////////////////////////////////////
 // This flag is workaround. It is caused by specification
 // which tell to edit readonly fields.

@@ -399,12 +399,6 @@ TizenResult IotconUtils::ExtractFromRemoteResource(RemoteResourceInfo* resource)
   }
 
   result = ConvertIotconError(
-      iotcon_remote_resource_get_options(resource->resource, &resource->options));
-  if (!result) {
-    LogAndReturnTizenError(result, ("Gathering options failed"));
-  }
-
-  result = ConvertIotconError(
       iotcon_remote_resource_get_cached_representation(resource->resource, &resource->representation));
   if (!result) {
     LoggerD("Gathering cached representation failed");
@@ -447,15 +441,6 @@ TizenResult IotconUtils::RemoteResourceToJson(iotcon_remote_resource_h handle,
   }
 
   IotconUtils::PropertiesToJson(remote_res.properties, res);
-
-  if (remote_res.options) {
-    picojson::value opt_json{picojson::array{}};
-    result = OptionsToJson(remote_res.options, &opt_json.get<picojson::array>());
-    if (!result) {
-      LogAndReturnTizenError(result, ("OptionsToJson() failed"));
-    }
-    res->insert(std::make_pair(kOptions, opt_json));
-  }
 
   if (remote_res.representation) {
     picojson::value repr_json{picojson::object{}};
@@ -650,7 +635,7 @@ common::TizenResult IotconUtils::RepresentationToJson(iotcon_representation_h re
 
   if (representation) {
     {
-      // hostAddress
+      // uriPath
       char* uri_path = nullptr;
       auto result = ConvertIotconError(iotcon_representation_get_uri_path(representation, &uri_path));
       if (!result || !uri_path) {
@@ -1261,13 +1246,13 @@ common::TizenResult IotconUtils::RepresentationFromResource(const ResourceInfoPt
   }
 
   {
-    int children = 0;
-    result = IotconUtils::ConvertIotconError(iotcon_resource_get_number_of_children(resource->handle, &children));
+    unsigned int children = 0;
+    result = IotconUtils::ConvertIotconError(iotcon_resource_get_child_count(resource->handle, &children));
     if (!result) {
-      LogAndReturnTizenError(result, ("iotcon_resource_get_number_of_children() failed"));
+      LogAndReturnTizenError(result, ("iotcon_resource_get_child_count() failed"));
     }
 
-    for (int i = 0; i < children; ++i) {
+    for (unsigned int i = 0; i < children; ++i) {
       iotcon_resource_h child = nullptr;
       result = IotconUtils::ConvertIotconError(iotcon_resource_get_nth_child(resource->handle, i, &child));
       if (!result) {

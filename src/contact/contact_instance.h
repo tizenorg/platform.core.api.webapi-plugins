@@ -186,6 +186,8 @@ class ContactInstance : public common::ParsedInstance {
    */
   void ContactManagerFind(const JsonValue& args, JsonObject& out);
 
+  void ContactManagerFindByUsageCount(const JsonValue& args, JsonObject& out);
+
   /**
    * Signature: @code void getAddressBook(contactString); @endcode
    * JSON: @code data: {method: 'ContactManager_importFromVCard',
@@ -227,6 +229,8 @@ class ContactInstance : public common::ParsedInstance {
 
   void PersonLink(const JsonValue& args, JsonObject& out);
   void PersonUnlink(const JsonValue& args, JsonObject& out);
+  void PersonGetUsageCount(const JsonValue& args, JsonObject& out);
+  void PersonResetUsageCount(const JsonValue& args, JsonObject& out);
 
   int current_state_;
   bool is_listening_;
