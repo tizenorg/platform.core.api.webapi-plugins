@@ -78,8 +78,8 @@ function convertActivityData(type, data) {
       return new HumanActivityHRMData(data);
     case HumanActivityType.GPS:
       var gpsInfo = [];
-      for (var i = 0, max = data.length; i < max; i++) {
-        gpsInfo.push(new HumanActivityGPSInfo(data[i]));
+      for (var i = 0, max = data.gpsInfo.length; i < max; i++) {
+        gpsInfo.push(new HumanActivityGPSInfo(data.gpsInfo[i]));
       }
       return new HumanActivityGPSInfoArray(gpsInfo);
     case HumanActivityType.SLEEP_MONITOR:
