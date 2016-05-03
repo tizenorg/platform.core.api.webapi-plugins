@@ -738,7 +738,10 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
       return;
     }
 
-    callback(&gps_info);
+    picojson::value out{picojson::object{}};
+    (out.get<picojson::object>())["gpsInfo"] = gps_info;
+
+    callback(&out);
   }
 
   static bool ConvertGpsEvent(double latitude, double longitude, double altitude,

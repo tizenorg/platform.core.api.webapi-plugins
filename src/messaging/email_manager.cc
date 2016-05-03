@@ -269,17 +269,33 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
 
     if (message->getHasAttachment()){
         ret = Message::addEmailAttachments(message);
-        if (ret.IsError()) return ret;
+        if (ret.IsError()) {
+          int ntv_ret = email_free_mail_data(&mail_data,1);
+          if(EMAIL_ERROR_NONE != ntv_ret) {
+              LoggerE("Failed to free mail data memory: %d (%s)", ntv_ret, get_error_message(ntv_ret));
+          }
+          return ret;
+        }
     }
 
     err = email_get_mail_data(message->getId(), &mail_data_final);
     if(EMAIL_ERROR_NONE != err) {
-        return LogAndCreateResult(
-                  ErrorCode::UNKNOWN_ERR, "Couldn't retrieve added mail data",
-                  ("email_get_mail_data error: %d (%s)", err, get_error_message(err)));
+      int ntv_ret = email_free_mail_data(&mail_data,1);
+      if(EMAIL_ERROR_NONE != ntv_ret) {
+          LoggerE("Failed to free mail data memory: %d (%s)", ntv_ret, get_error_message(ntv_ret));
+      }
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Couldn't retrieve added mail data",
+                ("email_get_mail_data error: %d (%s)", err, get_error_message(err)));
     }
     ret = message->updateEmailMessage(*mail_data_final);
-    if (ret.IsError()) return ret;
+    if (ret.IsError()) {
+      int ntv_ret = email_free_mail_data(&mail_data,1);
+      if(EMAIL_ERROR_NONE != ntv_ret) {
+          LoggerE("Failed to free mail data memory: %d (%s)", ntv_ret, get_error_message(ntv_ret));
+      }
+      return ret;
+    }
 
     err = email_free_mail_data(&mail_data_final,1);
     if(EMAIL_ERROR_NONE != err) {
