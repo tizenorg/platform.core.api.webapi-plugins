@@ -45,7 +45,8 @@ var HumanActivityType = {
 var PedometerStepStatus = {
   NOT_MOVING: 'NOT_MOVING',
   WALKING: 'WALKING',
-  RUNNING: 'RUNNING'
+  RUNNING: 'RUNNING',
+  UNKNOWN: 'UNKNOWN'
 };
 
 var ActivityRecognitionType = {
