@@ -35,10 +35,12 @@ namespace {
 const char* kPlatformFull = "mobile-full";
 const char* kPlatformMobile = "mobile-web";
 const char* kPlatformWearable = "wearable";
+const char* kPlatformTv = "tv";
 
 const char* kProfileFull = "MOBILE_FULL";
 const char* kProfileMobile = "MOBILE_WEB";
 const char* kProfileWearable = "WEARABLE";
+const char* kProfileTv = "TV";
 //opengles
 const char* kOpenglesTextureDelimiter = "/";
 const char* kOpenglesTextureUtc = "utc";
@@ -516,7 +518,12 @@ PlatformResult SystemInfoDeviceCapability::GetProfile(std::string* return_value)
     *return_value = kProfileMobile;
   } else if ( kPlatformWearable == profile ) {
     *return_value = kProfileWearable;
+  } else if ( kPlatformTv == profile ) {
+    *return_value = kProfileTv;
+  } else {
+    LoggerE("Profile is Unknown return MOBILE_FULL");
   }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

@@ -12,6 +12,7 @@ python-jinja2 >= 2.7
 python WAPIOven.py -d <output directory> <webidl file>
 
 ex) python WAPIOven.py -d ./tmp widls/datacontrol.widl
+ex) python WAPIOven.py -d ./tmp widls/sensor.widl widls/tizen.widl (if tizen.widl is needed)
 
 ## WIDL files for Tizen 2.3
 

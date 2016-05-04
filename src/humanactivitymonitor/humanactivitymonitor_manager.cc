@@ -149,6 +149,7 @@ std::string FromSensorPedometerState(sensor_pedometer_state_e e) {
     case SENSOR_PEDOMETER_STATE_RUN:
       return "RUNNING";
 
+    case SENSOR_PEDOMETER_STATE_UNKNOWN:
     default:
       return "UNKNOWN";
   }
@@ -982,10 +983,6 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     static float steps_so_far = 0.0;
 
     const auto state = pedometer_data->state();
-
-    if (SENSOR_PEDOMETER_STATE_UNKNOWN == state) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown sensor step state");
-    }
 
     data->insert(std::make_pair(kStepStatus, picojson::value(FromSensorPedometerState(state))));
     data->insert(std::make_pair(kSpeed, picojson::value(pedometer_data->speed())));
