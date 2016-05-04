@@ -134,7 +134,7 @@ void FilesystemProviderDeviced::BlockSignalProxy(
   FilesystemProviderDeviced* instance =
     static_cast<FilesystemProviderDeviced*>(user_data);
   DeviceListElem elem;
-  g_variant_get(parameters, "(issssssisib)", &elem.block_type, &elem.devnode,
+  g_variant_get(parameters, "(issssssisibii)", &elem.block_type, &elem.devnode,
                 &elem.syspath, &elem.fs_usage, &elem.fs_type, &elem.fs_version,
                 &elem.fs_uuid_enc, &elem.readonly, &elem.mount_point,
                 &elem.state, &elem.primary);
@@ -259,9 +259,9 @@ Storages FilesystemProviderDeviced::GetStoragesFromGVariant(GVariant* variant) {
   Storages storages;
   GVariantIter *iter;
 
-  g_variant_get(variant, "(a(issssssisib))", &iter);
+  g_variant_get(variant, "(a(issssssisibii))", &iter);
   DeviceListElem elem;
-  while (g_variant_iter_loop(iter, "(issssssisib)",
+  while (g_variant_iter_loop(iter, "(issssssisibii)",
                              &elem.block_type, &elem.devnode, &elem.syspath,
                              &elem.fs_usage, &elem.fs_type,
                              &elem.fs_version, &elem.fs_uuid_enc,
