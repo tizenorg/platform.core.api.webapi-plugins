@@ -9,6 +9,10 @@ To generate stub files from the widl you can use stub generator located in
 $ python WAPIOven.py -d <stub code destination directory name> <widl directory/pluginname>.widl
 ```
 
+If tizen.widl is needed, add tizen.widl
+```
+$ python WAPIOven.py -d <stub code destination directory name> <widl directory/pluginname>.widl <widl directory/>tizen.widl
+```
 Path to WAPIOven.py:
 ```sh
 $ tools/skeleton_generator/WAPIOven.py
