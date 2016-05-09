@@ -86,6 +86,7 @@ class SysteminfoManager {
   void CallStorageListenerCallback();
  private:
   class TapiManager;
+  class AsynchronousOperation;
 
   void PostListenerResponse(const std::string& property_id, const picojson::value& result,
                             int property_index = 0);
@@ -150,6 +151,7 @@ class SysteminfoManager {
   connection_h connection_handle_;
   std::mutex connection_mutex_;
 
+  std::unique_ptr<AsynchronousOperation> async_op_;
 };
 } // namespace systeminfo
 } // namespace webapi

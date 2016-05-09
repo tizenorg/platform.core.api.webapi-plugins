@@ -16,6 +16,7 @@
 
 #include "systeminfo/systeminfo_manager.h"
 
+#include <condition_variable>
 #include <functional>
 #include <memory>
 
@@ -423,6 +424,38 @@ class SysteminfoManager::TapiManager {
   SimDetailsManager sim_manager_;
 };
 
+class SysteminfoManager::AsynchronousOperation {
+ public:
+  AsynchronousOperation(int count_ = 0)
+      : count_(count_) {
+  }
+
+  ~AsynchronousOperation() {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    while (0 != count_) {
+      cv_.wait(lock);
+    }
+  }
+
+  inline void start() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    ++count_;
+    cv_.notify_one();
+  }
+
+  inline void finish() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    --count_;
+    cv_.notify_one();
+  }
+
+ private:
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  int count_;
+};
+
 SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
     : instance_(instance),
       prop_manager_(*this),
@@ -437,7 +470,8 @@ SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
       tapi_manager_(new TapiManager()),
       cpu_event_id_(0),
       storage_event_id_(0),
-      connection_handle_(nullptr) {
+      connection_handle_(nullptr),
+      async_op_(new AsynchronousOperation()) {
         LoggerD("Entered");
         int error = wifi_initialize();
         if (WIFI_ERROR_NONE != error) {
@@ -601,6 +635,8 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
+
+    async_op_->finish();
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -614,6 +650,8 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
   auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
   TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
+
+  async_op_->start();
 }
 
 void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picojson::object* out) {
@@ -636,6 +674,8 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
+
+    async_op_->finish();
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -648,6 +688,8 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
   auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
   TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
+
+  async_op_->start();
 }
 
 void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::object* out) {
