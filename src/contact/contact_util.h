@@ -83,7 +83,7 @@ common::PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
                                               int *child_count);
 
 common::PlatformResult UpdateAdditionalInformation(
-    const ContactsRecordHPtr &contacts_record_ptr, JsonObject *out);
+    const contacts_record_h contacts_record, JsonObject *out);
 
 common::PlatformResult ImportContactNameFromContactsRecord(
     contacts_record_h contacts_record, JsonObject *out, bool *is_contact_name);

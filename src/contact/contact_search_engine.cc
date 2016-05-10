@@ -576,12 +576,19 @@ PlatformResult ContactSearchEngine::GetAllContacts(picojson::array* out) {
       continue;
     }
 
-    int id_value = 0;
-    error_code = contacts_record_get_int(record, _contacts_contact.id, &id_value);
-    status = ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
-    if (!status) return status;
+    JsonObject obj;
 
-    out->push_back(picojson::value(static_cast<double>(id_value)));
+    status = ContactUtil::ImportContactFromContactsRecord(record, &obj);
+    if (!status) {
+      return status;
+    }
+
+    status = ContactUtil::UpdateAdditionalInformation(record, &obj);
+    if (!status) {
+      return status;
+    }
+
+    out->push_back(picojson::value(obj));
 
     error_code = contacts_list_next(list);
 
@@ -601,16 +608,17 @@ PlatformResult ContactSearchEngine::GetContacts(Iterator begin, Iterator end,
   for (auto iter = begin; iter != end; ++iter) {
     const auto id = *iter;
 
-    if (is_addressbook_id_is_set_) {
-      contacts_record_h record = nullptr;
-      int error_code = contacts_db_get_record(_contacts_contact._uri, id, &record);
-      if (CONTACTS_ERROR_NONE != error_code) {
-        LoggerE("Failed to get contact with ID: %d", id);
-        continue;
-      }
+    contacts_record_h record = nullptr;
+    int error_code = contacts_db_get_record(_contacts_contact._uri, id, &record);
+    if (CONTACTS_ERROR_NONE != error_code) {
+      LoggerE("Failed to get contact with ID: %d", id);
+      continue;
+    }
 
-      ContactUtil::ContactsRecordHPtr record_ptr(&record,
-                                                 ContactUtil::ContactsDeleter);
+    ContactUtil::ContactsRecordHPtr record_ptr(&record,
+                                               ContactUtil::ContactsDeleter);
+
+    if (is_addressbook_id_is_set_) {
       int address_book_id = 0;
 
       error_code = contacts_record_get_int(record,
@@ -627,7 +635,19 @@ PlatformResult ContactSearchEngine::GetContacts(Iterator begin, Iterator end,
       }
     }
 
-    out->push_back(picojson::value(static_cast<double>(id)));
+    JsonObject obj;
+
+    PlatformResult status = ContactUtil::ImportContactFromContactsRecord(record, &obj);
+    if (!status) {
+      return status;
+    }
+
+    status = ContactUtil::UpdateAdditionalInformation(*record_ptr, &obj);
+    if (!status) {
+      return status;
+    }
+
+    out->push_back(picojson::value(obj));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -851,22 +851,19 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
   for (int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record;
-    error_code =
-        contacts_list_get_current_record_p(person_list, &contacts_record);
+    error_code = contacts_list_get_current_record_p(person_list, &contacts_record);
     if (error_code != CONTACTS_ERROR_NONE || contacts_record == NULL) {
       LoggerW("Failed group record (ret:%d)", error_code);
       continue;
     }
 
-    int id_value = 0;
-    error_code = contacts_record_get_int(contacts_record, _contacts_person.id,
-                                         &id_value);
+    JsonObject obj;
+    status = ContactUtil::ImportPersonFromContactsRecord(contacts_record, &obj);
+    if (status.IsError()) {
+      return status;
+    }
 
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
-    if (status.IsError()) return status;
-
-    out.push_back(JsonValue(static_cast<double>(id_value)));
+    out.push_back(JsonValue(obj));
 
     contacts_list_next(person_list);
   }
@@ -1049,15 +1046,13 @@ PlatformResult ContactManagerFindByUsageCount(const JsonObject& args, JsonArray&
       continue;
     }
 
-    int id_value = 0;
-    error_code = contacts_record_get_int(contacts_record, _contacts_person_usage.person_id,
-                                         &id_value);
+    JsonObject obj;
+    status = ContactUtil::ImportPersonFromContactsRecord(contacts_record, &obj);
+    if (status.IsError()) {
+      return status;
+    }
 
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
-    if (status.IsError()) return status;
-
-    out.push_back(JsonValue(static_cast<double>(id_value)));
+    out.push_back(JsonValue(obj));
 
     contacts_list_next(person_list);
   }

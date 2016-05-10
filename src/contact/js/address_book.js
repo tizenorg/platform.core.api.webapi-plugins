@@ -97,7 +97,6 @@ var _contactChangeListener = function(result) {
   }
 };
 
-
 var AddressBook = function(accountId, name) {
   validator_.isConstructorCall(this, AddressBook);
 
@@ -161,6 +160,28 @@ var AddressBook = function(accountId, name) {
   });
 };
 
+function _prepareContact(data) {
+  return _editGuard.run(function() {
+    var contact = new Contact(data);
+
+    if (contact.name instanceof ContactName) {
+      contact.name.displayName = '';
+      if (type_.isString(contact.name.firstName)) {
+        contact.name.displayName = contact.name.firstName;
+        if (type_.isString(contact.name.lastName)) {
+          contact.name.displayName += ' ' + contact.name.lastName;
+        }
+      } else if (type_.isArray(contact.name.nicknames) &&
+          type_.isString(contact.name.nicknames[0])) {
+        contact.name.displayName = contact.name.nicknames[0];
+      } else if (type_.isString(contact.name.nicknames)) {
+        contact.name.displayName = contact.name.nicknames;
+      }
+    }
+    return contact;
+  });
+}
+
 AddressBook.prototype.get = function() {
   var args = validator_.validateArgs(arguments, [{
     name: 'id',
@@ -182,28 +203,7 @@ AddressBook.prototype.get = function() {
     throw native_.getErrorObject(result);
   }
 
-  return _editGuard.run(function() {
-    var contact = new Contact(native_.getResultObject(result));
-
-    if (contact.name instanceof ContactName) {
-      contact.name.displayName = '';
-      if (type_.isString(contact.name.firstName)) {
-        contact.name.displayName = contact.name.firstName;
-        if (type_.isString(contact.name.lastName)) {
-          contact.name.displayName += ' ' + contact.name.lastName;
-        }
-      } else if (type_.isArray(contact.name.nicknames) &&
-          type_.isString(contact.name.nicknames[0])) {
-        contact.name.displayName = contact.name.nicknames[0];
-      } else if (type_.isString(contact.name.nicknames)) {
-        contact.name.displayName = contact.name.nicknames;
-      }
-    }
-
-
-
-    return contact;
-  });
+  return _prepareContact(native_.getResultObject(result));
 };
 
 AddressBook.prototype.add = function() {
@@ -510,9 +510,8 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     var _contacts = [];
     var _result = native_.getResultObject(result);
     _result.forEach(function(data) {
-      try {
-        _contacts.push(self.get(String(data)));
-      } catch (e) {}
+      var contact = _prepareContact(data);
+      _contacts.push(contact);
     });
 
     native_.callIfPossible(successCallback, _contacts);
