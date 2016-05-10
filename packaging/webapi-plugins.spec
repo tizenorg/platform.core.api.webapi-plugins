@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.77
+Version:    0.78
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -313,7 +313,6 @@ BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
 BuildRequires: pkgconfig(libtzplatform-config)
-BuildRequires: pkgconfig(widget_service)
 
 %if %{with wayland}
 %define display_type wayland
@@ -450,6 +449,9 @@ BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires:  pkgconfig(capi-system-media-key)
 %endif
 
+%if 0%{?tizen_feature_widget_service_support}
+BuildRequires: pkgconfig(widget_service)
+%endif
 
 %description
 Tizen Web APIs implemented.
