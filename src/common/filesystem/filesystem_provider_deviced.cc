@@ -50,7 +50,9 @@ struct DeviceListElem {
           readonly(0),
           mount_point(nullptr),
           state(0),
-          primary(false) {}
+          primary(false),
+          flags(0),
+          storage_id(0) {}
 
     int block_type;
     char* devnode;
@@ -63,6 +65,8 @@ struct DeviceListElem {
     char* mount_point;
     int state;
     bool primary;
+    int flags;
+    int storage_id;
 };
 
 struct UsbListElem {
@@ -134,10 +138,10 @@ void FilesystemProviderDeviced::BlockSignalProxy(
   FilesystemProviderDeviced* instance =
     static_cast<FilesystemProviderDeviced*>(user_data);
   DeviceListElem elem;
-  g_variant_get(parameters, "(issssssisib)", &elem.block_type, &elem.devnode,
+  g_variant_get(parameters, "(issssssisibii)", &elem.block_type, &elem.devnode,
                 &elem.syspath, &elem.fs_usage, &elem.fs_type, &elem.fs_version,
                 &elem.fs_uuid_enc, &elem.readonly, &elem.mount_point,
-                &elem.state, &elem.primary);
+                &elem.state, &elem.primary, &elem.flags, &elem.storage_id);
   instance->BlockSignalCallback(elem);
 }
 
@@ -259,14 +263,14 @@ Storages FilesystemProviderDeviced::GetStoragesFromGVariant(GVariant* variant) {
   Storages storages;
   GVariantIter *iter;
 
-  g_variant_get(variant, "(a(issssssisib))", &iter);
+  g_variant_get(variant, "(a(issssssisibii))", &iter);
   DeviceListElem elem;
-  while (g_variant_iter_loop(iter, "(issssssisib)",
+  while (g_variant_iter_loop(iter, "(issssssisibii)",
                              &elem.block_type, &elem.devnode, &elem.syspath,
                              &elem.fs_usage, &elem.fs_type,
                              &elem.fs_version, &elem.fs_uuid_enc,
                              &elem.readonly, &elem.mount_point,
-                             &elem.state, &elem.primary)) {
+                             &elem.state, &elem.primary, &elem.flags, &elem.storage_id)) {
     SLoggerD("##### DEVICE INFO #####");
     SLoggerD("# block_type : (%d)", elem.block_type);
     SLoggerD("# devnode : (%s)", elem.devnode);
@@ -279,6 +283,8 @@ Storages FilesystemProviderDeviced::GetStoragesFromGVariant(GVariant* variant) {
     SLoggerD("# mount_point: (%s)", elem.mount_point);
     SLoggerD("# state : (%d)", elem.state);
     SLoggerD("# primary : (%s)", elem.primary ? "true" : "false");
+    SLoggerD("# flags : (%d)", elem.flags);
+    SLoggerD("# storage_id : (%d)", elem.storage_id);
     storages.push_back(GetStorage(elem));
   }
   g_variant_iter_free(iter);
