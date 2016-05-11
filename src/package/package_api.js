@@ -160,9 +160,13 @@ var PackageManagerInstall = function() {
         nativeParam,
         function(result) {
           if (result.status == 'progress') {
-            args.progressCallback.onprogress(result.id, result.progress);
+            if (args.progressCallback.onprogress) {
+              args.progressCallback.onprogress(result.id, result.progress);
+            }
           } else if (result.status == 'complete') {
-            args.progressCallback.oncomplete(result.id);
+            if (args.progressCallback.oncomplete) {
+              args.progressCallback.oncomplete(result.id);
+            }
           } else if (result.status == 'error') {
             var err = result['error'];
             if (err) {
@@ -203,9 +207,13 @@ var PackageManagerUninstall = function() {
         nativeParam,
         function(result) {
           if (result.status == 'progress') {
-            args.progressCallback.onprogress(result.id, result.progress);
+            if (args.progressCallback.onprogress) {
+              args.progressCallback.onprogress(result.id, result.progress);
+            }
           } else if (result.status == 'complete') {
-            args.progressCallback.oncomplete(result.id);
+            if (args.progressCallback.oncomplete) {
+              args.progressCallback.oncomplete(result.id);
+            }
           } else if (result.status == 'error') {
             var err = result['error'];
             if (err) {
