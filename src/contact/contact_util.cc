@@ -3211,11 +3211,11 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
 }
 
 PlatformResult UpdateAdditionalInformation(
-    const ContactsRecordHPtr& contacts_record_ptr, JsonObject* out_ptr) {
+    const contacts_record_h contacts_record, JsonObject* out_ptr) {
   JsonObject& out = *out_ptr;
   int int_value = -1;
   PlatformResult status = ContactUtil::GetIntFromRecord(
-      *contacts_record_ptr, _contacts_contact.person_id, &int_value);
+      contacts_record, _contacts_contact.person_id, &int_value);
   if (status.IsError()) {
     LoggerE("Error: %s", status.message().c_str());
     return status;
@@ -3223,7 +3223,7 @@ PlatformResult UpdateAdditionalInformation(
 
   out.insert(std::make_pair("personId", JsonValue{std::to_string(int_value)}));
   status = ContactUtil::GetIntFromRecord(
-      *contacts_record_ptr, _contacts_contact.address_book_id, &int_value);
+      contacts_record, _contacts_contact.address_book_id, &int_value);
   if (status.IsError()) {
     LoggerE("Error: %s", status.message().c_str());
     return status;
@@ -3232,7 +3232,7 @@ PlatformResult UpdateAdditionalInformation(
   out.insert(
       std::make_pair("addressBookId", JsonValue{std::to_string(int_value)}));
   status = ContactUtil::GetIntFromRecord(
-      *contacts_record_ptr, _contacts_contact.changed_time, &int_value);
+      contacts_record, _contacts_contact.changed_time, &int_value);
   if (status.IsError()) {
     LoggerE("Error: %s", status.message().c_str());
     return status;
@@ -3242,7 +3242,7 @@ PlatformResult UpdateAdditionalInformation(
       std::make_pair("lastUpdated", JsonValue{static_cast<double>(int_value)}));
   bool bool_value = false;
   status = ContactUtil::GetBoolFromRecord(
-      *contacts_record_ptr, _contacts_contact.is_favorite, &bool_value);
+      contacts_record, _contacts_contact.is_favorite, &bool_value);
   if (status.IsError()) {
     LoggerE("Error: %s", status.message().c_str());
     return status;

@@ -396,7 +396,10 @@ ContactManager.prototype.find = function() {
       var _result = native_.getResultObject(result);
       var retval = [];
       for (var i = 0; i < _result.length; ++i) {
-        retval.push(self.get(String(_result[i])));
+        var person = _editGuard.run(function() {
+          return new Person(_result[i]);
+        });
+        retval.push(person);
       }
       args.successCallback(retval);
     } else {
@@ -466,7 +469,10 @@ ContactManager.prototype.findByUsageCount = function() {
       var _result = native_.getResultObject(result);
       var retval = [];
       for (var i = 0; i < _result.length; ++i) {
-        retval.push(self.get(String(_result[i])));
+        var person = _editGuard.run(function() {
+          return new Person(_result[i]);
+        });
+        retval.push(person);
       }
       args.successCallback(retval);
     } else {

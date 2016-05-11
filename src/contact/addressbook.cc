@@ -73,7 +73,7 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
       ContactUtil::ImportContactFromContactsRecord(*contacts_record_ptr, &out);
   if (status.IsError()) return status;
 
-  status = ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
+  status = ContactUtil::UpdateAdditionalInformation(*contacts_record_ptr, &out);
   if (status.IsError()) return status;
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -131,7 +131,7 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
 
   out.insert(std::make_pair("id", JsonValue{std::to_string(id)}));
 
-  status = ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
+  status = ContactUtil::UpdateAdditionalInformation(*contacts_record_ptr, &out);
   if (status.IsError()) return status;
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -178,7 +178,7 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
     }
   }
 
-  status = ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
+  status = ContactUtil::UpdateAdditionalInformation(*contacts_record_ptr, &out);
   if (status.IsError()) return status;
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -329,7 +329,7 @@ PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
         to_update, JsonCast<JsonObject>(item));
     if (status.IsError()) return status;
     JsonObject out_object;
-    status = ContactUtil::UpdateAdditionalInformation(x, &out_object);
+    status = ContactUtil::UpdateAdditionalInformation(*x, &out_object);
     if (status.IsError()) return status;
     out.push_back(JsonValue{out_object});
 
