@@ -74,7 +74,7 @@ PushManager.prototype.register = function() {
     }
   ]);
 
-  var ret = native.call('Push_register', {}, function(msg) {
+  var ret = native.call('Push_registerApplication', {}, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
         data.errorCallback(native.getErrorObject(msg));
@@ -108,7 +108,7 @@ PushManager.prototype.unregister = function() {
       nullable: true
     }
   ]);
-  var result = native.call('Push_unregister', {}, function(msg) {
+  var result = native.call('Push_unregisterApplication', {}, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
         data.errorCallback(native.getErrorObject(msg));
