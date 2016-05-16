@@ -170,6 +170,12 @@ Source0:    %{name}-%{version}.tar.gz
 
 %define tizen_feature_tvinputdevice_support           0
 
+%if 0%{?tizen_is_emulator}
+%define tizen_feature_convergence_support             0
+%else
+%define tizen_feature_convergence_support             1
+%endif
+
 %endif # tizen_profile_mobile
 
 ####################################################################
@@ -266,6 +272,12 @@ Source0:    %{name}-%{version}.tar.gz
 %define    tizen_feature_nbs_support                  0
 %endif
 
+%if 0%{?tizen_is_emulator}
+%define tizen_feature_convergence_support             0
+%else
+%define tizen_feature_convergence_support             1
+%endif
+
 %endif # tizen_profile_wearable
 
 ####################################################################
@@ -321,6 +333,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_wi_fi_support                   1
 %define tizen_feature_inputdevice_support             0
 %define tizen_feature_tvinputdevice_support           1
+%define tizen_feature_convergence_support             1
 
 %endif # tizen_profile_tv
 
@@ -497,6 +510,10 @@ BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires:  pkgconfig(capi-system-media-key)
 %endif
 
+%if 0%{?tizen_feature_convergence_support}
+BuildRequires: pkgconfig(d2d-conv-manager)
+%endif
+
 %if 0%{?tizen_feature_widget_service_support}
 BuildRequires: pkgconfig(widget_service)
 %endif
@@ -572,6 +589,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_w
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_widget_service_support=%{?tizen_feature_widget_service_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_convergence_support=%{?tizen_feature_convergence_support}"
 
 ./tools/gyp/gyp $GYP_OPTIONS src/tizen-wrt.gyp
 
