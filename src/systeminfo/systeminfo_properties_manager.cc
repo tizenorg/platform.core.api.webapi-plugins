@@ -1165,7 +1165,6 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
   out->insert(std::make_pair("isRemovable", picojson::value(isRemovable)));
 }
 
-#ifdef TIZEN_TV
 static std::string FromStorageTypeToStringType(common::StorageType type) {
   switch(type) {
     case common::StorageType::kUsbDevice:
@@ -1178,7 +1177,6 @@ static std::string FromStorageTypeToStringType(common::StorageType type) {
       return kTypeUnknown;
   }
 }
-#endif
 
 PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out) {
   LoggerD("Entered");
@@ -1199,7 +1197,6 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
   manager_.SetAvailableCapacityInternal(fs.f_bavail);
 
   // handling external storages
-#ifdef TIZEN_TV
   common::FilesystemProvider& provider(common::FilesystemProvider::Create());
   auto storages = provider.GetStorages();
   LoggerD("Storages found %d", storages.size());
@@ -1212,24 +1209,16 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
       array.push_back(picojson::value(picojson::object()));
       picojson::object& external_obj = array.back().get<picojson::object>();
       CreateStorageInfo(FromStorageTypeToStringType(storage->type()), fs, &external_obj);
+#ifdef TIZEN_TV
       // TODO some tracking of available capacity of usb storages should be applied
-    }
-  }
 #else
-  int sdcardState = 0;
-  if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
-    if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
-      if (statfs(kStorageSdcardPath.c_str(), &fs) < 0) {
-        return LogAndCreateResult(
-                  ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
-      }
-      array.push_back(picojson::value(picojson::object()));
-      picojson::object& external_obj = array.back().get<picojson::object>();
-      CreateStorageInfo(kTypeMmc, fs, &external_obj);
+      // Only one storage would be tracked, if more than one SD card would be supported on device
+      // different mechanism should be applied
       manager_.SetAvailableCapacityMmc(fs.f_bavail);
+#endif
     }
   }
-#endif
+
   out->insert(std::make_pair("storages", picojson::value(result)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }

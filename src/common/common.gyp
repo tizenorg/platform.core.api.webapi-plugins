@@ -57,17 +57,13 @@
         'tizen_result.h',
         'tizen_instance.cc',
         'tizen_instance.h',
+        'filesystem/filesystem_provider_deviced.h',
+        'filesystem/filesystem_provider_deviced.cc',
       ],
       'cflags': [
         '-fvisibility=default',
       ],
       'conditions': [
-        ['extension_host_os == "tv"', {
-          'sources': [
-            'filesystem/filesystem_provider_deviced.h',
-            'filesystem/filesystem_provider_deviced.cc',
-          ]
-        }],
         ['tizen == 1', {
           'variables': {
             'packages': [

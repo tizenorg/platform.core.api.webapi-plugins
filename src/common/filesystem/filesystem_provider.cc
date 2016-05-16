@@ -15,9 +15,7 @@
  */
 
 #include "common/filesystem/filesystem_provider.h"
-#ifdef TIZEN_TV
 #include "common/filesystem/filesystem_provider_deviced.h"
-#endif
 #include "common/filesystem/filesystem_provider_storage.h"
 
 namespace common {
@@ -33,11 +31,7 @@ IFilesystemProvider::~IFilesystemProvider() {
 
 
 FilesystemProvider::FilesystemProvider() :
-#ifdef TIZEN_TV
     provider_ (FilesystemProviderDeviced::Create())
-#else
-    provider_ (FilesystemProviderStorage::Create())
-#endif
 {
 }
 
