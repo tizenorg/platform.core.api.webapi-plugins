@@ -168,7 +168,8 @@ PushManager.prototype.getPushMessage = function() {
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
   } else {
-    return new PushMessage(native.getResultObject(ret));
+    var message = native.getResultObject(ret);
+    return message ? new PushMessage(message) : null;
   }
 };
 
