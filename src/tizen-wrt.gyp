@@ -315,6 +315,13 @@
             ],
           },
         ],
+        [
+          'tizen_feature_convergence_support==1', {
+            'dependencies': [
+              'convergence/convergence.gyp:*',
+            ],
+          },
+        ],
       ], # end conditions
     },
   ], # end targets
