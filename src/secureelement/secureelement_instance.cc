@@ -67,7 +67,7 @@ SecureElementInstance::SecureElementInstance()
     REGISTER("SEService_getReaders", GetReaders);
     REGISTER("SEReader_openSession", OpenSession);
     REGISTER("SESession_openBasicChannel", OpenBasicChannel);
-    REGISTER("SESession_openLogicalChannel ", OpenLogicalChannel);
+    REGISTER("SESession_openLogicalChannel", OpenLogicalChannel);
     REGISTER("SEChannel_transmit", Transmit);
 #undef REGISTER
 }
