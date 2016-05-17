@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var type_ = xwalk.utils.type;
@@ -71,7 +71,7 @@ var FeedbackType = {
     TYPE_SOUND: 'TYPE_SOUND',
     TYPE_VIBRATION: 'TYPE_VIBRATION',
     NONE: 'NONE'
-}
+};
 
 var FeedbackPattern = {
   TAP: 'TAP',
@@ -125,23 +125,7 @@ FeedbackManager.prototype.isPatternSupported = function(pattern, type) {
     {name: 'pattern', type: types_.ENUM, values: Object.keys(FeedbackPattern)},
     {name: 'type', type: types_.ENUM, values: Object.keys(FeedbackType)},
   ]);
-
-  if ('' === args.pattern) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                              'Pattern name cannot be empty.');
-  }
-
-  if ('' === args.type) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                              'Pattern type name cannot be empty.');
-  }
-
-    var result = callNative('FeedbackManager_isPatternSupported', args);
-
-    if (native_.isFailure(result)) {
-      throw native_.getErrorObject(result);
-    }
-    return native_.getResultObject(result);
+  return callNative('FeedbackManager_isPatternSupported', args);
 };
 
 FeedbackManager.prototype.play = function(pattern, type) {
@@ -150,35 +134,19 @@ FeedbackManager.prototype.play = function(pattern, type) {
     {name: 'type', type: types_.ENUM, values: Object.keys(FeedbackType), 'optional' : true},
   ]);
 
-  if ('' === args.pattern) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                              'Pattern name cannot be empty.');
-  }
-  if ('' === args.type) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                              'Pattern type name cannot be empty.');
-  }
-
   var nativeParam = {
       'pattern': args.pattern,
       'type': args.type ? args.type : 'any'
     };
 
-  var result = callNative('FeedbackManager_play', nativeParam);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  callNative('FeedbackManager_play', nativeParam);
   return;
 };
 
 FeedbackManager.prototype.stop = function() {
-  native_.removeListener(TAG_LISTENER);
+  var args = validator_.validateArgs(arguments, []);
 
-  var result = callNative('FeedbackManager_stop');
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  callNative('FeedbackManager_stop', args);
   return;
 };
 
