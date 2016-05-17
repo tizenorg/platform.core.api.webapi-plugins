@@ -30,17 +30,18 @@ class PushInstance: public common::ParsedInstance, public EventListener {
     virtual ~PushInstance();
     virtual void onPushRegister(double callbackId,
             common::PlatformResult result, const std::string& id);
-    virtual void onPushNotify(push_service_notification_h noti);
+    virtual void onPushNotify(const std::string& appData,
+            const std::string& alertMessage, double date);
     virtual void onDeregister(double callbackId, common::PlatformResult result);
 
  private:
-     void registerApplication(const picojson::value& args, picojson::object& out);
-     void unregisterApplication(const picojson::value& args, picojson::object& out);
+     void registerService(const picojson::value& args, picojson::object& out);
+     void unregisterService(const picojson::value& args, picojson::object& out);
      void connectService(const picojson::value& args, picojson::object& out);
      void disconnectService(const picojson::value& args, picojson::object& out);
      void getRegistrationId(const picojson::value& args, picojson::object& out);
-     void getUnreadNotifications(const picojson::value& args, picojson::object& out);
-     void getPushMessage(const picojson::value& args, picojson::object& out);
+     void getUnreadNotifications(const picojson::value& args,
+            picojson::object& out);
 
      bool m_ignoreNotificationEvents;
 };

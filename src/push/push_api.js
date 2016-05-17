@@ -48,20 +48,13 @@ function PushManager() {
   }
 }
 
-PushManager.prototype.registerService = function() {
-  validator.validateArgs(arguments, [
+PushManager.prototype.registerService = function(appControl, successCallback, errorCallback) {
+  var data = validator.validateArgs(arguments, [
     {
       name: 'appControl',
       type: validator.Types.PLATFORM_OBJECT,
       values: tizen.ApplicationControl
-    }
-  ]);
-  console.warn('Method registerService() is deprecated, use register() instead.');
-  this.register.apply(this, Array.prototype.slice.call(arguments, 1));
-};
-
-PushManager.prototype.register = function() {
-  var data = validator.validateArgs(arguments, [
+    },
     {
       name: 'successCallback',
       type: validator.Types.FUNCTION
@@ -74,7 +67,13 @@ PushManager.prototype.register = function() {
     }
   ]);
 
-  var ret = native.call('Push_registerApplication', {}, function(msg) {
+  var ret = native.call('Push_registerService', {
+    operation: data.appControl.operation,
+    uri: data.appControl.uri,
+    mime: data.appControl.mime,
+    category: data.appControl.category,
+    data: data.appControl.data
+  }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
         data.errorCallback(native.getErrorObject(msg));
@@ -88,12 +87,7 @@ PushManager.prototype.register = function() {
   }
 };
 
-PushManager.prototype.unregisterService = function() {
-  console.warn('Method unregisterService() is deprecated, use unregister() instead.');
-  this.unregister.apply(this, arguments);
-};
-
-PushManager.prototype.unregister = function() {
+PushManager.prototype.unregisterService = function(successCallback, errorCallback) {
   var data = validator.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -108,7 +102,8 @@ PushManager.prototype.unregister = function() {
       nullable: true
     }
   ]);
-  var result = native.call('Push_unregisterApplication', {}, function(msg) {
+
+  var result = native.call('Push_unregisterService', {}, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
         data.errorCallback(native.getErrorObject(msg));
@@ -159,17 +154,6 @@ PushManager.prototype.getUnreadNotifications = function() {
   var ret = native.callSync('Push_getUnreadNotifications', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
-  }
-};
-
-PushManager.prototype.getPushMessage = function() {
-
-  var ret = native.callSync('Push_getPushMessage', {});
-  if (native.isFailure(ret)) {
-    throw native.getErrorObject(ret);
-  } else {
-    var message = native.getResultObject(ret);
-    return message ? new PushMessage(message) : null;
   }
 };
 

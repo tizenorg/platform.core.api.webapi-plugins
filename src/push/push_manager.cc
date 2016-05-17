@@ -18,11 +18,7 @@
 #include <unistd.h>
 #include <pcrecpp.h>
 #include <app_control.h>
-#include <app_control_internal.h>
 #include <app_manager.h>
-#include <bundle.h>
-
-#include "common/extension.h"
 #include "common/logger.h"
 
 namespace extension {
@@ -31,65 +27,23 @@ namespace push {
 using common::PlatformResult;
 using common::ErrorCode;
 
-namespace {
-
-ErrorCode ConvertPushError(int e) {
-  ErrorCode error;
-
-  switch(e) {
-    case PUSH_SERVICE_ERROR_NONE:
-      error = ErrorCode::NO_ERROR;
-      break;
-
-    case PUSH_SERVICE_ERROR_INVALID_PARAMETER:
-      error = ErrorCode::INVALID_VALUES_ERR;
-      break;
-
-    case PUSH_SERVICE_ERROR_OUT_OF_MEMORY:
-    case PUSH_SERVICE_ERROR_NOT_CONNECTED:
-    case PUSH_SERVICE_ERROR_OPERATION_FAILED:
-    default:
-      error = ErrorCode::ABORT_ERR;
-      break;
-  }
-
-  return error;
-}
-
-}  // namespace
-
 PushManager::PushManager() :
     m_handle(NULL),
     m_listener(NULL),
-    m_state(PUSH_SERVICE_STATE_UNREGISTERED),
-    app_control_(nullptr),
-    operation_(nullptr) {
+    m_state(PUSH_STATE_UNREGISTERED) {
     LoggerD("Enter");
-
     initAppId();
-    InitAppControl();
 
-    int ret = push_service_connect(m_pkgId.c_str(), onPushState, onPushNotify, NULL,
+    int ret = push_connect(m_pkgId.c_str(), onPushState, onPushNotify, NULL,
         &m_handle);
-    if (ret != PUSH_SERVICE_ERROR_NONE) {
+    if (ret != PUSH_ERROR_NONE) {
         LoggerE("Failed to connect to push (%d)", ret);
     }
 }
 
 PushManager::~PushManager() {
     LoggerD("Enter");
-
-    if (m_handle) {
-      push_service_disconnect(m_handle);
-    }
-
-    if (app_control_ && (APP_CONTROL_ERROR_NONE != app_control_destroy(app_control_))) {
-      LoggerE("Failed to destroy app control");
-    }
-
-    if (operation_) {
-      free(operation_);
-    }
+    push_disconnect(m_handle);
 }
 
 void PushManager::setListener(EventListener* listener) {
@@ -129,57 +83,119 @@ void PushManager::initAppId() {
     app_info_destroy(info);
 }
 
-void PushManager::InitAppControl() {
-  ScopeLogger();
-
-  const auto encoded_bundle = GetEncodedBundle();
-
-  auto bundle = bundle_decode((bundle_raw*) (encoded_bundle.c_str()),
-                              encoded_bundle.length());
-  if (nullptr == bundle) {
-    LoggerE("Failed to decode bundle");
-    return;
-  }
-
-  app_control_h app_control = nullptr;
-  int ret = app_control_create_event(bundle, &app_control);
-  bundle_free(bundle);
-
-  if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("app_control_create_event() failed: %d (%s)", ret, get_error_message(ret));
-  } else {
-    app_control_ = app_control;
-    ret = app_control_get_operation(app_control, &operation_);
-    if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("app_control_get_operation() failed: %d (%s)", ret, get_error_message(ret));
-    }
-  }
-}
-
 PushManager& PushManager::getInstance() {
   static PushManager instance;
   return instance;
 }
 
-PlatformResult PushManager::registerApplication(double callbackId) {
-  LoggerD("Enter");
+PlatformResult PushManager::registerService(
+        const ApplicationControl &appControl, double callbackId) {
+    LoggerD("Enter");
+    app_control_h service;
+    int ret = app_control_create(&service);
+    if (ret != APP_CONTROL_ERROR_NONE) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+            "Failed to create service",
+            ("Failed to create service: app_control_create failed(%d)", ret));
+    }
 
-  double* pcallback = new double(callbackId);
+    if (appControl.operation.empty()) {
+        app_control_destroy(service);
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+            "Operation is empty");
+    }
+    ret = app_control_set_operation(service, appControl.operation.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+        app_control_destroy(service);
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+            "Failed to set operation",
+            ("Failed to set operation: app_control_set_operation failed(%d)", ret));
+    }
 
-  int ret = push_service_register(m_handle, onApplicationRegister, static_cast<void*>(pcallback));
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    delete pcallback;
+    if (!appControl.uri.empty()) {
+        ret = app_control_set_uri(service, appControl.uri.c_str());
+        if (ret != APP_CONTROL_ERROR_NONE) {
+            app_control_destroy(service);
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                "Failed to set uri",
+                ("Failed to set uri: app_control_set_uri failed(%d)", ret));
+        }
+    }
 
-    return LogAndCreateResult(
-        ConvertPushError(ret), "Failed to register", ("push_service_register failed (%d)", ret));
-  }
-  return common::PlatformResult(ErrorCode::NO_ERROR);
+    if (!appControl.mime.empty()) {
+        ret = app_control_set_mime(service, appControl.mime.c_str());
+        if (ret != APP_CONTROL_ERROR_NONE) {
+            app_control_destroy(service);
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                "Failed to set mime",
+                ("Failed to set mime: app_control_set_mime failed(%d)", ret));
+        }
+    }
+
+    if (!appControl.category.empty()) {
+        ret = app_control_set_category(service, appControl.category.c_str());
+        if (ret != APP_CONTROL_ERROR_NONE) {
+            app_control_destroy(service);
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                "Failed to set category",
+                ("Failed to set category: app_control_set_category failed"));
+        }
+    }
+
+    ret = app_control_set_app_id(service, m_appId.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+        app_control_destroy(service);
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+            "Failed to set app id",
+            ("Failed to set app id: app_control_set_app_id failed(%d)", ret));
+    }
+
+    for (auto &item : appControl.data) {
+        if (item.second.size() == 1) {
+            ret = app_control_add_extra_data(service, item.first.c_str(),
+                item.second.front().c_str());
+        } else {
+            const char *values[item.second.size()];
+            for (size_t i = 0; i < item.second.size(); ++i) {
+                values[i] = item.second.at(i).c_str();
+            }
+            ret = app_control_add_extra_data_array(service,
+                item.first.c_str(), values, item.second.size());
+        }
+        if (ret != APP_CONTROL_ERROR_NONE) {
+            app_control_destroy(service);
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                "Failed to set extra data",
+                ("Failed to set extra data: app_control_add_extra_data failed(%d)", ret));
+        }
+    }
+
+    double* pcallback = new double(callbackId);
+    ret = push_register(m_handle, service, onPushRegister, pcallback);
+    app_control_destroy(service);
+    if (ret != PUSH_ERROR_NONE) {
+        delete pcallback;
+        if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+          LoggerE("[push_register] PUSH_ERROR_INVALID_PARAMETER");
+        } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+          LoggerE("[push_register] PUSH_ERROR_OUT_OF_MEMORY");
+        } else if (ret == PUSH_ERROR_NOT_CONNECTED) {
+          LoggerE("[push_register] PUSH_ERROR_NOT_CONNECTED");
+        } else if (ret == PUSH_ERROR_OPERATION_FAILED) {
+          LoggerE("[push_register] PUSH_ERROR_OPERATION_FAILED");
+        }
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+            "Failed to register",
+            ("Failed to register push: push_register failed (%d)", ret));
+    }
+
+    return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult PushManager::unregisterApplication(double callbackId) {
+common::PlatformResult PushManager::unregisterService(double callbackId) {
     LoggerD("Enter");
     double* pcallbackId = new double(callbackId);
-    if (m_state == PUSH_SERVICE_STATE_UNREGISTERED) {
+    if (m_state == PUSH_STATE_UNREGISTERED) {
         LoggerD("Already unregister, call unregister callback");
         if (!g_idle_add(onFakeDeregister, pcallbackId)) {
             delete pcallbackId;
@@ -187,21 +203,21 @@ common::PlatformResult PushManager::unregisterApplication(double callbackId) {
                 "Unknown error", ("g_idle_add failed"));
         }
     } else {
-        int ret = push_service_deregister(m_handle, onDeregister, pcallbackId);
-        if (ret != PUSH_SERVICE_ERROR_NONE) {
+        int ret = push_deregister(m_handle, onDeregister, pcallbackId);
+        if (ret != PUSH_ERROR_NONE) {
             delete pcallbackId;
-            if (ret == PUSH_SERVICE_ERROR_INVALID_PARAMETER) {
-              LoggerE("[push_service_deregister] PUSH_SERVICE_ERROR_INVALID_PARAMETER");
-            } else if (ret == PUSH_SERVICE_ERROR_OUT_OF_MEMORY) {
-              LoggerE("[push_service_deregister] PUSH_SERVICE_ERROR_OUT_OF_MEMORY");
-            } else if (ret == PUSH_SERVICE_ERROR_NOT_CONNECTED) {
-              LoggerE("[push_service_deregister] PUSH_SERVICE_ERROR_NOT_CONNECTED");
-            } else if (ret == PUSH_SERVICE_ERROR_OPERATION_FAILED) {
-              LoggerE("[push_service_deregister] PUSH_SERVICE_ERROR_OPERATION_FAILED");
+            if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+              LoggerE("[push_deregister] PUSH_ERROR_INVALID_PARAMETER");
+            } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+              LoggerE("[push_deregister] PUSH_ERROR_OUT_OF_MEMORY");
+            } else if (ret == PUSH_ERROR_NOT_CONNECTED) {
+              LoggerE("[push_deregister] PUSH_ERROR_NOT_CONNECTED");
+            } else if (ret == PUSH_ERROR_OPERATION_FAILED) {
+              LoggerE("[push_deregister] PUSH_ERROR_OPERATION_FAILED");
             }
             return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                 "Unknown error",
-                ("Failed to deregister: push_service_deregister failed (%d)", ret));
+                ("Failed to deregister: push_deregister failed (%d)", ret));
         }
     }
     return common::PlatformResult(ErrorCode::NO_ERROR);
@@ -210,18 +226,18 @@ common::PlatformResult PushManager::unregisterApplication(double callbackId) {
 common::PlatformResult PushManager::getRegistrationId(std::string& id) {
     LoggerD("Enter");
     char* temp = NULL;
-    int ret = push_service_get_registration_id(m_handle, &temp);
-    if (ret != PUSH_SERVICE_ERROR_NONE) {
-        if (ret == PUSH_SERVICE_ERROR_INVALID_PARAMETER) {
-          LoggerE("[push_service_get_registration_id]   PUSH_SERVICE_ERROR_INVALID_PARAMETER");
-        } else if (ret == PUSH_SERVICE_ERROR_OUT_OF_MEMORY) {
-          LoggerE("[push_service_get_registration_id]   PUSH_SERVICE_ERROR_OUT_OF_MEMORY");
-        } else if (ret == PUSH_SERVICE_ERROR_NO_DATA) {
-          LoggerE("[push_service_get_registration_id]   PUSH_SERVICE_ERROR_NO_DATA");
+    int ret = push_get_registration_id(m_handle, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_INVALID_PARAMETER");
+        } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_OUT_OF_MEMORY");
+        } else if (ret == PUSH_ERROR_NO_DATA) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_NO_DATA");
         }
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error",
-            ("Failed to get id: push_service_get_registration_id failed (%d)", ret));
+            ("Failed to get id: push_get_registration_id failed (%d)", ret));
     }
     id = temp;
     free(temp);
@@ -230,173 +246,105 @@ common::PlatformResult PushManager::getRegistrationId(std::string& id) {
 
 common::PlatformResult PushManager::getUnreadNotifications() {
     LoggerD("Enter");
-    int ret = push_service_request_unread_notification(m_handle);
-    if (ret != PUSH_SERVICE_ERROR_NONE) {
+    int ret = push_request_unread_notification(m_handle);
+    if (ret != PUSH_ERROR_NONE) {
         return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error",
-            ("Failed to send request: push_service_request_unread_notification failed (%d)", ret));
+            ("Failed to send request: push_request_unread_notification failed (%d)", ret));
     }
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult PushManager::getPushMessage(picojson::value* out) {
-  LoggerD("Enter");
-
-  push_service_notification_h handle = nullptr;
-  int ret = push_service_app_control_to_notification(app_control_, operation_,
-                                                     &handle);
-
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    if (PUSH_SERVICE_ERROR_NO_DATA == ret || PUSH_SERVICE_ERROR_NOT_SUPPORTED == ret) {
-      // application was not started by push service, return null
-      *out = picojson::value{};
-      return common::PlatformResult(ErrorCode::NO_ERROR);
-    } else {
-      return LogAndCreateResult(
-              ConvertPushError(ret), "Failed to get message",
-              ("push_service_app_control_to_notification failed: (%d)", ret));
-    }
-  }
-
-  picojson::object notification;
-  notificationToJson(handle, &notification);
-  push_service_free_notification(handle);
-
-  *out = picojson::value{notification};
-
-  return common::PlatformResult(ErrorCode::NO_ERROR);
-}
-
-void PushManager::notificationToJson(push_service_notification_h noti, picojson::object* obj) {
-  LoggerD("Enter");
-
-  char* temp = nullptr;
-  int ret = push_service_get_notification_data(noti, &temp);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get appData");
-    return;
-  }
-  (*obj)["appData"] = picojson::value(temp);
-  free(temp);
-
-  temp = nullptr;
-  ret = push_service_get_notification_message(noti, &temp);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get message");
-    return;
-  }
-
-  // parse query string and find value for alertMessage
-  pcrecpp::StringPiece input(temp);
-  pcrecpp::RE re("([^=]+)=([^&]*)&?");
-  string key;
-  string value;
-  while (re.Consume(&input, &key, &value)) {
-    if (key == "alertMessage") {
-      (*obj)["alertMessage"] = picojson::value(key);
-      break;
-    }
-  }
-  free(temp);
-
-  long long int date = -1;
-  ret = push_service_get_notification_time(noti, &date);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get date");
-    return;
-  }
-  (*obj)["date"] = picojson::value(static_cast<double>(date));
-
-  ret = push_service_get_notification_sender(noti, &temp);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get sender");
-    return;
-  }
-  (*obj)["sender"] = picojson::value(temp);
-  free(temp);
-
-  ret = push_service_get_notification_session_info(noti, &temp);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get session info");
-    return;
-  }
-  std::string session_info = temp;
-  (*obj)["sesionInfo"] = picojson::value(temp);
-  free(temp);
-
-  ret = push_service_get_notification_request_id(noti, &temp);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get request id");
-    return;
-  }
-  (*obj)["requestId"] = picojson::value(temp);
-  free(temp);
-
-  int type;
-  ret = push_service_get_notification_type(noti, &type);
-  if (ret != PUSH_SERVICE_ERROR_NONE) {
-    LoggerE("Failed to get type");
-    return;
-  }
-  (*obj)["type"] = picojson::value(static_cast<double>(type));
-}
-
-void PushManager::onPushState(push_service_state_e state, const char* err,
+void PushManager::onPushState(push_state_e state, const char* err,
         void* user_data) {
     LoggerD("Enter %d, err: %s", state, err);
     getInstance().m_state = state;
 }
 
-void PushManager::onPushNotify(push_service_notification_h noti, void* user_data) {
+void PushManager::onPushNotify(push_notification_h noti, void* user_data) {
     LoggerD("Enter");
     if (!getInstance().m_listener) {
         LoggerW("Listener not set, ignoring");
         return;
     }
 
-    getInstance().m_listener->onPushNotify(noti);
+    char* temp = NULL;
+    int ret = push_get_notification_data(noti, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get appData");
+        return;
+    }
+    std::string appData = temp;
+    free(temp);
+
+    temp = NULL;
+    ret = push_get_notification_message(noti, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get message");
+        return;
+    }
+
+    // parse query string and find value for alertMessage
+    pcrecpp::StringPiece input(temp);
+    pcrecpp::RE re("([^=]+)=([^&]*)&?");
+    string key;
+    string value;
+    std::string alertMessage;
+    while (re.Consume(&input, &key, &value)) {
+        if (key == "alertMessage") {
+            alertMessage = value;
+            break;
+        }
+    }
+    free(temp);
+
+    long long int date = -1;
+    ret = push_get_notification_time(noti, &date);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get date");
+        return;
+    }
+    getInstance().m_listener->onPushNotify(appData, alertMessage, date);
 }
 
-void PushManager::onApplicationRegister(push_service_result_e result, const char* msg, void* user_data) {
-  LoggerD("Enter");
-
-  if (!getInstance().m_listener) {
-    LoggerW("Listener not set, ignoring");
-    return;
-  }
-
-  double* callbackId = static_cast<double*>(user_data);
-  std::string id;
-  PlatformResult res(ErrorCode::NO_ERROR);
-
-  if (PUSH_SERVICE_RESULT_SUCCESS == result) {
-    LoggerD("Success");
-    char *temp = nullptr;
-    int ret = push_service_get_registration_id(getInstance().m_handle, &temp);
-    if (PUSH_SERVICE_ERROR_NONE == ret) {
-      LoggerD("Registration id retrieved");
-      id = temp;
-      free(temp);
+void PushManager::onPushRegister(push_result_e result, const char* msg,
+        void* user_data) {
+    LoggerD("Enter");
+    if (!getInstance().m_listener) {
+        LoggerW("Listener not set, ignoring");
+        return;
+    }
+    double* callbackId = static_cast<double*>(user_data);
+    std::string id;
+    PlatformResult res(ErrorCode::NO_ERROR);
+    if (result == PUSH_RESULT_SUCCESS) {
+        LoggerD("Success");
+        char *temp = NULL;
+        int ret = push_get_registration_id(getInstance().m_handle, &temp);
+        if (ret == PUSH_ERROR_NONE) {
+            LoggerD("Registration id retrieved");
+            id = temp;
+            free(temp);
+        } else {
+            res = LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                "Failed to retrieve registration id",
+                ("Failed to retrieve registration id: push_get_registration_id(%d)", ret));
+        }
     } else {
-      res = LogAndCreateResult(
-          ErrorCode::UNKNOWN_ERR, "Failed to retrieve registration id",
-          ("Failed to retrieve registration id: push_service_get_registration_id(%d)", ret));
+        if (result == PUSH_RESULT_TIMEOUT) {
+            LoggerE("PUSH_RESULT_TIMEOUT");
+        } else if (result == PUSH_RESULT_SERVER_ERROR) {
+            LoggerE("PUSH_RESULT_SERVER_ERROR");
+        } else if (result == PUSH_RESULT_SYSTEM_ERROR) {
+            LoggerE("PUSH_RESULT_SYSTEM_ERROR");
+        }
+        res = LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                msg == NULL ? "Unknown error" : msg);
     }
-  } else {
-    if (PUSH_SERVICE_RESULT_TIMEOUT == result) {
-      LoggerE("PUSH_SERVICE_RESULT_TIMEOUT");
-    } else if (PUSH_SERVICE_RESULT_SERVER_ERROR == result) {
-      LoggerE("PUSH_SERVICE_RESULT_SERVER_ERROR");
-    } else if (PUSH_SERVICE_RESULT_SYSTEM_ERROR == result) {
-      LoggerE("PUSH_SERVICE_RESULT_SYSTEM_ERROR");
-    }
-    res = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, msg == nullptr ? "Unknown error" : msg);
-  }
-
-  // onPushState is not always called when onPushRegister is successful
-  getInstance().m_state = PUSH_SERVICE_STATE_REGISTERED;
-  getInstance().m_listener->onPushRegister(*callbackId, res, id);
-  delete callbackId;
+    // onPushState is not always called when onPushRegister is successfull
+    getInstance().m_state = PUSH_STATE_REGISTERED;
+    getInstance().m_listener->onPushRegister(*callbackId, res, id);
+    delete callbackId;
 }
 
 gboolean PushManager::onFakeDeregister(gpointer user_data) {
@@ -412,7 +360,7 @@ gboolean PushManager::onFakeDeregister(gpointer user_data) {
     return G_SOURCE_REMOVE;
 }
 
-void PushManager::onDeregister(push_service_result_e result, const char* msg,
+void PushManager::onDeregister(push_result_e result, const char* msg,
         void* user_data) {
     LoggerD("Enter");
     if (!getInstance().m_listener) {
@@ -420,7 +368,7 @@ void PushManager::onDeregister(push_service_result_e result, const char* msg,
         return;
     }
     double* callbackId = static_cast<double*>(user_data);
-    if (result == PUSH_SERVICE_RESULT_SUCCESS) {
+    if (result == PUSH_RESULT_SUCCESS) {
         getInstance().m_listener->onDeregister(*callbackId,
             PlatformResult(ErrorCode::NO_ERROR));
     } else {
@@ -429,23 +377,6 @@ void PushManager::onDeregister(push_service_result_e result, const char* msg,
                 msg == NULL ? "Unknown error" : msg));
     }
     delete callbackId;
-}
-
-
-std::string PushManager::GetEncodedBundle() {
-  LoggerD("Entered");
-
-  std::string result;
-  std::size_t size = 512;
-
-  // make sure we read the whole variable, if the length of read variable is equal
-  // to the size we were trying to obtain, the variable is likely to be longer
-  do {
-    size <<= 1;
-    result = common::GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", size);
-  } while (strlen(result.c_str()) == size);
-
-  return result;
 }
 
 }  // namespace push
