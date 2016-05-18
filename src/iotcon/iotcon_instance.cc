@@ -30,6 +30,7 @@ namespace extension {
 namespace iotcon {
 
 namespace {
+const std::string kPrivilegeIotcon = "http://tizen.org/privilege/internet";
 
 struct CallbackData {
   common::PostCallback fun;
@@ -182,6 +183,8 @@ common::TizenResult IotconInstance::ResourceGetObserverIds(const picojson::objec
 common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kId);
   CHECK_EXIST(args, kQos);
   CHECK_EXIST(args, kStates);
@@ -260,6 +263,8 @@ common::TizenResult IotconInstance::ResourceNotify(const picojson::object& args)
 common::TizenResult IotconInstance::ResourceAddResourceTypes(const picojson::object& args) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kId);
   CHECK_EXIST(args, kTypes);
 
@@ -284,6 +289,8 @@ common::TizenResult IotconInstance::ResourceAddResourceTypes(const picojson::obj
 common::TizenResult IotconInstance::ResourceAddResourceInterface(const picojson::object& args) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kId);
   CHECK_EXIST(args, kInterface);
 
@@ -303,6 +310,8 @@ common::TizenResult IotconInstance::ResourceAddResourceInterface(const picojson:
 
 common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kId);
   CHECK_EXIST(args, kChildId);
@@ -334,6 +343,8 @@ common::TizenResult IotconInstance::ResourceAddChildResource(const picojson::obj
 
 common::TizenResult IotconInstance::ResourceRemoveChildResource(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kId);
   CHECK_EXIST(args, kChildId);
@@ -518,6 +529,8 @@ common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::obje
                                                             const common::AsyncToken& token) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kQuery);
 
   FoundRemoteInfoPtr resource;
@@ -571,6 +584,8 @@ common::TizenResult IotconInstance::RemoteResourceMethodGet(const picojson::obje
 common::TizenResult IotconInstance::RemoteResourceMethodPut(const picojson::object& args,
                                                             const common::AsyncToken& token) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kRepresentation);
   CHECK_EXIST(args, kQuery);
@@ -636,6 +651,8 @@ common::TizenResult IotconInstance::RemoteResourceMethodPost(const picojson::obj
                                                              const common::AsyncToken& token) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kRepresentation);
   CHECK_EXIST(args, kQuery);
 
@@ -700,6 +717,8 @@ common::TizenResult IotconInstance::RemoteResourceMethodDelete(const picojson::o
                                                                const common::AsyncToken& token) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr resource;
   auto result = IotconUtils::RemoteResourceFromJson(args, &resource);
   if (!result) {
@@ -757,6 +776,9 @@ static void ObserveCallback(iotcon_remote_resource_h resource, iotcon_error_e er
 
 common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kQuery);
   CHECK_EXIST(args, kObservePolicy);
   FoundRemoteInfoPtr ptr;
@@ -819,6 +841,9 @@ common::TizenResult IotconInstance::RemoteResourceSetStateChangeListener(const p
 
 common::TizenResult IotconInstance::RemoteResourceUnsetStateChangeListener(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr ptr;
   auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
   if (!result) {
@@ -862,6 +887,9 @@ static void RepresentationChangedCallback(iotcon_remote_resource_h resource,
 
 common::TizenResult IotconInstance::RemoteResourceStartCaching(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr ptr;
   auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
   if (!result) {
@@ -877,6 +905,9 @@ common::TizenResult IotconInstance::RemoteResourceStartCaching(const picojson::o
 
 common::TizenResult IotconInstance::RemoteResourceStopCaching(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr ptr;
   auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
   if (!result) {
@@ -904,6 +935,9 @@ static void MonitoringCallback(iotcon_remote_resource_h resource,
 
 common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr ptr;
   auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
   if (!result) {
@@ -929,6 +963,9 @@ common::TizenResult IotconInstance::RemoteResourceSetConnectionChangeListener(co
 
 common::TizenResult IotconInstance::RemoteResourceUnsetConnectionChangeListener(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   FoundRemoteInfoPtr ptr;
   auto result = IotconUtils::RemoteResourceFromJson(args, &ptr);
   if (!result) {
@@ -964,6 +1001,8 @@ void IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,
 
 common::TizenResult IotconInstance::ClientFindResource(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kHostAddress);
   char* host_address = nullptr;
@@ -1029,6 +1068,8 @@ common::TizenResult IotconInstance::ClientFindResource(const picojson::object& a
 common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojson::object& args) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kHostAddress);
   CHECK_EXIST(args, kResourceType);
   CHECK_EXIST(args, kConnectivityType);
@@ -1075,6 +1116,8 @@ common::TizenResult IotconInstance::ClientAddPresenceEventListener(const picojso
 common::TizenResult IotconInstance::ClientRemovePresenceEventListener(const picojson::object& args) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kId);
 
   auto ret = IotconClientManager::GetInstance().RemovePresenceEventListener(GetId(args));
@@ -1107,6 +1150,8 @@ void IotconDeviceInfoCb(iotcon_device_info_h device_info,
 common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& args,
                                                         const common::AsyncToken& token) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kHostAddress);
   CHECK_EXIST(args, kConnectivityType);
@@ -1151,6 +1196,8 @@ common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object
                                                           const common::AsyncToken& token) {
   ScopeLogger();
 
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
+
   CHECK_EXIST(args, kHostAddress);
   CHECK_EXIST(args, kConnectivityType);
 
@@ -1174,6 +1221,8 @@ common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object
 
 common::TizenResult IotconInstance::ServerCreateResource(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kUriPath);
 
@@ -1207,6 +1256,8 @@ common::TizenResult IotconInstance::ServerCreateResource(const picojson::object&
 
 common::TizenResult IotconInstance::ServerRemoveResource(const picojson::object& args) {
   ScopeLogger();
+
+  CHECK_PRIVILEGE(kPrivilegeIotcon);
 
   CHECK_EXIST(args, kId);
 
