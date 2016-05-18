@@ -25,6 +25,7 @@
 
 #include "widgetservice/widgetservice_utils.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace widgetservice {
@@ -37,7 +38,7 @@ std::mutex WidgetServiceInstance::listener_mutex_;
 namespace {
 const common::ListenerToken kWidgetChangeCallbackToken{"WidgetChangeCallback"};
 
-const std::string kPrivilegeWidget = "http://tizen.org/privilege/widget.viewer";
+const std::string kPrivilegeWidgetService = "http://tizen.org/privilege/widget.viewer";
 
 const std::string kLang = "lang";
 const std::string kInstanceId = "instanceId";
@@ -181,7 +182,8 @@ WidgetServiceInstance::~WidgetServiceInstance() {
 TizenResult WidgetServiceInstance::GetWidget(const picojson::object& args) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
+
   CHECK_EXIST(args, kWidgetId, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
@@ -201,7 +203,7 @@ TizenResult WidgetServiceInstance::GetWidgets(const picojson::object& args,
                                                const common::AsyncToken& token) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
 
   std::string pkgid;
   const auto id = args.find(kPackageId);
@@ -240,7 +242,8 @@ TizenResult WidgetServiceInstance::GetWidgets(const picojson::object& args,
 TizenResult WidgetServiceInstance::GetPrimaryWidgetId(const picojson::object& args) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
+
   CHECK_EXIST(args, kId, out)
 
   const auto& id = args.find(kId)->second.get<std::string>();
@@ -282,7 +285,8 @@ TizenResult WidgetServiceInstance::GetSize(const picojson::object& args) {
 TizenResult WidgetServiceInstance::GetName(picojson::object const& args) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
+
   CHECK_EXIST(args, kWidgetId, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
@@ -372,7 +376,8 @@ TizenResult WidgetServiceInstance::GetVariant(picojson::object const& args) {
 TizenResult WidgetServiceInstance::GetVariants(picojson::object const& args, const common::AsyncToken& token) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
+
   CHECK_EXIST(args, kWidgetId, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
@@ -447,7 +452,8 @@ void WidgetServiceInstance::CallWidgetLifecycleListener(const std::string& widge
 TizenResult WidgetServiceInstance::AddChangeListener(picojson::object const& args) {
   ScopeLogger();
 
-  //CHECK_PRIVILEGE_ACCESS(kPrivilegeWidget, &out);
+  CHECK_PRIVILEGE(kPrivilegeWidgetService);
+
   CHECK_EXIST(args, kWidgetId, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
