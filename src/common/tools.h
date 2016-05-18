@@ -37,6 +37,15 @@ common::PlatformResult CheckAccess(const std::string& privilege);
 common::PlatformResult CheckAccess(const std::vector<std::string>& privileges);
 common::PlatformResult GetPkgApiVersion(std::string* api_version);
 
+//it is used for modules which return TizenResult objects to JS layer
+#define CHECK_PRIVILEGE(privilege) \
+do { \
+  auto r = common::tools::CheckAccess(privilege); \
+  if (!r) { \
+    return common::SecurityError("Application does not have privilege to call this method"); \
+  } \
+} while (0)
+
 #define CHECK_PRIVILEGE_ACCESS(privilege, out) \
 do { \
   auto r = common::tools::CheckAccess(privilege); \
