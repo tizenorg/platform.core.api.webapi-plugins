@@ -561,7 +561,11 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
 
     int ret = 0;
     ret = system_info_get_platform_bool("http://tizen.org/feature/location.batch", s);
-
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                  "Failed to get location.batch feature",
+                  ("system_info_get_platform_bool error: %d (%s)", ret, get_error_message(ret)));
+    }
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
