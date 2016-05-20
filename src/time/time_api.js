@@ -66,8 +66,8 @@ function _getTimezoneOffset(timestamp, tzName) {
   return res;
 }
 
-function _getLocalTimezoneOffset() {
-  return -1 * (new Date().getTimezoneOffset()) * 60 * 1000; // cast to milliseconds
+function _getLocalTimezoneOffset(utcTimestamp) {
+  return -1 * (new Date(utcTimestamp).getTimezoneOffset()) * 60 * 1000; // cast to milliseconds
 }
 
 function _constructTZDate(obj, privateTZDate) {
@@ -82,7 +82,7 @@ function _constructTZDate(obj, privateTZDate) {
     tzName = tizen.time.getLocalTimezone();
 
     if (T.isNullOrUndefined(offset)) {
-      offset = _getLocalTimezoneOffset();
+      offset = _getLocalTimezoneOffset(utcTimestamp);
     }
     break;
 
@@ -145,8 +145,8 @@ tizen.TZDate = function(p1, p2, day, hours, minutes, seconds, milliseconds, time
       date = new Date(p1, p2, day, hours, minutes, seconds, milliseconds);
     }
 
-    var offset = _getLocalTimezoneOffset();
     var utcTimestamp = date.getTime();
+    var offset = _getLocalTimezoneOffset(utcTimestamp);
     var tzName = _LOCAL_ID;
 
     if (!T.isNullOrUndefined(timezone)) {
