@@ -1118,7 +1118,7 @@ common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& 
   CallbackData* data = new CallbackData{SimplePost(token)};
 
   auto result = IotconUtils::ConvertIotconError(
-       iotcon_get_device_info(host.c_str(), con_type_e, IotconDeviceInfoCb,
+       iotcon_find_device_info(host.c_str(), con_type_e, IotconDeviceInfoCb,
                                 data));
 
   if (!result) {
@@ -1161,7 +1161,7 @@ common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object
   CallbackData* data = new CallbackData{SimplePost(token)};
 
   auto result = IotconUtils::ConvertIotconError(
-       iotcon_get_platform_info(host.c_str(), con_type_e, IotconPlatformInfoCb,
+       iotcon_find_platform_info(host.c_str(), con_type_e, IotconPlatformInfoCb,
                                 data));
 
   if (!result) {
