@@ -771,8 +771,6 @@ function resolveFile() {
 
   if (!_realPath) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'Path is not valid');
   }
 
   var _result = native_.callSync('File_statSync', {location: _realPath});
