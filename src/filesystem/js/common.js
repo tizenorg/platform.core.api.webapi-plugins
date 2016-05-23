@@ -116,6 +116,49 @@ var commonFS_ = (function() {
     return retStr;
   }
 
+  function removeDotsFromPath(str) {
+    if(str === undefined){
+        return str;
+    }
+
+    var _pathTokens = str.split('/');
+    var _correctDir = [];
+    var _fileRealPath = _pathTokens[0];
+    _correctDir.push(_pathTokens[0]);
+    for (var i = 1; i < _pathTokens.length; ++i) {
+      if(_pathTokens[i] == "..") {
+        if (_fileRealPath == '') {
+          _fileRealPath = undefined;
+          break;
+        }
+        var _lastDir = _correctDir.pop();
+        _fileRealPath = _fileRealPath.substring(0, _fileRealPath.length - _lastDir.length - 1);
+      } else if(_pathTokens[i] != "."){
+        _fileRealPath += '/' + _pathTokens[i];
+        _correctDir.push(_pathTokens[i]);
+      }
+    }
+    return _fileRealPath;
+  }
+
+  function checkPathWithoutDots(aPath) {
+    if (-1 !== aPath.indexOf('/../')) {
+      return false;
+    }
+    if (-1 !== aPath.indexOf('/./')) {
+      return false;
+    }
+    // check if path ends with '/.' or '/..'
+    if (aPath.match(/\/\.\.?$/)) {
+      return false;
+    }
+    // check if path starts with './' or '../'
+    if (aPath.match(/^\.\.?\//)) {
+      return false;
+    }
+    return true;
+  }
+
   function toRealPath(aPath) {
     var _fileRealPath = '';
 
@@ -151,7 +194,9 @@ var commonFS_ = (function() {
     } else {
       _fileRealPath = aPath;
     }
-
+    // this line makes that '.' and '..' is supported in paths, but each method handle those cases
+    // and return error (see commonFS_.checkPathWithoutDots() method)
+    _fileRealPath = removeDotsFromPath(_fileRealPath);
     return _fileRealPath;
   }
 
@@ -303,6 +348,7 @@ var commonFS_ = (function() {
 
   return {
     clearCache: clearCache,
+    checkPathWithoutDots: checkPathWithoutDots,
     toRealPath: toRealPath,
     toVirtualPath: toVirtualPath,
     getFileInfo: getFileInfo,
