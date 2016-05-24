@@ -47,17 +47,41 @@ var FileMode = {
   a: 'a'
 };
 
+var tizen24home = "/opt/usr/media";
+
+//this variable need to match same variable in common/filesystem/filesystem_provider_storage.cc
+var kVirtualRootImages = "images";
+
 var commonFS_ = (function() {
   var cacheReady = false;
   var listenerRegistered = false;
   var cacheVirtualToReal = {};
   var cacheStorages = [];
   var uriPrefix = 'file://';
+  // special condition for previous versions paths
+  // (global paths usage issue workaround)
+  var isAppForEarlierVersion = privUtils_.isAppVersionEarlierThan("3.0");
+  var homeDir = undefined;
 
   function clearCache() {
     cacheVirtualToReal = {};
     cacheStorages = [];
     cacheReady = false;
+  }
+
+  // initalize home directory for correct mapping global paths from tizen 2.4
+  // (global paths usage issue workaround)
+  function initHomeDir(aPath) {
+    if (homeDir || !isAppForEarlierVersion) {
+      return;
+    }
+    var imagesPath = cacheVirtualToReal[kVirtualRootImages].path;
+
+    if (imagesPath[imagesPath.length-1] === "/") {
+      homeDir = imagesPath.split("/").slice(0, -2).join("/");
+    } else {
+      homeDir = imagesPath.split("/").slice(0, -1).join("/");
+    }
   }
 
   function initCache() {
@@ -79,6 +103,9 @@ var commonFS_ = (function() {
         state: FileSystemStorageState.MOUNTED
       };
     }
+    // initalize home directory for correct mapping global paths from tizen 2.4
+    // (global paths usage issue workaround)
+    initHomeDir();
 
     var result = native_.callSync('FileSystemManager_fetchStorages', {});
     if (native_.isFailure(result)) {
@@ -123,6 +150,16 @@ var commonFS_ = (function() {
     return resStr;
   }
 
+  function convertForEarlierVersionPath(aPath) {
+    if (isAppForEarlierVersion) {
+      if (aPath && aPath.indexOf(tizen24home) === 0) {
+        console.log("Converting 2.4 style path to 3.0 pattern");
+        aPath = homeDir + aPath.substr(tizen24home.length);
+      }
+    }
+    return aPath;
+  }
+
   function toRealPath(aPath) {
     var _fileRealPath = '';
 
@@ -156,6 +193,9 @@ var commonFS_ = (function() {
     } else {
       _fileRealPath = aPath;
     }
+    // convert path to be compatibile with previous version of Tizen
+    // (global paths usage issue workaround)
+    _fileRealPath = convertForEarlierVersionPath(_fileRealPath);
     // if path is valid try to cut last '/' if it is present
     if (_fileRealPath) {
       _fileRealPath = mergeMultipleSlashes(_fileRealPath);

@@ -229,34 +229,34 @@ Utils.prototype.checkPrivilegeAccess = function(privilege) {
   }
 };
 
-Utils.prototype.checkPrivilegeAccess4Ver = function(new_ver, new_priv, old_priv) {
+Utils.prototype.isAppVersionEarlierThan= function(ver) {
   var app_ver = this.getPkgApiVersion();
 
-  var arr_new_ver = new_ver.split(".");
-  var arr_app_ver = app_ver.split(".");
-  var num_new;
+  var arr_ver = ver.split(".");   // reference version
+  var arr_app_ver = app_ver.split(".");  // application version
+  var num_ver;
   var num_app;
-  var sel = 0;
 
   var i;
-  var length = Math.min(arr_new_ver.length, arr_app_ver.length);
+  var length = Math.min(arr_ver.length, arr_app_ver.length);
   for (i = 0; i < length; i++) {
-    num_new = parseInt(arr_new_ver[i]);
+    num_ver = parseInt(arr_ver[i]);
     num_app = parseInt(arr_app_ver[i]);
-    if (num_app < num_new) {
-      sel = 1;
-      break;
-    } else if (num_app > num_new) {
-      sel = -1;
-      break;
+    if (num_app < num_ver) {
+      return true;
+    } else if (num_app > num_ver) {
+      return false;
     }
   }
 
-  if (sel == 0 && arr_new_ver.length > arr_app_ver.length) {
-    sel = 1;
+  if (arr_ver.length > arr_app_ver.length) {
+    return true;
   }
+  return false;
+}
 
-  if (sel != 1) {
+Utils.prototype.checkPrivilegeAccess4Ver = function(new_ver, new_priv, old_priv) {
+  if (this.isAppVersionEarlierThan(new_ver)) {
     this.checkPrivilegeAccess(new_priv);
   } else if (old_priv != undefined) {
     this.checkPrivilegeAccess(old_priv);
