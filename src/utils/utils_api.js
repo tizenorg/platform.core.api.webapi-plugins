@@ -125,7 +125,8 @@ function Utils() {
     SYSTEMMANAGER: 'http://tizen.org/privilege/systemmanager',
     TELEPHONY: 'http://tizen.org/privilege/telephony',
     VOLUME_SET: 'http://tizen.org/privilege/volume.set',
-    WEBSETTING: 'http://tizen.org/privilege/websetting'
+    WEBSETTING: 'http://tizen.org/privilege/websetting',
+    TV_INPUT_DEVICE: 'http://tizen.org/privilege/tv.inputdevice'
   };
 
   Object.freeze(privilege);
