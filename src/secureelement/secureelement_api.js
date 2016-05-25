@@ -267,8 +267,7 @@ Channel.prototype.transmit = function() {
         if ( native_.isFailure(result)) {
             native_.callIfPossible( args.errorCallback, native_.getErrorObject(result));
         } else {
-            var result_obj = native_.getResultObject(result);
-            args.successCallback(result_obj.response);
+            args.successCallback(native_.getResultObject(result));
         }
     }
 

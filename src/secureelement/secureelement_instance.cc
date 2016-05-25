@@ -372,15 +372,15 @@ void SecureElementInstance::Transmit( const picojson::value& args, picojson::obj
             }
             ReportSuccess( result, response->get<picojson::object>());
         } catch (const ErrorIO& err) {
-            LogAndReportError(PlatformResult(ErrorCode::IO_ERR), &response->get<picojson::object>());
+            LogAndReportError(PlatformResult(ErrorCode::IO_ERR, "Failed to transmit command."), &response->get<picojson::object>());
         } catch (const ErrorIllegalState& err) {
-            LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR), &response->get<picojson::object>());
+            LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR, "Failed to transmit command."), &response->get<picojson::object>());
         } catch (const ErrorIllegalParameter& err) {
-            LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR), &response->get<picojson::object>());
+            LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to transmit command."), &response->get<picojson::object>());
         } catch (const ErrorSecurity& err) {
-            LogAndReportError(PlatformResult(ErrorCode::SECURITY_ERR), &response->get<picojson::object>());
+            LogAndReportError(PlatformResult(ErrorCode::SECURITY_ERR, "Failed to transmit command."), &response->get<picojson::object>());
         } catch (const ExceptionBase& err) {
-            LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &response->get<picojson::object>());
+            LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to transmit command."), &response->get<picojson::object>());
         }
     };
 
