@@ -28,10 +28,10 @@
 #include "common/logger.h"
 
 namespace {
-static const char* kBus = "org.tizen.system.deviced";
-static const char* kBlockIface = "org.tizen.system.deviced.Block";
-static const char* kBlackManagerIface = "org.tizen.system.deviced.BlockManager";
-static const char* kPath = "/Org/Tizen/System/DeviceD/Block/Manager";
+static const char* kBus = "org.tizen.system.storage";
+static const char* kBlockIface = "org.tizen.system.storage.Block";
+static const char* kBlackManagerIface = "org.tizen.system.storage.BlockManager";
+static const char* kPath = "/Org/Tizen/System/Storage/Block/Manager";
 static const char* kDeviceChangedMethod = "DeviceChanged";
 static const char* kGetDeviceListMethod = "GetDeviceList";
 }  // namespace
