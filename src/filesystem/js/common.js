@@ -240,10 +240,6 @@ var commonFS_ = (function() {
     // if path is valid try to cut last '/' if it is present
     if (_fileRealPath) {
       _fileRealPath = mergeMultipleSlashes(_fileRealPath);
-      var lastCharIndex = _fileRealPath.length-1;
-      if (_fileRealPath[lastCharIndex] === '/') {
-        _fileRealPath = _fileRealPath.substr(0,lastCharIndex);
-      }
     }
     return _fileRealPath;
   }
