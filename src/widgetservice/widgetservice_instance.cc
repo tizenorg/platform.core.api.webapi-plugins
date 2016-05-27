@@ -36,14 +36,14 @@ using common::TizenSuccess;
 std::mutex WidgetServiceInstance::listener_mutex_;
 
 namespace {
-const common::ListenerToken kWidgetChangeCallbackToken{"WidgetChangeCallback"};
+const common::ListenerToken kWidgetChangeCallbackToken{"WidgetStateChangeCallback"};
 
 const std::string kPrivilegeWidgetService = "http://tizen.org/privilege/widget.viewer";
 
-const std::string kLang = "lang";
+const std::string kLocale = "locale";
 const std::string kInstanceId = "instanceId";
-const std::string kPeriod = "period";
-const std::string kForce = "force";
+const std::string kSeconds = "seconds";
+const std::string kUpdateIfPaused = "updateIfPaused";
 const std::string kData = "data";
 const std::string kEvent = "event";
 
@@ -148,8 +148,8 @@ WidgetServiceInstance::WidgetServiceInstance() {
   REGISTER_SYNC("WidgetServiceManager_getSize", GetSize);
   REGISTER_SYNC("Widget_getName", GetName);
   REGISTER_SYNC("Widget_getVariant", GetVariant);
-  REGISTER_SYNC("Widget_addChangeListener", AddChangeListener);
-  REGISTER_SYNC("Widget_removeChangeListener", RemoveChangeListener);
+  REGISTER_SYNC("Widget_addStateChangeListener", AddStateChangeListener);
+  REGISTER_SYNC("Widget_removeStateChangeListener", RemoveStateChangeListener);
   REGISTER_SYNC("WidgetInstance_changeUpdatePeriod", ChangeUpdatePeriod);
   REGISTER_SYNC("WidgetInstance_sendContent", SendContent);
 
@@ -290,14 +290,14 @@ TizenResult WidgetServiceInstance::GetName(picojson::object const& args) {
   CHECK_EXIST(args, kWidgetId, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
-  char* lang = nullptr;
+  char* locale = nullptr;
 
-  const auto lang_it = args.find(kLang);
-  if (args.end() != lang_it) {
-    lang = const_cast<char*>(lang_it->second.get<std::string>().c_str());
+  const auto locale_it = args.find(kLocale);
+  if (args.end() != locale_it) {
+    locale = const_cast<char*>(locale_it->second.get<std::string>().c_str());
   }
 
-  char* name = widget_service_get_name(widget_id.c_str(), lang);
+  char* name = widget_service_get_name(widget_id.c_str(), locale);
   if (!name) {
     LogAndReturnTizenError(
         WidgetServiceUtils::ConvertErrorCode(get_last_result()), ("widget_service_get_name() failed"));
@@ -449,7 +449,7 @@ void WidgetServiceInstance::CallWidgetLifecycleListener(const std::string& widge
   LoggerW("widget id was not found.");
 }
 
-TizenResult WidgetServiceInstance::AddChangeListener(picojson::object const& args) {
+TizenResult WidgetServiceInstance::AddStateChangeListener(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_PRIVILEGE(kPrivilegeWidgetService);
@@ -476,7 +476,7 @@ TizenResult WidgetServiceInstance::AddChangeListener(picojson::object const& arg
   return TizenSuccess();
 }
 
-TizenResult WidgetServiceInstance::RemoveChangeListener(picojson::object const& args) {
+TizenResult WidgetServiceInstance::RemoveStateChangeListener(picojson::object const& args) {
   ScopeLogger();
 
   CHECK_EXIST(args, kWidgetId, out)
@@ -507,13 +507,13 @@ TizenResult WidgetServiceInstance::ChangeUpdatePeriod(picojson::object const& ar
 
   CHECK_EXIST(args, kWidgetId, out)
   CHECK_EXIST(args, kInstanceId, out)
-  CHECK_EXIST(args, kPeriod, out)
+  CHECK_EXIST(args, kSeconds, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
   const auto& instance_id = args.find(kInstanceId)->second.get<std::string>();
-  const double period = args.find(kPeriod)->second.get<double>();
+  const double seconds = args.find(kSeconds)->second.get<double>();
 
-  int ret = widget_service_change_period(widget_id.c_str(), instance_id.c_str(), period);
+  int ret = widget_service_change_period(widget_id.c_str(), instance_id.c_str(), seconds);
 
   if (WIDGET_ERROR_NONE != ret) {
     LogAndReturnTizenError(
@@ -529,11 +529,11 @@ TizenResult WidgetServiceInstance::SendContent(picojson::object const& args) {
   CHECK_EXIST(args, kWidgetId, out)
   CHECK_EXIST(args, kInstanceId, out)
   CHECK_EXIST(args, kData, out)
-  CHECK_EXIST(args, kForce, out)
+  CHECK_EXIST(args, kUpdateIfPaused, out)
 
   const auto& widget_id = args.find(kWidgetId)->second.get<std::string>();
   const auto& instance_id = args.find(kInstanceId)->second.get<std::string>();
-  const int force = args.find(kForce)->second.get<bool>() ? 1 : 0;
+  const int force = args.find(kUpdateIfPaused)->second.get<bool>() ? 1 : 0;
 
   bundle* data = bundle_create();
   int ret = get_last_result();

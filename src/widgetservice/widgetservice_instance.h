@@ -41,8 +41,8 @@ class WidgetServiceInstance : public common::TizenInstance {
   common::TizenResult GetInstances(picojson::object const& args, const common::AsyncToken& token);
   common::TizenResult GetVariant(picojson::object const& args);
   common::TizenResult GetVariants(picojson::object const& args, const common::AsyncToken& token);
-  common::TizenResult AddChangeListener(picojson::object const& args);
-  common::TizenResult RemoveChangeListener(picojson::object const& args);
+  common::TizenResult AddStateChangeListener(picojson::object const& args);
+  common::TizenResult RemoveStateChangeListener(picojson::object const& args);
   //WidgetInstance
   common::TizenResult ChangeUpdatePeriod(picojson::object const& args);
   common::TizenResult SendContent(picojson::object const& args);
