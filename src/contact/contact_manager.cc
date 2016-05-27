@@ -925,6 +925,10 @@ PlatformResult ContactManagerFindByUsageCount(const JsonObject& args, JsonArray&
     const auto& match = filter.get("matchValue");
     if (match.is<double>()){
       match_value = static_cast<int>(match.get<double>());
+      if (match_value < 0) {
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Match value cannot be less than 0");
+      }
       ret = contacts_filter_add_int(filter_handle,
                                     _contacts_person_usage.times_used,
                                     CONTACTS_MATCH_EQUAL,
@@ -989,6 +993,10 @@ PlatformResult ContactManagerFindByUsageCount(const JsonObject& args, JsonArray&
   }
   // adding usage type to filter
   contacts_usage_type_e type = Person::UsageTypeFromString(attribute_name);
+  if (CONTACTS_USAGE_STAT_TYPE_NONE == type) {
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Type of usage in filter should be one of ContactUsageType values");
+  }
   ret = contacts_filter_add_int(filter_handle,
                                 _contacts_person_usage.usage_type,
                                 CONTACTS_MATCH_EQUAL,
