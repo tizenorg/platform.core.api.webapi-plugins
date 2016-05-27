@@ -119,14 +119,14 @@ function WidgetInstance(data, widget) {
 
 WidgetInstance.prototype.changeUpdatePeriod = function() {
   var args = validator.validateMethod(arguments, [{
-    name : 'period',
+    name : 'seconds',
     type : types.DOUBLE,
   }]);
 
   var callArgs = {};
   callArgs.widgetId = this.widget.id;
   callArgs.instanceId = this.id;
-  callArgs.period = args.period;
+  callArgs.seconds = args.seconds;
 
   var ret = native.callSync('WidgetInstance_changeUpdatePeriod', callArgs);
 
@@ -140,7 +140,7 @@ WidgetInstance.prototype.sendContent = function() {
     name : 'data',
     type: types.DICTIONARY,
   }, {
-    name : 'force',
+    name : 'updateIfPaused',
     type : types.BOOLEAN,
   }]);
 
@@ -148,7 +148,7 @@ WidgetInstance.prototype.sendContent = function() {
   callArgs.widgetId = this.widget.id;
   callArgs.instanceId = this.id;
   callArgs.data = args.data;
-  callArgs.force = args.force;
+  callArgs.updateIfPaused = args.updateIfPaused;
 
   var ret = native.callSync('WidgetInstance_sendContent', callArgs);
 
@@ -174,7 +174,6 @@ WidgetInstance.prototype.getContent = function() {
     if (native.isFailure(result)) {
       args.errorCallback(native.getErrorObject(result));
     } else {
-      //TODO what is type of returned data
       args.successCallback(native.getResultObject(result));
     }
   };
@@ -217,7 +216,7 @@ function Widget(data) {
 
 Widget.prototype.getName = function() {
   var args = validator.validateMethod(arguments, [{
-    name : 'lang',
+    name : 'locale',
     type : types.STRING,
     optional : true,
     nullable : true
@@ -226,8 +225,8 @@ Widget.prototype.getName = function() {
   var callArgs = {};
   callArgs.widgetId = this.id;
 
-  if (args.lang) {
-    callArgs.lang = args.lang;
+  if (args.locale) {
+    callArgs.locale = args.locale;
   }
 
   var ret = native.callSync('Widget_getName', callArgs);
@@ -354,16 +353,16 @@ ListenerManager.prototype.removeListener = function(watchId) {
   }
 };
 
-var WIDGET_CHANGE_LISTENER = 'WidgetChangeCallback';
-var widgetChangeListener = new ListenerManager(native, WIDGET_CHANGE_LISTENER);
+var WIDGET_STATE_CHANGE_LISTENER = 'WidgetStateChangeCallback';
+var widgetStateChangeListener = new ListenerManager(native, WIDGET_STATE_CHANGE_LISTENER);
 
-Widget.prototype.addChangeListener = function() {
+Widget.prototype.addStateChangeListener = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'eventCallback',
     type : types.FUNCTION,
   }]);
 
-  var result = native.callSync('Widget_addChangeListener', {widgetId : this.id});
+  var result = native.callSync('Widget_addStateChangeListener', {widgetId : this.id});
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   }
@@ -374,18 +373,18 @@ Widget.prototype.addChangeListener = function() {
     }
   }.bind(this);
 
-  return widgetChangeListener.addListener(func);
+  return widgetStateChangeListener.addListener(func);
 };
 
-Widget.prototype.removeChangeListener = function() {
+Widget.prototype.removeStateChangeListener = function() {
   var args = validator.validateMethod(arguments, [{
     name : 'watchId',
     type : types.LONG,
   }]);
 
-  widgetChangeListener.removeListener(args.watchId);
+  widgetStateChangeListener.removeListener(args.watchId);
 
-  var result = native.callSync('Widget_removeChangeListener', {widgetId : this.id});
+  var result = native.callSync('Widget_removeStateChangeListener', {widgetId : this.id});
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   }
