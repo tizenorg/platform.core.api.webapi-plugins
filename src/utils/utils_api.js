@@ -257,7 +257,7 @@ Utils.prototype.isAppVersionEarlierThan= function(ver) {
 }
 
 Utils.prototype.checkPrivilegeAccess4Ver = function(new_ver, new_priv, old_priv) {
-  if (this.isAppVersionEarlierThan(new_ver)) {
+  if (!this.isAppVersionEarlierThan(new_ver)) {
     this.checkPrivilegeAccess(new_priv);
   } else if (old_priv != undefined) {
     this.checkPrivilegeAccess(old_priv);
