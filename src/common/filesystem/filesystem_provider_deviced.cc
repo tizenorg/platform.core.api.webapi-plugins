@@ -225,10 +225,7 @@ std::string FilesystemProviderDeviced::GetNameFromPath(
 
 int FilesystemProviderDeviced::GetIdFromUUID(const char* const char_uuid) {
   LoggerD("Entered");
-  std::string uuid = char_uuid;
-  size_t hyphen = uuid.find("-");
-  std::string clear_uuid = uuid.substr(0, hyphen) + uuid.substr(hyphen + 1);
-  return static_cast<unsigned int>(std::stoul(clear_uuid, nullptr, 16));
+  return (int)std::hash<std::string>()( std::string(char_uuid) );
 }
 
 Storages FilesystemProviderDeviced::GetStorages() {
