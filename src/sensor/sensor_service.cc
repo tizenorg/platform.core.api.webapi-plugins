@@ -214,6 +214,7 @@ class SensorData {
   sensor_event_s previous_event_;
   common::optional<bool> is_supported_;
   SensorInstance& instance_;
+  std::mutex initialization_mutex_;
 };
 
 SensorData::SensorData(SensorInstance& instance, sensor_type_e type_enum,
@@ -268,6 +269,7 @@ bool SensorData::DefaultEventComparator(sensor_event_s* l, sensor_event_s* r) {
 PlatformResult SensorData::CheckInitialization() {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
 
+  std::lock_guard<std::mutex> lock(initialization_mutex_);
   if (!handle_) {
     LoggerD("initialization of handle and listener");
     int ret = sensor_get_default_sensor(type_enum_, &handle_);
