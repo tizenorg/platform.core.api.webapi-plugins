@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.90
+Version:    0.91
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -59,7 +59,7 @@ Source0:    %{name}-%{version}.tar.gz
 %else
 %define tizen_feature_ham_support                     0
 %endif
-%define tizen_feature_iotcon_support                  1
+%define tizen_feature_iotcon_support                  0
 %define tizen_feature_location_batch                  0
 %define tizen_feature_key_manager_support             1
 %define tizen_feature_media_controller_support        1
