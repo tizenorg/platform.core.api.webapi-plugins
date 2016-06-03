@@ -33,6 +33,7 @@ using common::TaskQueue;
 using common::TypeMismatchException;
 using common::UnknownException;
 using common::SecurityException;
+using common::NotFoundException;
 
 namespace {
 // The privileges that required in Account API
@@ -100,8 +101,14 @@ void AccountInstance::AccountSetExtendedData(const picojson::value& args,
   CHECK_EXIST(args, "value", out)
   CHECK_EXIST(args, "accountId", out)
 
+  if( args.get("accountId").is<picojson::null>() ) {
+      LogAndReportError( NotFoundException("accountId is null"), out, ("Account ID was not initialized.") );
+      return;
+  }
+
   const std::string& key = args.get("key").get<std::string>();
   const std::string& value = args.get("value").get<std::string>();
+
   int account_id = static_cast<int>(args.get("accountId").get<double>());
 
   this->manager_->SetExtendedData(account_id, key, value, out);
@@ -115,6 +122,11 @@ void AccountInstance::AccountGetExtendedData(const picojson::value& args,
 
   CHECK_EXIST(args, "accountId", out)
   CHECK_EXIST(args, "callbackId", out)
+
+  if( args.get("accountId").is<picojson::null>() ) {
+      LogAndReportError( NotFoundException("accountId is null"), out, ("Account ID was not initialized.") );
+      return;
+  }
 
   int account_id = static_cast<int>(args.get("accountId").get<double>());
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
