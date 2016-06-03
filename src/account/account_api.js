@@ -82,6 +82,10 @@ Account.prototype.setExtendedData = function() {
         { name: 'value', type: types_.STRING }
     ]);
 
+    if( this.id === null ) {
+        throw new WebAPIException( WebAPIException.NOT_FOUND_ERR, "Account ID was not initialized." );
+    }
+
     var result = native_.callSync('Account_setExtendedData',
                                   {
                                       accountId: this.id,
@@ -111,6 +115,10 @@ Account.prototype.getExtendedData = function() {
             }
         ]);
 
+        if( this.id === null ) {
+            throw new WebAPIException( WebAPIException.NOT_FOUND_ERR, "Account ID was not initialized." );
+        }
+
         var result = native_.call('Account_getExtendedData', { accountId: this.id },
             function(result) {
               if (native_.isFailure(result)) {
@@ -134,6 +142,10 @@ Account.prototype.getExtendedData = function() {
         var args = validator_.validateArgs(arguments, [
             { name: 'key', type: types_.STRING }
         ]);
+
+        if( this.id === null ) {
+            throw new WebAPIException( WebAPIException.NOT_FOUND_ERR, "Account ID was not initialized." );
+        }
 
         var result = native_.callSync('Account_getExtendedDataSync',
                                       {
