@@ -224,7 +224,7 @@ TizenResult WidgetServiceInstance::GetWidgets(const picojson::object& args,
 
     TizenResult result = TizenSuccess();
 
-    if (WIDGET_ERROR_NONE != ret) {
+    if (WIDGET_ERROR_NONE > ret) {
       LoggerE("widget_service_get_widget_list() failed");
       result = WidgetServiceUtils::ConvertErrorCode(ret);
     } else {
