@@ -474,4 +474,6 @@ exports.SimpleCoordinates = function(lat, lng) {
 };
 exports.SimpleCoordinates.prototype.constructor = exports.SimpleCoordinates;
 
-Object.freeze(JSON);
+// Protect JSON.stringify from being overriden by application
+Object.defineProperty( window, 'JSON', {value:JSON, writable:false, configurable:false} );
+Object.defineProperty( JSON, 'stringify', {value:JSON.stringify, writable:false, configurable:false} );
