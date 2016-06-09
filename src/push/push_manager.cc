@@ -279,15 +279,16 @@ void PushManager::notificationToJson(push_service_notification_h noti, picojson:
   (*obj)["appData"] = picojson::value(temp);
   free(temp);
 
-  temp = nullptr;
-  ret = push_service_get_notification_message(noti, &temp);
+  char* fullMessage = nullptr;
+  ret = push_service_get_notification_message(noti, &fullMessage);
   if (ret != PUSH_SERVICE_ERROR_NONE) {
     LoggerE("Failed to get message");
     return;
   }
+  (*obj)["message"] = picojson::value(fullMessage);
 
   // parse query string and find value for alertMessage
-  pcrecpp::StringPiece input(temp);
+  pcrecpp::StringPiece input(fullMessage);
   pcrecpp::RE re("([^=]+)=([^&]*)&?");
   string key;
   string value;
@@ -297,7 +298,7 @@ void PushManager::notificationToJson(push_service_notification_h noti, picojson:
       break;
     }
   }
-  free(temp);
+  free(fullMessage);
 
   long long int date = -1;
   ret = push_service_get_notification_time(noti, &date);
