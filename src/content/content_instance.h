@@ -84,6 +84,7 @@ class ContentInstance : public common::ParsedInstance {
   void ContentManagerPlaylistSetorder(const picojson::value& args, picojson::object& out);
   void ContentManagerPlaylistMove(const picojson::value& args, picojson::object& out);
   void ContentManagerAudioGetLyrics(const picojson::value& args, picojson::object& out);
+  void ContentManagerCreateThumbnail(const picojson::value& args, picojson::object& out);
 
   void PlaylistGetName(const picojson::value& args, picojson::object& out);
   void PlaylistSetName(const picojson::value& args, picojson::object& out);
