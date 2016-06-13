@@ -367,6 +367,10 @@ void PushManager::onApplicationRegister(push_service_result_e result, const char
   }
 
   double* callbackId = static_cast<double*>(user_data);
+  if (!callbackId) {
+    LoggerW("callbackId is null, ignoring");
+    return;
+  }
   std::string id;
   PlatformResult res(ErrorCode::NO_ERROR);
 
