@@ -51,7 +51,7 @@ ContentInstance::ContentInstance() :
   using std::placeholders::_1;
   using std::placeholders::_2;
 
-  #define REGISTER_SYNC(c,x) \
+#define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&ContentInstance::x, this, _1, _2));
 
   REGISTER_SYNC("ContentManager_find", ContentManagerFind);
@@ -66,6 +66,7 @@ ContentInstance::ContentInstance() :
   REGISTER_SYNC("ContentManager_removePlaylist", ContentManagerRemoveplaylist);
   REGISTER_SYNC("ContentManager_createPlaylist", ContentManagerCreateplaylist);
   REGISTER_SYNC("ContentManager_getPlaylists", ContentManagerGetplaylists);
+  REGISTER_SYNC("ContentManager_cancelCreateThumbnail", ContentManagerCancelCreateThumbnail);
   REGISTER_SYNC("ContentPlaylist_add", ContentManagerPlaylistAdd);
   REGISTER_SYNC("ContentPlaylist_addBatch", ContentManagerPlaylistAddbatch);
   REGISTER_SYNC("ContentPlaylist_get", ContentManagerPlaylistGet);
@@ -80,7 +81,10 @@ ContentInstance::ContentInstance() :
   REGISTER_SYNC("ContentPlaylist_getThumbnailUri", PlaylistGetThumbnailUri);
   REGISTER_SYNC("ContentPlaylist_setThumbnailUri", PlaylistSetThumbnailUri);
   REGISTER_SYNC("ContentPlaylist_getNumberOfTracks", PlaylistGetNumberOfTracks);
-  #undef REGISTER_SYNC
+  REGISTER_SYNC("ContentManager_createThumbnail", ContentManagerCreateThumbnail);
+#undef REGISTER_SYNC
+
+  ContentManager::getInstance()->setContentInstance(this);
 }
 
 ContentInstance::~ContentInstance() {
@@ -93,6 +97,7 @@ ContentInstance::~ContentInstance() {
     delete listener_data_;
     listener_data_ = nullptr;
   }
+  ContentManager::getInstance()->setContentInstance(nullptr);
 }
 
 static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user_data) {
@@ -593,7 +598,37 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
 
   // implement it
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
+}
 
+void ContentInstance::ContentManagerCreateThumbnail(const picojson::value& args, picojson::object& out) {
+  LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+  common::PlatformResult result = common::PlatformResult(common::ErrorCode::NO_ERROR);
+
+  if(ContentManager::getInstance()->isConnected()) {
+    result = ContentManager::getInstance()->createThumbnail(args);
+  } else {
+    result = LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "DB Connection is failed.");
+  }
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed to create a thumbnail"));
+    common::Instance::PostMessage(this, picojson::value(out).serialize().c_str());
+  }
+}
+
+void ContentInstance::ContentManagerCancelCreateThumbnail(const picojson::value& args, picojson::object& out) {
+  LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
+  if (ContentManager::getInstance()->isConnected()) {
+    common::PlatformResult result = ContentManager::getInstance()->cancelCreateThumbnail(args);
+    if (!result) {
+      LogAndReportError(result, &out);
+    }
+  } else {
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
+  }
 }
 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
