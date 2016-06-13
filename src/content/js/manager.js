@@ -371,4 +371,46 @@ ContentManager.prototype.removePlaylist = function(id, successCallback, errorCal
   }
 };
 
+ContentManager.prototype.createThumbnail = function(content, successCallback, errorCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'content', type: types_.PLATFORM_OBJECT, values: Content},
+    {name: 'successCallback', type: types_.FUNCTION},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var data = {
+    id: args.content.id
+  };
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+  };
+
+  var result = native_.call('ContentManager_createThumbnail', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+ContentManager.prototype.cancelCreateThumbnail = function(content) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
+  ]);
+
+  var data = {
+    id: args.content.id
+  };
+
+  var result = native_.callSync('ContentManager_cancelCreateThumbnail', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 exports = new ContentManager();

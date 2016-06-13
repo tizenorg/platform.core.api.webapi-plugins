@@ -36,6 +36,7 @@
 using namespace std;
 using namespace common;
 
+using common::tools::ReportSuccess;
 using common::tools::ReportError;
 
 namespace extension {
@@ -660,6 +661,25 @@ static bool playlist_content_member_cb(int playlist_member_id, media_info_h medi
   return true;
 }
 
+void CreateThumbnailCallback(media_content_error_e err, const char* path, void* user_data) {
+  LoggerD("Enter");
+
+  unsigned int callbackId = (unsigned int) user_data;
+  picojson::object out;
+
+  out["callbackId"] = picojson::value(static_cast<double>(callbackId));
+
+  if (err == MEDIA_CONTENT_ERROR_NONE) {
+    out["result"] = picojson::value(std::string(path));
+    ReportSuccess(out);
+  } else {
+    PlatformResult result = ContentManager::getInstance()->convertError(err);
+    LogAndReportError(result, &out, ("Failed to create a thumbnail"));
+  }
+  common::Instance::PostMessage(ContentManager::getInstance()->getContentInstance(),
+                                picojson::value(out).serialize().c_str());
+}
+
 
 ContentManager::ContentManager() {
   LoggerD("ContentManager called");
@@ -668,6 +688,7 @@ ContentManager::ContentManager() {
   }
   else
       m_dbConnected = false;
+  m_contentInstance = nullptr;
 }
 
 ContentManager::~ContentManager() {
@@ -683,6 +704,16 @@ ContentManager* ContentManager::getInstance() {
   LoggerD("Enter");
   static ContentManager instance;
   return &instance;
+}
+
+ContentInstance* ContentManager::getContentInstance() {
+  LoggerD("Enter");
+  return m_contentInstance;
+}
+
+void ContentManager::setContentInstance(ContentInstance* const content_instance) {
+  LoggerD("Enter");
+  m_contentInstance = content_instance;
 }
 
 bool ContentManager::isConnected() {
@@ -1594,6 +1625,53 @@ int ContentManager::getNumberOfTracks(int id, int* result) {
 
   *result = count;
   return MEDIA_CONTENT_ERROR_NONE;
+}
+
+common::PlatformResult ContentManager::createThumbnail(const picojson::value& args) {
+  LoggerD("Enter");
+
+  unsigned int callbackId = static_cast<unsigned int>(args.get("callbackId").get<double>());
+  std::string id = args.get("id").get<std::string>();
+
+  media_info_h media = NULL;
+  int ret = media_info_get_media_from_db(id.c_str(), &media);
+  if(ret != MEDIA_CONTENT_ERROR_NONE && media == NULL) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Getting media is failed.",
+                              ("Getting media is failed: %d (%s)", ret, get_error_message(ret)));
+  }
+
+  ret = media_info_create_thumbnail(media, CreateThumbnailCallback, (void*) callbackId);
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Creating thumbnail failed.",
+                              ("Creating thumbnail failed: %d (%s)", ret, get_error_message(ret)));
+  }
+
+  media_info_destroy(media);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ContentManager::cancelCreateThumbnail(picojson::value args) {
+  LoggerD("Enter");
+
+  std::string id = args.get("id").get<std::string>();
+
+  media_info_h media = NULL;
+  int ret = media_info_get_media_from_db(id.c_str(), &media);
+  if(ret != MEDIA_CONTENT_ERROR_NONE && media == NULL) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Getting media is failed.",
+                              ("Getting media is failed: %d (%s)", ret, get_error_message(ret)));
+  }
+
+  ret = media_info_cancel_thumbnail(media);
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cancel of creating thumbnail failed.",
+                              ("Cancel of creating thumbnail failed: %d (%s)", ret, get_error_message(ret)));
+  }
+
+  media_info_destroy(media);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult ContentManager::convertError(int err) {

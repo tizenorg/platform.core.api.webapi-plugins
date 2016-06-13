@@ -43,6 +43,8 @@ class ContentManager {
   virtual ~ContentManager();
   bool isConnected();
   static ContentManager* getInstance();
+  ContentInstance* getContentInstance();
+  void setContentInstance(ContentInstance* const content_instance);
 
   void getDirectories(const std::shared_ptr<ReplyCallbackData>& user_data);
   void find(const std::shared_ptr<ReplyCallbackData>& user_data);
@@ -74,23 +76,27 @@ class ContentManager {
   void playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data);
-
   int getPlaylistName(int id, std::string* result);
   int setPlaylistName(int id, const std::string& name);
-
-  int getThumbnailUri(int id, std::string* result);
-  int setThumbnailUri(int id, const std::string& thb_uri);
 
   int getNumberOfTracks(int id, int* result);
 
 //playlistSetOrder
   static common::PlatformResult convertError(int err);
+
+//thumbnail
+  int getThumbnailUri(int id, std::string* result);
+  int setThumbnailUri(int id, const std::string& thb_uri);
+  common::PlatformResult createThumbnail(const picojson::value& args);
+  common::PlatformResult cancelCreateThumbnail(picojson::value args);
+
  private:
   //int setContent(media_info_h media, picojson::value content);
   ContentManager();
 
  private:
   bool m_dbConnected;
+  ContentInstance* m_contentInstance;
 
 };
 
