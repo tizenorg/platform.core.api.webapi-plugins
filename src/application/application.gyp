@@ -38,6 +38,7 @@
               'pkgmgr',
               'pkgmgr-info',
               'pkgmgr-installer',
+              'appsvc',
             ]
           },
         }],
