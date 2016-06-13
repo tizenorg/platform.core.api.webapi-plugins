@@ -28,6 +28,8 @@
 #include <pkgmgr-info.h>
 #include <bundle.h>
 #include <bundle_internal.h>
+#include <appsvc.h>
+#include <app_control_internal.h>
 
 #include "common/current_application.h"
 #include "common/logger.h"
@@ -649,6 +651,73 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
   TaskQueue::GetInstance().Queue<picojson::value>(launch, launch_response, response);
 }
 
+//internal impl of app_control_foreach_app_matched() for handling APP_CONTROL_ERROR_APP_NOT_FOUND
+//public CAPI did not handling APP_CONTROL_ERROR_APP_NOT_FOUND
+int app_control_foreach_app_matched_internal(app_control_h app_control, app_control_app_matched_cb callback, void* user_data){
+  typedef struct {
+    app_control_h app_control;
+    app_control_app_matched_cb callback;
+    void *user_data;
+    bool foreach_break;
+   } foreach_context_launchable_app_t_internal;
+
+  //internal impl of app_control_cb_broker_foreach_app_matched()
+  auto app_control_cb_broker_foreach_app_matched_internal = [](const char *package, void *data) -> int {
+    foreach_context_launchable_app_t_internal *foreach_context;
+    app_control_app_matched_cb app_matched_cb;
+
+    if (package == NULL || data == NULL) {
+      LoggerE("APP_CONTROL_ERROR_INVALID_PARAMETER");
+      return -1;
+    }
+
+    foreach_context = (foreach_context_launchable_app_t_internal *)data;
+    if (foreach_context->foreach_break == true)
+      return -1;
+
+    app_matched_cb = foreach_context->callback;
+    if (app_matched_cb != NULL) {
+      bool stop_foreach = false;
+
+      stop_foreach = !app_matched_cb(foreach_context->app_control, package, foreach_context->user_data);
+
+      foreach_context->foreach_break = stop_foreach;
+    }
+
+    return 0;
+  };
+
+  foreach_context_launchable_app_t_internal foreach_context = {
+    .app_control = app_control,
+    .callback = callback,
+    .user_data = user_data,
+    .foreach_break = false
+  };
+
+  bundle *bundle_data = NULL;
+  app_control_to_bundle(app_control, &bundle_data);
+
+  int ret = appsvc_usr_get_list(bundle_data, app_control_cb_broker_foreach_app_matched_internal, &foreach_context, getuid());
+
+  if (ret < 0 ){
+    switch (ret){
+      case APPSVC_RET_EINVAL:
+        return APP_CONTROL_ERROR_INVALID_PARAMETER;
+
+      case APPSVC_RET_ENOMATCH:
+        return APP_CONTROL_ERROR_APP_NOT_FOUND;
+
+      default:
+        return APP_CONTROL_ERROR_LAUNCH_FAILED;
+     }
+  }else{
+    return APP_CONTROL_ERROR_NONE;
+  }
+
+  return APP_CONTROL_ERROR_NONE;
+}
+
+
 void ApplicationManager::FindAppControl(const picojson::value& args) {
   LoggerD("Entered");
 
@@ -712,12 +781,20 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
     auto array = result_obj.insert(
         std::make_pair("informationArray", picojson::value(picojson::array())));
 
-    int ret = app_control_foreach_app_matched(
+    int ret = app_control_foreach_app_matched_internal(
         app_control_ptr.get(), app_control_matched, &array.first->second.get<picojson::array>());
 
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,"Unknown error"), &response_obj,
+      if(APP_CONTROL_ERROR_APP_NOT_FOUND == ret){
+        LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR,"Matched Application not found"), &response_obj,
                         ("app_control_foreach_app_matched error: %d (%s)", ret, get_error_message(ret)));
+      }else if(APP_CONTROL_ERROR_LAUNCH_FAILED == ret){
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,"Unknown error"), &response_obj,
+                        ("app_control_foreach_app_matched error: %d (%s)", ret, get_error_message(ret)));
+      }else if(APP_CONTROL_ERROR_INVALID_PARAMETER == ret){
+        LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR,"Invalid parameter passed"), &response_obj,
+                        ("app_control_foreach_app_matched error: %d (%s)", ret, get_error_message(ret)));
+      }
       // remove copied ApplicationControl from result
       response_obj.erase(it_result);
     } else {
