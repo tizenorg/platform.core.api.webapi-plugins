@@ -249,7 +249,8 @@ Storages FilesystemProviderDeviced::GetStorages() {
                                                   NULL,
                                                   &error);
   if (!variant || error) {
-    LoggerE("Failed to call GetDeviceList method - %s", error->message);
+    std::string message = error ? error->message : "";
+    LoggerE("Failed to call GetDeviceList method - %s", message.c_str());
     return Storages();
   }
   return GetStoragesFromGVariant(variant);
