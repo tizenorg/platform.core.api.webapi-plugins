@@ -206,7 +206,7 @@ void KeyManagerInstance::GetData(const picojson::value& args,
   ckmc_raw_buffer_s* data = nullptr;
   int ret = ckmc_get_data(data_alias.c_str(), password, &data);
 
-  if (CKMC_ERROR_NONE == ret) {
+  if (CKMC_ERROR_NONE == ret && data) {
     picojson::object result;
 
     result["rawData"] = picojson::value(std::string (data->data, data->data + data->size));
