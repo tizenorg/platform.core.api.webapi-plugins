@@ -136,6 +136,11 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
     }
     case DATA_CONTROL_SQL_COLUMN_TYPE_TEXT: {
       int size = data_control_sql_get_column_item_size(cursor, columnIndex);
+      if (DATA_CONTROL_ERROR_NONE > size) {
+        LoggerE("Getting column item size is failed with error : %s",
+                ::get_error_message(size));
+        return false;
+      }
       char *buffer = new char[size + 1];
       result = data_control_sql_get_text_data(cursor, columnIndex, buffer);
       if (result != DATA_CONTROL_ERROR_NONE) {
@@ -149,6 +154,11 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
     }
     case DATA_CONTROL_SQL_COLUMN_TYPE_BLOB: {
       int size = data_control_sql_get_column_item_size(cursor, columnIndex);
+      if (DATA_CONTROL_ERROR_NONE > size) {
+        LoggerE("Getting column item size is failed with error : %s",
+                ::get_error_message(size));
+        return false;
+      }
       char *buffer = new char[size + 1];
       result =
           data_control_sql_get_blob_data(cursor, columnIndex, buffer, size);
