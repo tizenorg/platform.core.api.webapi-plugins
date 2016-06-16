@@ -238,22 +238,24 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
     {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
-    {name : 'option', type : types_.DICTIONARY, optional : true, nullable : true}
+    {name : 'options', type : types_.DICTIONARY, optional : true, nullable : true}
   ]);
 
   var listenerId = 'HumanActivityMonitor_'  + args.type;
+  var optionsAttributes = ["callbackInterval", "sampleInterval"], options = args.options || {};
+
   var callbackInterval = null, sampleInterval = null;
 
   switch (args.type) {
   case HumanActivityType.GPS:
-    callbackInterval = !type_.isNullOrUndefined(args.option.callbackInterval) ?
+    callbackInterval = !type_.isNullOrUndefined(options[optionsAttributes[0]]) ?
         args.option.callbackInterval : 150000;
-    sampleInterval = !type_.isNullOrUndefined(args.option.sampleInterval) ?
+    sampleInterval = !type_.isNullOrUndefined(options[optionsAttributes[1]]) ?
         args.option.sampleInterval : 1000;
     break;
   case HumanActivityType.HRM:
-    callbackInterval = !type_.isNullOrUndefined(args.option.callbackInterval) ?
-        args.option.callbackInterval : 100;
+    callbackInterval = !type_.isNullOrUndefined(options[optionsAttributes[0]]) ?
+        options[optionsAttributes[0]] : 100;
     if (callbackInterval < 10 || callbackInterval > 1000) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                 'callbackInterval is out of range');
