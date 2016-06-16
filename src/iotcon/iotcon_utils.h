@@ -157,7 +157,7 @@ class IotconUtils {
                                            picojson::object* out);
   static common::TizenResult RepresentationToJson(iotcon_representation_h representation,
                                                   picojson::object* out);
-  static common::TizenResult StateToJson(iotcon_state_h state,
+  static common::TizenResult AttributesToJson(iotcon_attributes_h state,
                                          picojson::object* out);
   static common::TizenResult StateListToJson(iotcon_list_h list,
                                              picojson::array* out);
@@ -192,7 +192,7 @@ class IotconUtils {
                                                         iotcon_representation_h* representation);
 
   static common::TizenResult StateFromJson(const picojson::object& state,
-                                           iotcon_state_h* out);
+                                           iotcon_attributes_h* out);
   static common::TizenResult StateListFromJson(const picojson::array& list,
                                                iotcon_list_h* out);
   static common::TizenResult OptionsFromJson(const picojson::array& options,
