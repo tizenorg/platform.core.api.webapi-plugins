@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.96
+Version:    0.97
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -92,11 +92,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sound_support                   1
 %define tizen_feature_system_info_support             1
 %define tizen_feature_system_setting_support          1
-%if 0%{?tizen_is_emulator}
-%define tizen_feature_telephony_support               0
-%else
 %define tizen_feature_telephony_support               1
-%endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
 %define tizen_feature_widget_service_support          1
@@ -196,7 +192,11 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sound_support                   1
 %define tizen_feature_system_info_support             1
 %define tizen_feature_system_setting_support          1
+%if 0%{?tizen_is_emulator}
+%define tizen_feature_telephony_support               1
+%else
 %define tizen_feature_telephony_support               0
+%endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             0
 %define tizen_feature_widget_service_support          1
