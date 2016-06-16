@@ -30,7 +30,7 @@ namespace extension {
 namespace iotcon {
 
 namespace {
-const std::string kPrivilegeIotcon = "http://tizen.org/privilege/internet";
+const std::string kPrivilegeIotcon = "http://tizen.org/privilege/d2d.datasharing";
 
 struct CallbackData {
   common::PostCallback fun;
@@ -464,7 +464,6 @@ common::TizenResult IotconInstance::ResponseSend(const picojson::object& args) {
     result = IotconUtils::ConvertIotconError(
         iotcon_response_set_representation(
             response.get(),
-            IotconUtils::GetArg(args, kInterface).get<std::string>().c_str(),
             representation));
     if (!result) {
       LogAndReturnTizenError(result, ("iotcon_response_set_representation() failed"));

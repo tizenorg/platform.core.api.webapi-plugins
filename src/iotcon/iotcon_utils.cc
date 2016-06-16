@@ -154,25 +154,25 @@ const picojson::value& IotconUtils::GetArg(const picojson::object& args, const s
 }
 
 int IotconUtils::GetProperties(const picojson::object& args) {
-  int properties = IOTCON_RESOURCE_NO_PROPERTY;
+  int properties = IOTCON_RESOURCE_NO_POLICY;
 
   const auto& observable = IotconUtils::GetArg(args, kIsObservable);
-  properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (observable.is<bool>() ? observable.get<bool>() : false) ? IOTCON_RESOURCE_OBSERVABLE : IOTCON_RESOURCE_NO_POLICY;
 
   const auto& discoverable = IotconUtils::GetArg(args, kIsDiscoverable);
-  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : true) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (discoverable.is<bool>() ? discoverable.get<bool>() : true) ? IOTCON_RESOURCE_DISCOVERABLE : IOTCON_RESOURCE_NO_POLICY;
 
   const auto& active = IotconUtils::GetArg(args, kIsActive);
-  properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (active.is<bool>() ? active.get<bool>() : false) ? IOTCON_RESOURCE_ACTIVE : IOTCON_RESOURCE_NO_POLICY;
 
   const auto& slow = IotconUtils::GetArg(args, kIsSlow);
-  properties |= (slow.is<bool>() ? slow.get<bool>() : false) ? IOTCON_RESOURCE_SLOW : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (slow.is<bool>() ? slow.get<bool>() : false) ? IOTCON_RESOURCE_SLOW : IOTCON_RESOURCE_NO_POLICY;
 
   const auto& secure = IotconUtils::GetArg(args, kIsSecure);
-  properties |= (secure.is<bool>() ? secure.get<bool>() : false) ? IOTCON_RESOURCE_SECURE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (secure.is<bool>() ? secure.get<bool>() : false) ? IOTCON_RESOURCE_SECURE : IOTCON_RESOURCE_NO_POLICY;
 
   const auto& explicit_discoverable = IotconUtils::GetArg(args, kIsExplicitDiscoverable);
-  properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_PROPERTY;
+  properties |= (explicit_discoverable.is<bool>() ? explicit_discoverable.get<bool>() : false) ? IOTCON_RESOURCE_EXPLICIT_DISCOVERABLE : IOTCON_RESOURCE_NO_POLICY;
 
   return properties;
 }
@@ -304,7 +304,7 @@ TizenResult IotconUtils::ExtractFromResource(const ResourceInfoPtr& pointer,
     LogAndReturnTizenError(result, ("Gathering resource interfaces failed"));
   }
 
-  result = ConvertIotconError(iotcon_resource_get_properties(pointer->handle, properties));
+  result = ConvertIotconError(iotcon_resource_get_policies(pointer->handle, properties));
   if (!result) {
     LogAndReturnTizenError(result, ("Gathering resource properties failed"));
   }
@@ -393,7 +393,7 @@ TizenResult IotconUtils::ExtractFromRemoteResource(RemoteResourceInfo* resource)
   }
 
   result = ConvertIotconError(
-      iotcon_remote_resource_get_properties(resource->resource, &resource->properties));
+      iotcon_remote_resource_get_policies(resource->resource, &resource->properties));
   if (!result) {
     LogAndReturnTizenError(result, ("Gathering properties failed"));
   }
@@ -673,15 +673,15 @@ common::TizenResult IotconUtils::RepresentationToJson(iotcon_representation_h re
 
     {
       // states
-      iotcon_state_h state = nullptr;
-      auto result = ConvertIotconError(iotcon_representation_get_state(representation, &state));
+      iotcon_attributes_h attributes = nullptr;
+      auto result = ConvertIotconError(iotcon_representation_get_attributes(representation, &attributes));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_representation_get_state() failed"));
+        LogAndReturnTizenError(result, ("iotcon_representation_get_attributes() failed"));
       }
       picojson::value v{picojson::object{}};
-      result = StateToJson(state, &v.get<picojson::object>());
+      result = AttributesToJson(attributes, &v.get<picojson::object>());
       if (!result) {
-        LogAndReturnTizenError(result, ("StateToJson() failed"));
+        LogAndReturnTizenError(result, ("AttributesToJson() failed"));
       }
       out->insert(std::make_pair(kStates, v));
     }
@@ -711,14 +711,14 @@ common::TizenResult IotconUtils::RepresentationToJson(iotcon_representation_h re
   return TizenSuccess();
 }
 
-common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
+common::TizenResult IotconUtils::AttributesToJson(iotcon_attributes_h attributes,
                                              picojson::object* out) {
   ScopeLogger();
 
-  if (state) {
-    auto result = ConvertIotconError(iotcon_state_foreach(state, [](iotcon_state_h state, const char* key, void* user_data) -> bool {
+  if (attributes) {
+    auto result = ConvertIotconError(iotcon_attributes_foreach(attributes, [](iotcon_attributes_h attributes, const char* key, void* user_data) -> bool {
       iotcon_type_e type = IOTCON_TYPE_NONE;
-      auto result = ConvertIotconError(iotcon_state_get_type(state, key, &type));
+      auto result = ConvertIotconError(iotcon_attributes_get_type(attributes, key, &type));
 
       if (result) {
         auto out = static_cast<picojson::object*>(user_data);
@@ -731,11 +731,11 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           case IOTCON_TYPE_INT:
           {
             int value = 0;
-            result = ConvertIotconError(iotcon_state_get_int(state, key, &value));
+            result = ConvertIotconError(iotcon_attributes_get_int(attributes, key, &value));
             if (result) {
               out->insert(std::make_pair(key, picojson::value{static_cast<double>(value)}));
             } else {
-              LoggerE("iotcon_state_get_int() failed");
+              LoggerE("iotcon_attributes_get_int() failed");
             }
           }
           break;
@@ -743,11 +743,11 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           case IOTCON_TYPE_BOOL:
           {
             bool value = false;
-            result = ConvertIotconError(iotcon_state_get_bool(state, key, &value));
+            result = ConvertIotconError(iotcon_attributes_get_bool(attributes, key, &value));
             if (result) {
               out->insert(std::make_pair(key, picojson::value{value}));
             } else {
-              LoggerE("iotcon_state_get_bool() failed");
+              LoggerE("iotcon_attributes_get_bool() failed");
             }
           }
           break;
@@ -755,11 +755,11 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           case IOTCON_TYPE_DOUBLE:
           {
             double value = 0.0;
-            result = ConvertIotconError(iotcon_state_get_double(state, key, &value));
+            result = ConvertIotconError(iotcon_attributes_get_double(attributes, key, &value));
             if (result) {
               out->insert(std::make_pair(key, picojson::value{value}));
             } else {
-              LoggerE("iotcon_state_get_double() failed");
+              LoggerE("iotcon_attributes_get_double() failed");
             }
           }
           break;
@@ -767,11 +767,11 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           case IOTCON_TYPE_STR:
           {
             char* value = nullptr;
-            result = ConvertIotconError(iotcon_state_get_str(state, key, &value));
+            result = ConvertIotconError(iotcon_attributes_get_str(attributes, key, &value));
             if (result && value) {
               out->insert(std::make_pair(key, picojson::value{value}));
             } else {
-              LoggerE("iotcon_state_get_str() failed");
+              LoggerE("iotcon_attributes_get_str() failed");
             }
           }
           break;
@@ -780,14 +780,14 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           {
             unsigned char* value = nullptr;
             int length = 0;
-            result = ConvertIotconError(iotcon_state_get_byte_str(state, key, &value, &length));
+            result = ConvertIotconError(iotcon_attributes_get_byte_str(attributes, key, &value, &length));
 
             if (result && length) {
               std::unique_ptr<char[]> data{new char[2 * length]};
               common::tools::BinToHex(value, length, data.get(), 2 * length);
               out->insert(std::make_pair(key, picojson::value{kHexPrefix + data.get()}));
             } else {
-              LoggerE("iotcon_state_get_byte_str() failed");
+              LoggerE("iotcon_attributes_get_byte_str() failed");
             }
           }
           break;
@@ -799,7 +799,7 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
           case IOTCON_TYPE_LIST:
           {
             iotcon_list_h list = nullptr;
-            result = ConvertIotconError(iotcon_state_get_list(state, key, &list));
+            result = ConvertIotconError(iotcon_attributes_get_list(attributes, key, &list));
             if (result) {
               picojson::value value{picojson::array{}};
 
@@ -810,32 +810,32 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
                 LoggerE("StateListToJson() failed");
               }
             } else {
-              LoggerE("iotcon_state_get_list() failed");
+              LoggerE("iotcon_attributes_get_list() failed");
             }
           }
           break;
 
-          case IOTCON_TYPE_STATE:
+          case IOTCON_TYPE_ATTRIBUTES:
           {
-            iotcon_state_h child = nullptr;
-            result = ConvertIotconError(iotcon_state_get_state(state, key, &child));
+            iotcon_attributes_h child = nullptr;
+            result = ConvertIotconError(iotcon_attributes_get_attributes(attributes, key, &child));
             if (result) {
               picojson::value value{picojson::object{}};
 
-              result = StateToJson(child, &value.get<picojson::object>());
+              result = AttributesToJson(child, &value.get<picojson::object>());
               if (result) {
                 out->insert(std::make_pair(key, picojson::value{value}));
               } else {
-                LoggerE("StateToJson() failed");
+                LoggerE("AttributesToJson() failed");
               }
             } else {
-              LoggerE("iotcon_state_get_state() failed");
+              LoggerE("iotcon_attributes_get_attributes() failed");
             }
           }
           break;
         }
       } else {
-        LoggerE("iotcon_state_get_type() failed");
+        LoggerE("iotcon_attributes_get_type() failed");
       }
 
       // always continue with iteration
@@ -843,10 +843,10 @@ common::TizenResult IotconUtils::StateToJson(iotcon_state_h state,
     }, out));
 
     if (!result) {
-      LogAndReturnTizenError(result, ("iotcon_state_foreach() failed"));
+      LogAndReturnTizenError(result, ("iotcon_attributes_foreach() failed"));
     }
   } else {
-    LoggerW("State handle is null, ignoring");
+    LoggerW("attributes handle is null, ignoring");
   }
 
   return TizenSuccess();
@@ -958,21 +958,21 @@ common::TizenResult IotconUtils::StateListToJson(iotcon_list_h list,
         }
         break;
 
-      case IOTCON_TYPE_STATE:
-        result = ConvertIotconError(iotcon_list_foreach_state(list, [](int, iotcon_state_h state, void* user_data) -> bool {
+      case IOTCON_TYPE_ATTRIBUTES:
+        result = ConvertIotconError(iotcon_list_foreach_attributes(list, [](int, iotcon_attributes_h attributes, void* user_data) -> bool {
           picojson::value value{picojson::object{}};
-          auto result = StateToJson(state, &value.get<picojson::object>());
+          auto result = AttributesToJson(attributes, &value.get<picojson::object>());
           if (result) {
             auto out = static_cast<picojson::array*>(user_data);
             out->push_back(picojson::value{value});
           } else {
-            LoggerE("StateToJson() failed");
+            LoggerE("AttributesToJson() failed");
           }
           // always continue with iteration
           return true;
         }, out));
         if (!result) {
-          LogAndReturnTizenError(result, ("iotcon_list_foreach_state() failed"));
+          LogAndReturnTizenError(result, ("iotcon_list_foreach_attributes() failed"));
         }
         break;
     }
@@ -1230,17 +1230,17 @@ common::TizenResult IotconUtils::RepresentationFromResource(const ResourceInfoPt
   {
     auto& state = states.get(std::to_string(resource->id));
     if (state.is<picojson::object>()) {
-      iotcon_state_h state_handle = nullptr;
-      result = IotconUtils::StateFromJson(state.get<picojson::object>(), &state_handle);
+      iotcon_attributes_h attributes_handle = nullptr;
+      result = IotconUtils::AttributesFromJson(state.get<picojson::object>(), &attributes_handle);
       if (!result) {
-        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+        LogAndReturnTizenError(result, ("AttributesFromJson() failed"));
       }
       SCOPE_EXIT {
-        iotcon_state_destroy(state_handle);
+        iotcon_attributes_destroy(attributes_handle);
       };
-      result = IotconUtils::ConvertIotconError(iotcon_representation_set_state(representation, state_handle));
+      result = IotconUtils::ConvertIotconError(iotcon_representation_set_attributes(representation, attributes_handle));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_representation_set_state() failed"));
+        LogAndReturnTizenError(result, ("iotcon_representation_set_attributes() failed"));
       }
     }
   }
@@ -1284,36 +1284,36 @@ common::TizenResult IotconUtils::RepresentationFromResource(const ResourceInfoPt
   return TizenSuccess();
 }
 
-common::TizenResult IotconUtils::StateFromJson(const picojson::object& s,
-                                               iotcon_state_h* out) {
+common::TizenResult IotconUtils::AttributesFromJson(const picojson::object& s,
+                                               iotcon_attributes_h* out) {
   ScopeLogger();
 
-  iotcon_state_h state = nullptr;
+  iotcon_attributes_h attributes = nullptr;
 
-  auto result = IotconUtils::ConvertIotconError(iotcon_state_create(&state));
+  auto result = IotconUtils::ConvertIotconError(iotcon_attributes_create(&attributes));
   if (!result) {
-    LogAndReturnTizenError(result, ("iotcon_state_create() failed"));
+    LogAndReturnTizenError(result, ("iotcon_attributes_create() failed"));
   }
 
-  std::unique_ptr<std::remove_pointer<iotcon_state_h>::type, void(*)(iotcon_state_h)> ptr{state, &iotcon_state_destroy};
+  std::unique_ptr<std::remove_pointer<iotcon_attributes_h>::type, void(*)(iotcon_attributes_h)> ptr{attributes, &iotcon_attributes_destroy};
 
   for (const auto& property : s) {
     const auto& key = property.first;
 
     if (property.second.is<picojson::null>()) {
-      result = IotconUtils::ConvertIotconError(iotcon_state_add_null(state, key.c_str()));
+      result = IotconUtils::ConvertIotconError(iotcon_attributes_add_null(attributes, key.c_str()));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_state_add_null() failed"));
+        LogAndReturnTizenError(result, ("iotcon_attributes_add_null() failed"));
       }
     } else if (property.second.is<bool>()) {
-      result = IotconUtils::ConvertIotconError(iotcon_state_add_bool(state, key.c_str(), property.second.get<bool>()));
+      result = IotconUtils::ConvertIotconError(iotcon_attributes_add_bool(attributes, key.c_str(), property.second.get<bool>()));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_state_add_bool() failed"));
+        LogAndReturnTizenError(result, ("iotcon_attributes_add_bool() failed"));
       }
     } else if (property.second.is<double>()) {
-      result = IotconUtils::ConvertIotconError(iotcon_state_add_double(state, key.c_str(), property.second.get<double>()));
+      result = IotconUtils::ConvertIotconError(iotcon_attributes_add_double(attributes, key.c_str(), property.second.get<double>()));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_state_add_double() failed"));
+        LogAndReturnTizenError(result, ("iotcon_attributes_attributes_double() failed"));
       }
     } else if (property.second.is<std::string>()) {
       const auto& value = property.second.get<std::string>();
@@ -1324,14 +1324,14 @@ common::TizenResult IotconUtils::StateFromJson(const picojson::object& s,
         auto length = size / 2;
         std::unique_ptr<unsigned char[]> hex{new unsigned char[length]};
         common::tools::HexToBin(data, size, hex.get(), length);
-        result = IotconUtils::ConvertIotconError(iotcon_state_add_byte_str(state, key.c_str(), hex.get(), length));
+        result = IotconUtils::ConvertIotconError(iotcon_attributes_add_byte_str(attributes, key.c_str(), hex.get(), length));
         if (!result) {
-          LogAndReturnTizenError(result, ("iotcon_state_add_byte_str() failed"));
+          LogAndReturnTizenError(result, ("iotcon_attributes_add_byte_str() failed"));
         }
       } else {
-        result = IotconUtils::ConvertIotconError(iotcon_state_add_str(state, key.c_str(), const_cast<char*>(value.c_str())));
+        result = IotconUtils::ConvertIotconError(iotcon_attributes_add_str(attributes, key.c_str(), const_cast<char*>(value.c_str())));
         if (!result) {
-          LogAndReturnTizenError(result, ("iotcon_state_add_str() failed"));
+          LogAndReturnTizenError(result, ("iotcon_attributes_add_str() failed"));
         }
       }
     } else if (property.second.is<picojson::array>()) {
@@ -1344,23 +1344,23 @@ common::TizenResult IotconUtils::StateFromJson(const picojson::object& s,
         SCOPE_EXIT {
           iotcon_list_destroy(list);
         };
-        result = IotconUtils::ConvertIotconError(iotcon_state_add_list(state, key.c_str(), list));
+        result = IotconUtils::ConvertIotconError(iotcon_attributes_add_list(attributes, key.c_str(), list));
         if (!result) {
-          LogAndReturnTizenError(result, ("iotcon_state_add_list() failed"));
+          LogAndReturnTizenError(result, ("iotcon_attributes_add_list() failed"));
         }
       }
     } else if (property.second.is<picojson::object>()) {
-      iotcon_state_h sub_state = nullptr;
-      result = StateFromJson(property.second.get<picojson::object>(), &sub_state);
+      iotcon_attributes_h sub_attributes = nullptr;
+      result = AttributesFromJson(property.second.get<picojson::object>(), &sub_attributes);
       if (!result) {
-        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+        LogAndReturnTizenError(result, ("AttributesFromJson() failed"));
       }
       SCOPE_EXIT {
-        iotcon_state_destroy(sub_state);
+        iotcon_attributes_destroy(sub_attributes);
       };
-      result = IotconUtils::ConvertIotconError(iotcon_state_add_state(state, key.c_str(), sub_state));
+      result = IotconUtils::ConvertIotconError(iotcon_attributes_add_attributes(attributes, key.c_str(), sub_attributes));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_state_add_state() failed"));
+        LogAndReturnTizenError(result, ("iotcon_attributes_add_attributes() failed"));
       }
     }
   }
@@ -1391,7 +1391,7 @@ common::TizenResult IotconUtils::StateListFromJson(const picojson::array& l,
     } else if (l[0].is<picojson::array>()) {
       type = IOTCON_TYPE_LIST;
     } else if (l[0].is<picojson::object>()) {
-      type = IOTCON_TYPE_STATE;
+      type = IOTCON_TYPE_ATTRIBUTES;
     }
   }
 
@@ -1473,19 +1473,19 @@ common::TizenResult IotconUtils::StateListFromJson(const picojson::array& l,
         }
         break;
 
-      case IOTCON_TYPE_STATE:
+      case IOTCON_TYPE_ATTRIBUTES:
         if (v.is<picojson::object>()) {
-          iotcon_state_h state = nullptr;
-          result = StateFromJson(v.get<picojson::object>(), &state);
+          iotcon_attributes_h attributes = nullptr;
+          result = AttributesFromJson(v.get<picojson::object>(), &attributes);
           if (!result) {
-            LogAndReturnTizenError(result, ("StateFromJson() failed"));
+            LogAndReturnTizenError(result, ("AttributesFromJson() failed"));
           }
           SCOPE_EXIT {
-            iotcon_state_destroy(state);
+            iotcon_attributes_destroy(attributes);
           };
-          result = IotconUtils::ConvertIotconError(iotcon_list_add_state(list, state, position++));
+          result = IotconUtils::ConvertIotconError(iotcon_list_add_attributes(list, attributes, position++));
           if (!result) {
-            LogAndReturnTizenError(result, ("iotcon_list_add_state() failed"));
+            LogAndReturnTizenError(result, ("iotcon_list_add_attributes() failed"));
           }
         }
         break;
@@ -1710,19 +1710,19 @@ common::TizenResult IotconUtils::RepresentationFromJson(const picojson::object& 
   {
     const auto& states = r.find(kStates);
     if (r.end() != states && states->second.is<picojson::object>()) {
-      iotcon_state_h s = nullptr;
+      iotcon_attributes_h s = nullptr;
 
-      result = StateFromJson(states->second.get<picojson::object>(), &s);
+      result = AttributesFromJson(states->second.get<picojson::object>(), &s);
       if (!result) {
-        LogAndReturnTizenError(result, ("StateFromJson() failed"));
+        LogAndReturnTizenError(result, ("AttributesFromJson() failed"));
       }
       SCOPE_EXIT {
-        iotcon_state_destroy(s);
+        iotcon_attributes_destroy(s);
       };
 
-      result = ConvertIotconError(iotcon_representation_set_state(representation, s));
+      result = ConvertIotconError(iotcon_representation_set_attributes(representation, s));
       if (!result) {
-        LogAndReturnTizenError(result, ("iotcon_representation_set_state() failed"));
+        LogAndReturnTizenError(result, ("iotcon_representation_set_attributes() failed"));
       }
     }
   }
