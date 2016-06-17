@@ -1511,7 +1511,7 @@ PlatformResult NFCAdapter::RegisterAID(
   LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
-  if (!result.IsError()) {
+  if (result.IsError()) {
     LoggerE("Error: %s", result.message().c_str());
     return result;
   }
@@ -1532,7 +1532,7 @@ PlatformResult NFCAdapter::UnregisterAID(
   LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
-  if (!result.IsError()) {
+  if (result.IsError()) {
     LoggerE("Error: %s", result.message().c_str());
     return result;
   }
@@ -1565,7 +1565,7 @@ void NFCAdapter::GetAIDsForCategory(
   LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
-  if (!result.IsError()) {
+  if (result.IsError()) {
     LoggerE("Error: %s", result.message().c_str());
     error_cb(result);
     return;
