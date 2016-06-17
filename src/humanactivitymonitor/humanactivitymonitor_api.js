@@ -249,9 +249,9 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   switch (args.type) {
   case HumanActivityType.GPS:
     callbackInterval = !type_.isNullOrUndefined(options[optionsAttributes[0]]) ?
-        args.option.callbackInterval : 150000;
+        options[optionsAttributes[0]] : 150000;
     sampleInterval = !type_.isNullOrUndefined(options[optionsAttributes[1]]) ?
-        args.option.sampleInterval : 1000;
+        options[optionsAttributes[1]] : 1000;
     break;
   case HumanActivityType.HRM:
     callbackInterval = !type_.isNullOrUndefined(options[optionsAttributes[0]]) ?
