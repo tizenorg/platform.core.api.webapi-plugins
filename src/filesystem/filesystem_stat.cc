@@ -77,6 +77,11 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
 
   _result.path = path;
   _result.readOnly = true;
+
+  const int GROUPBUF_SIZE = 100;
+  gid_t groupbuf[GROUPBUF_SIZE];
+  int n_groups = getgroups(GROUPBUF_SIZE, groupbuf);
+
   if (getuid() == aStatObj.st_uid && (aStatObj.st_mode & S_IWUSR) == S_IWUSR) {
     _result.readOnly = false;
   } else if (getgid() == aStatObj.st_gid &&
@@ -84,6 +89,13 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
     _result.readOnly = false;
   } else if ((aStatObj.st_mode & S_IWOTH) == S_IWOTH) {
     _result.readOnly = false;
+  } else if (n_groups > 0) {
+    for(int i=0; i<n_groups; i++)
+    {
+      if(groupbuf[i] == aStatObj.st_gid && (aStatObj.st_mode & S_IWGRP) == S_IWGRP) {
+        _result.readOnly = false;
+      }
+    }
   }
 
   _result.isDirectory = S_ISDIR(aStatObj.st_mode);
