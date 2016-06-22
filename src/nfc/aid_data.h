@@ -28,12 +28,12 @@ namespace nfc {
 
 class AIDData {
  public:
-  AIDData(nfc_se_type_e se_type, const char* aid, bool read_only);
+  AIDData(std::string se_type, std::string aid, bool read_only);
   picojson::value toJSON() const;
 
  private:
-  nfc_se_type_e se_type_;
-  const char* aid_;
+  std::string se_type_;
+  std::string aid_;
   bool read_only_;
 };
 

@@ -1554,7 +1554,8 @@ static void SaveRow(nfc_se_type_e se_type,
   AssertMsg(aid, "Poiner can not be null!");
   AssertMsg(user_data, "Poiner can not be null!");
   AIDDataVector* aids = static_cast<AIDDataVector*>(user_data);
-  aids->push_back(AIDData(se_type, aid, read_only));
+  std::string aid_str = std::string(aid);
+  aids->push_back(AIDData(std::string(NFCUtil::ToStr(se_type)), aid_str, read_only));
 };
 
 void NFCAdapter::GetAIDsForCategory(
