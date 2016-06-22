@@ -236,17 +236,17 @@ class HumanActivityMonitorManager::Monitor {
 
   virtual PlatformResult SetListenerImpl(const picojson::value& args) {
     ScopeLogger(type());
-    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
   }
 
   virtual PlatformResult UnsetListenerImpl() {
     ScopeLogger(type());
-    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
   }
 
   virtual PlatformResult GetDataImpl(picojson::value* data) const {
     ScopeLogger(type());
-    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
   }
 
  private:
@@ -266,7 +266,7 @@ class HumanActivityMonitorManager::Monitor {
     if (*is_supported_) {
       return PlatformResult(ErrorCode::NO_ERROR);
     } else {
-      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
     }
   }
 
@@ -495,7 +495,7 @@ class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivity
     ScopeLogger(type());
 
     if (!handle_) {
-      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,"SERVICE_NOT_AVAILABLE_ERR",);
     }
 
     sensor_event_s event = {0};
@@ -664,7 +664,7 @@ class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMon
     ScopeLogger(type());
 
     if (!handle_) {
-      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,"SERVICE_NOT_AVAILABLE_ERR");
     }
 
     double altitude = 0.0, latitude = 0.0, longitude = 0.0, climb = 0.0,
