@@ -532,8 +532,8 @@ PlatformResult SensorData::GetHardwareInfo(picojson::object* data) {
   (*data)["minValue"] = picojson::value(static_cast<double>(min_range));
   (*data)["maxValue"] = picojson::value(static_cast<double>(max_range));
   (*data)["resolution"] = picojson::value(static_cast<double>(resolution));
-  (*data)["minInterval"] = picojson::value(static_cast<double>(min_interval));
-  (*data)["batchCount"] = picojson::value(static_cast<double>(max_batch_count));
+  (*data)["minInterval"] = picojson::value(min_interval);
+  (*data)["batchCount"] = picojson::value(max_batch_count);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
