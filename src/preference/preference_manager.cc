@@ -285,14 +285,13 @@ common::TizenResult PreferenceManager::UnsetChangeListener(const std::string& ke
         if (PREFERENCE_ERROR_NONE != ret) {
           return MakeErrResult(ret, "preference_unset_changed_cb function error");
         }
-
         key_listeners_.erase(it);
-        break;
+        return common::TizenSuccess();
       }
     }
   }
-
-  return common::TizenSuccess();
+  // key was not found
+  return common::NotFoundError(std::string("Listener for given key was not found"));
 }
 
 } // namespace preference
