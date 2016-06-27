@@ -94,10 +94,14 @@ SensorListener.prototype.stop = function () {
     }
 };
 
-SensorListener.prototype.setListener = function (successCallback, interval) {
+SensorListener.prototype.setListener = function (successCallback, interval, batchLatency) {
     if (!this.callback) {
         //call platform only if there was no listener registered
-        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType, 'interval' : interval});
+        var result = native_.callSync('Sensor_setChangeListener', {
+            'sensorType' : this.sensorType,
+            'interval' : interval,
+            'batchLatency' : batchLatency});
+
         if (native_.isFailure(result)) {
             throw native_.getErrorObject(result);
         }
@@ -263,6 +267,12 @@ Sensor.prototype.setChangeListener = function() {
            type: types_.LONG,
            optional: true,
            nullable: true
+       },
+       {
+           name : 'batchLatency',
+           type: types_.LONG,
+           optional: true,
+           nullable: true
        }
     ]);
 
@@ -271,7 +281,9 @@ Sensor.prototype.setChangeListener = function() {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Interval should be in range [10, 1000] milliseconds.');
     }
 
-    _sensorListeners[this.sensorType].setListener(args.successCallback, interval);
+    var batchLatency = args.batchLatency || 0;
+
+    _sensorListeners[this.sensorType].setListener(args.successCallback, interval, batchLatency);
 };
 
 Sensor.prototype.unsetChangeListener = function() {

@@ -63,6 +63,7 @@ static std::string GetAccuracyString(int accuracy) {
 
 static const std::string kSensorTypeTag = "sensorType";
 static const std::string kInterval = "interval";
+static const std::string kBatchLatency = "batchLatency";
 static const std::string kListenerId = "listenerId";
 static const std::string kSensorChangedListener = "SensorChangedListener";
 
@@ -189,7 +190,7 @@ class SensorData {
   PlatformResult IsSupported(bool* supported);
   virtual PlatformResult Start();
   virtual PlatformResult Stop();
-  virtual PlatformResult SetChangeListener(unsigned int interval);
+  virtual PlatformResult SetChangeListener(unsigned int interval, unsigned int batch_latency);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
   virtual PlatformResult GetHardwareInfo(picojson::object* data);
@@ -388,7 +389,7 @@ PlatformResult SensorData::Stop() {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SensorData::SetChangeListener(unsigned int interval) {
+PlatformResult SensorData::SetChangeListener(unsigned int interval, unsigned int batch_latency) {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
 
   auto res = CheckInitialization();
@@ -398,7 +399,14 @@ PlatformResult SensorData::SetChangeListener(unsigned int interval) {
     return res;
   }
 
-  int ret = sensor_listener_set_event_cb(listener_, interval, SensorCallback, this);
+  int ret = SENSOR_ERROR_NONE;
+  if (batch_latency > 0) {
+    ret = sensor_listener_set_max_batch_latency(listener_, batch_latency);
+    LoggerE("sensor_listener_set_max_batch_latency : %d", ret);
+    return GetSensorPlatformResult(ret, "Unable to set batchLatency");
+  }
+
+  ret = sensor_listener_set_event_cb(listener_, interval, SensorCallback, this);
   if (SENSOR_ERROR_NONE != ret) {
     LoggerE("sensor_listener_set_event_cb : %d", ret);
     return GetSensorPlatformResult(ret, "sensor_listener_set_event_cb");
@@ -547,7 +555,7 @@ class HrmSensorData : public SensorData {
 
   virtual PlatformResult Start();
   virtual PlatformResult Stop();
-  virtual PlatformResult SetChangeListener(unsigned int interval);
+  virtual PlatformResult SetChangeListener(unsigned int interval, unsigned int batch_latency);
   virtual PlatformResult UnsetChangeListener();
   virtual PlatformResult GetSensorData(picojson::object* data);
   virtual PlatformResult GetHardwareInfo(picojson::object* data);
@@ -625,11 +633,11 @@ PlatformResult HrmSensorData::Stop() {
   return CallMember(&SensorData::Stop);
 }
 
-PlatformResult HrmSensorData::SetChangeListener(unsigned int interval) {
+PlatformResult HrmSensorData::SetChangeListener(unsigned int interval, unsigned int batch_latency) {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
   for (const auto& sensor : hrm_sensors_) {
     if (sensor.second->is_supported()) {
-      auto res = sensor.second->SetChangeListener(interval);
+      auto res = sensor.second->SetChangeListener(interval, batch_latency);
       if (!res) {
         return res;
       }
@@ -784,6 +792,8 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
   const std::string type_str =
       args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
   const auto interval = args.contains(kInterval) ? args.get(kInterval).get<double>() : 100.0;
+  const auto batch_latency = args.contains(kBatchLatency) ? args.get(kBatchLatency).get<double>() : 0.0;
+
   LoggerD("input type: %s" , type_str.c_str());
   LoggerD("interval: %f" , interval);
 
@@ -795,7 +805,7 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
     return;
   }
 
-  PlatformResult res = sensor_data->SetChangeListener(static_cast<unsigned int>(interval));
+  PlatformResult res = sensor_data->SetChangeListener(static_cast<unsigned int>(interval), static_cast<unsigned int>(batch_latency));
   if (!res) {
     LogAndReportError(res, &out, ("Failed to set change listener for sensor: %s", type_str.c_str()));
   } else {
