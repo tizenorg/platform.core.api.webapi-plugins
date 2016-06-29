@@ -507,7 +507,14 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
           value = common::stol(
               FromJson<std::string>(JsonCast<JsonObject>(match_value), "uid"));
         } else {
-          value = common::stol(JsonCast<std::string>(match_value));
+          if (match_value.is<std::string>()) {
+            value = common::stol(JsonCast<std::string>(match_value));
+          } else if (match_value.is<double>()) {
+            value = static_cast<int>(match_value.get<double>());
+          } else {
+            return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                                                        "Match value wrong type");
+          }
         }
         if (value < 0) {
           return LogAndCreateResult(
