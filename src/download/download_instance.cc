@@ -407,7 +407,10 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
     return FALSE;
   }
 
-  LoggerD("OnFailed for callbackID %d Called", downCbPtr->callbackId);
+  int callback_id = downCbPtr->callbackId;
+  DownloadInfoPtr diPtr = downCbPtr->instance->diMap[callback_id];
+
+  LoggerD("OnFailed for callbackID %d called", callback_id);
 
   download_get_error(downCbPtr->downloadId, &error);
 
@@ -416,10 +419,18 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
                       ("download_get_error error: %d (%s)", error, get_error_message(error)));
   }
 
+  int ret = download_destroy(diPtr->download_id);
+  if (DOWNLOAD_ERROR_NONE != ret) {
+    LoggerE("%s", get_error_message(ret));
+  }
+
   out["callbackId"] =
     picojson::value(static_cast<double>(downCbPtr->callbackId));
 
   Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
+  downCbPtr->instance->download_callbacks.erase(callback_id);
+  delete (downCbPtr);
+
   return FALSE;
 }
 
