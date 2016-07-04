@@ -20,6 +20,21 @@ var type_ = xwalk.utils.type;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+function PreferenceData(data) {
+  Object.defineProperties(this, {
+    key: {
+      value: data.key,
+      writable: false,
+      enumerable: true
+    },
+    value: {
+      value: data.value,
+      writable: false,
+      enumerable: true
+    },
+  });
+}
+
 function PreferenceManager() {
 }
 
@@ -33,7 +48,14 @@ PreferenceManager.prototype.getAll = function() {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      args.successCallback(native_.getResultObject(result));
+      var array = [];
+      var objects = native_.getResultObject(result);
+
+      objects.forEach(function (d) {
+        array.push(new PreferenceData(d));
+      });
+
+      args.successCallback(array);
     }
   };
 
@@ -116,12 +138,11 @@ function PreferenceChangedListener() {
   this.appListener = function (result) {
     var data = native_.getResultObject(result);
     var key = data.key;
-    var value = data.value;
 
     if (that.instances[key]) {
       var listener = that.instances[key];
       if (type_.isFunction(listener)) {
-        listener({ key: key, value: value });
+        listener(new PreferenceData(data));
       }
     }
   };
