@@ -294,9 +294,15 @@ class HumanActivityMonitorManager::Monitor::GestureMonitor : public HumanActivit
 
     int ret = gesture_is_supported(GESTURE_WRIST_UP, &supported);
     if (ret != SENSOR_ERROR_NONE) {
-      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
-                                "WRIST_UP gesture check failed",
-                                ("gesture_is_supported(GESTURE_WRIST_UP), error: %d (%s)", ret, get_error_message(ret)));
+      if (ret == GESTURE_ERROR_NOT_SUPPORTED) {
+        return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                                          "WRIST_UP gesture check failed",
+                                          ("gesture_is_supported(GESTURE_WRIST_UP), error: %d (%s)", ret, get_error_message(ret)));
+      } else {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "WRIST_UP gesture check failed",
+                                  ("gesture_is_supported(GESTURE_WRIST_UP), error: %d (%s)", ret, get_error_message(ret)));
+      }
     }
 
     *s = supported;
