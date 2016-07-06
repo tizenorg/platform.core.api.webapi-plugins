@@ -211,11 +211,13 @@ void NetworkBearerSelectionManager::requestRouteToHost(
 
   destroyProfileHandle();
 
-  if (connection_get_default_cellular_service_profile(
-          m_connection_handle_,
-          CONNECTION_CELLULAR_SERVICE_TYPE_INTERNET,
-          &m_profile_handle_) != CONNECTION_ERROR_NONE) {
-    LoggerE("Fail to get profile handle");
+  int ret = connection_get_default_cellular_service_profile(
+      m_connection_handle_,
+      CONNECTION_CELLULAR_SERVICE_TYPE_INTERNET,
+      &m_profile_handle_);
+
+  if (ret != CONNECTION_ERROR_NONE) {
+    LoggerE("Fail to get profile handle. %d", ret);
     makeErrorCallback(domain_name, kPlatformError);
     return;
   }
