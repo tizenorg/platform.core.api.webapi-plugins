@@ -211,7 +211,23 @@ void NetworkBearerSelectionManager::requestRouteToHost(
 
   destroyProfileHandle();
 
-  int ret = connection_get_default_cellular_service_profile(
+  connection_cellular_state_e state;
+
+  int ret = connection_get_cellular_state(m_connection_handle_, &state);
+
+  if (ret != CONNECTION_ERROR_NONE) {
+    LoggerE("Fail to get connection state. %d", ret);
+    makeErrorCallback(domain_name, kPlatformError);
+    return;
+  }
+
+  if (state == CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE) {
+    LoggerE("Network cellular have no service. %d", state);
+    makeErrorCallback(domain_name, kPlatformError);
+    return;
+  }
+
+  ret = connection_get_default_cellular_service_profile(
       m_connection_handle_,
       CONNECTION_CELLULAR_SERVICE_TYPE_INTERNET,
       &m_profile_handle_);
