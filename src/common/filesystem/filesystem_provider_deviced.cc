@@ -195,10 +195,6 @@ void FilesystemProviderDeviced::UnregisterDeviceChangeState() {
   device_changed_callback_ = nullptr;
 }
 
-std::shared_ptr<Storage> FilesystemProviderDeviced::GetInternalStorage() {
-  return virtual_roots_provider_.GetInternalStorage();
-}
-
 std::shared_ptr<Storage> FilesystemProviderDeviced::GetStorage(const DeviceListElem& elem) {
   LoggerD("Entered");
   return std::make_shared<Storage>(GetIdFromUUID(elem.fs_uuid_enc),
@@ -230,7 +226,6 @@ int FilesystemProviderDeviced::GetIdFromUUID(const char* const char_uuid) {
 
 Storages FilesystemProviderDeviced::GetStorages() {
   LoggerD("Entered");
-
   if(!is_initialized_) {
     LoggerE("DeviceD Core api not initialized");
     return Storages();
@@ -253,7 +248,14 @@ Storages FilesystemProviderDeviced::GetStorages() {
     LoggerE("Failed to call GetDeviceList method - %s", message.c_str());
     return Storages();
   }
-  return GetStoragesFromGVariant(variant);
+  // internal storages are gathered with storage api
+  Storages internal = virtual_roots_provider_.GetStorages();
+  // external storages are gathered using deviced implementation
+  Storages result = GetStoragesFromGVariant(variant);
+
+  // merging internal and external results together, but internal on the beginning
+  result.insert(result.begin(), internal.begin(), internal.end());
+  return result;
 }
 
 Storages FilesystemProviderDeviced::GetStoragesFromGVariant(GVariant* variant) {

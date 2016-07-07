@@ -35,7 +35,6 @@ class FilesystemProviderStorage : public IFilesystemProvider {
   virtual Storages GetStorages();
   virtual VirtualRoots GetVirtualPaths();
   virtual VirtualStorages GetAllStorages();
-  virtual std::shared_ptr< Storage > GetInternalStorage();
 
   std::string GetRealPath(const std::string& path_or_uri);
   std::string GetVirtualPath(const std::string& real_path) const;
@@ -54,7 +53,6 @@ class FilesystemProviderStorage : public IFilesystemProvider {
   DeviceChangeStateFun listener_;
   Storages storages_;
   VirtualRoots virtual_paths_;
-  std::shared_ptr<Storage> internal_storage_;
 };
 
 }  // namespace common

@@ -44,7 +44,6 @@ class FilesystemProviderDeviced : public IFilesystemProvider {
   virtual VirtualRoots GetVirtualPaths();
   virtual Storages GetStorages();
   virtual VirtualStorages GetAllStorages();
-  virtual std::shared_ptr< Storage > GetInternalStorage();
   static FilesystemProviderDeviced& Create();
 
  private:

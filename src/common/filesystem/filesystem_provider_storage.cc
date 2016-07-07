@@ -90,22 +90,10 @@ bool OnForeachStorage(int storage_id, storage_type_e type,
   FilesystemProviderStorage* provider =
       static_cast<FilesystemProviderStorage*>(user_data);
 
-  int err = storage_set_state_changed_cb(storage_id, OnStorageChange, provider);
-  if (STORAGE_ERROR_NONE != err) {
-    LoggerW("Failed to add listener");
-  }
-
-  StorageType type_ =
-      type == STORAGE_TYPE_INTERNAL ?
-          StorageType::kInternal : StorageType::kMmc;
-
-  provider->AddStorage(
-      std::make_shared<Storage>(storage_id, type_, TranslateCoreStorageState(state), path));
-  if (type_ == StorageType::kInternal) {
-    // TODO check internal storage
-    //provider->internal_storage_ = std::make_shared<Storage>(Storage(storage_id, type_, state_, path, kVirtualRootMedia));
-    // if internal storage is supported, we can add also virtual paths:
-    // downloads, documents etc
+  // handling only internal storages (external are handled with deviced api)
+  if (STORAGE_TYPE_INTERNAL == type) {
+    provider->AddStorage(
+        std::make_shared<Storage>(storage_id, StorageType::kInternal, TranslateCoreStorageState(state), path));
     provider->FillVirtualPaths(storage_id);
   }
   return true;
@@ -119,8 +107,7 @@ DeviceChangeStateFun FilesystemProviderStorage::GetListener() {
   return listener_;
 }
 
-FilesystemProviderStorage::FilesystemProviderStorage() :
-    internal_storage_(nullptr) {
+FilesystemProviderStorage::FilesystemProviderStorage() {
   LoggerD("Entered");
   int err = storage_foreach_device_supported(OnForeachStorage, this);
   if (err != STORAGE_ERROR_NONE) {
@@ -207,11 +194,6 @@ std::string FilesystemProviderStorage::GetRealPath(
     }
   }
   return realpath;
-}
-
-std::shared_ptr< Storage > FilesystemProviderStorage::GetInternalStorage(){
-  LoggerD("Entered");
-  return internal_storage_;
 }
 
 std::string FilesystemProviderStorage::GetVirtualPath(

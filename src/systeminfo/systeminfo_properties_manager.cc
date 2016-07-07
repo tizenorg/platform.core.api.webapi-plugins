@@ -1167,6 +1167,8 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
 
 static std::string FromStorageTypeToStringType(common::StorageType type) {
   switch(type) {
+    case common::StorageType::kInternal:
+      return kTypeInternal;
     case common::StorageType::kUsbDevice:
       return kTypeUsbDevice;
     case common::StorageType::kUsbHost:
@@ -1185,18 +1187,7 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
   picojson::value result = picojson::value(picojson::array());
   picojson::array& array = result.get<picojson::array>();
 
-  // handling internal storage
-  array.push_back(picojson::value(picojson::object()));
-  picojson::object& internal_obj = array.back().get<picojson::object>();
-
-  if (statfs(kStorageInternalPath.c_str(), &fs) < 0) {
-    return LogAndCreateResult(
-              ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
-  }
-  CreateStorageInfo(kTypeInternal, fs, &internal_obj);
-  manager_.SetAvailableCapacityInternal(fs.f_bavail);
-
-  // handling external storages
+  // handling storages from provider
   common::FilesystemProvider& provider(common::FilesystemProvider::Create());
   auto storages = provider.GetStorages();
   LoggerD("Storages found %d", storages.size());
@@ -1209,13 +1200,13 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
       array.push_back(picojson::value(picojson::object()));
       picojson::object& external_obj = array.back().get<picojson::object>();
       CreateStorageInfo(FromStorageTypeToStringType(storage->type()), fs, &external_obj);
-#ifdef TIZEN_TV
-      // TODO some tracking of available capacity of usb storages should be applied
-#else
-      // Only one storage would be tracked, if more than one SD card would be supported on device
-      // different mechanism should be applied
-      manager_.SetAvailableCapacityMmc(fs.f_bavail);
-#endif
+
+      //TODO change implementation to support all types of storages and not limited number
+      if (common::StorageType::kInternal == storage->type()) {
+        manager_.SetAvailableCapacityInternal(fs.f_bavail);
+      } else if (common::StorageType::kMmc == storage->type()) {
+        manager_.SetAvailableCapacityMmc(fs.f_bavail);
+      }
     }
   }
 

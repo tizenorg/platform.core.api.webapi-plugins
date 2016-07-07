@@ -71,11 +71,6 @@ VirtualStorages FilesystemProvider::GetAllStorages() {
   return provider_.GetAllStorages();
 }
 
-std::shared_ptr< Storage > FilesystemProvider::GetInternalStorage(){
-  LoggerD("Entered");
-  return provider_.GetInternalStorage();
-}
-
 std::string FilesystemProvider::GetRealPath(
     const std::string& path_or_uri) {
   LoggerD("Entered");

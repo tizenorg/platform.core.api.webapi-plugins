@@ -36,7 +36,6 @@ class IFilesystemProvider {
   virtual Storages GetStorages() = 0;
   virtual VirtualRoots GetVirtualPaths() = 0;
   virtual VirtualStorages GetAllStorages() = 0;
-  virtual std::shared_ptr<Storage> GetInternalStorage() = 0;
 };
 
 typedef IFilesystemProvider& FilesystemProviderRef;
@@ -52,7 +51,6 @@ class FilesystemProvider {
   Storages GetStorages();
   VirtualRoots GetVirtualPaths();
   VirtualStorages GetAllStorages();
-  std::shared_ptr<Storage> GetInternalStorage();
 
   std::string GetRealPath(const std::string& path_or_uri);
   std::string GetVirtualPath(const std::string& real_path) const;
