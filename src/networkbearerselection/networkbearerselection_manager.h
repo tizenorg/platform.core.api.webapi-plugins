@@ -67,6 +67,8 @@ class NetworkBearerSelectionManager {
   common::PlatformResult releaseRouteToHost(const std::string& domain_name,
                                             const ReleaseReplyCallback& reply_cb);
 
+  common::PlatformResult getCellularState();
+
   static NetworkBearerSelectionManager* GetInstance();
 
   NetworkBearerSelectionManager(const NetworkBearerSelectionManager&) = delete;

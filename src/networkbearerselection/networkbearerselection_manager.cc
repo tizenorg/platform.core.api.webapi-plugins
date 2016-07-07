@@ -191,6 +191,27 @@ void NetworkBearerSelectionManager::connection_closed_callback(
   }
 }
 
+common::PlatformResult NetworkBearerSelectionManager::getCellularState() {
+
+  connection_cellular_state_e state;
+
+  int ret = connection_get_cellular_state(m_connection_handle_, &state);
+
+  if (ret != CONNECTION_ERROR_NONE) {
+    LoggerE("Fail to get connection state. %d", ret);
+    return common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                  "Fail to get connection state.");
+  }
+
+  if (state == CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE) {
+    LoggerE("Network cellular have no service. %d", state);
+    return common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                  "Fail to get connection state.");
+  }
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
+}
+
+
 void NetworkBearerSelectionManager::requestRouteToHost(
     const std::string& domain_name) {
   LoggerD("NetworkBearerSelectionManager::requestRouteToHost");
