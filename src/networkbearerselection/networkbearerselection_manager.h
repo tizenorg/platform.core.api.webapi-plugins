@@ -67,6 +67,8 @@ class NetworkBearerSelectionManager {
   common::PlatformResult releaseRouteToHost(const std::string& domain_name,
                                             const ReleaseReplyCallback& reply_cb);
 
+  common::PlatformResult getCellularState();
+
   static NetworkBearerSelectionManager* GetInstance();
 
   NetworkBearerSelectionManager(const NetworkBearerSelectionManager&) = delete;
@@ -89,6 +91,7 @@ class NetworkBearerSelectionManager {
   void makeErrorCallback(const std::string& domain_name, const char* info);
   void makeErrorCallback(const std::string& domain_name,
                          const std::string& info);
+  common::ErrorCode GetNBSErrorCode(int error_code);
   void makeDisconnectCallback(const std::string& domain_name);
   void destroyProfileHandle();
   RequestEventPtr getRequestEvent(NetworkBearerSelectionRequestEvent* event);

@@ -80,6 +80,13 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionRequestRouteToHost(
   CHECK_EXIST(args, "domainName", out)
   CHECK_EXIST(args, "id", out)
 
+  const auto status = NetworkBearerSelectionManager::GetInstance()->getCellularState();
+
+  if (!status) {
+    LogAndReportError(status, &out, ("Failed to request route to host"));
+    return;
+  }
+
   const std::string& domainName = args.get("domainName").get<std::string>();
   const int listenerId = static_cast<int>(args.get("id").get<double>());
 
