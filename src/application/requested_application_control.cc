@@ -107,14 +107,6 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
     return;
   }
 
-  // code to check caller liveness
-  result = VerifyCallerPresence();
-  if (result.IsError()) {
-    LogAndReportError(result, out,
-                      ("Failed VerifyCallerPresence()"));
-    return;
-  }
-
   // create reply
   app_control_h reply;
   app_control_create(&reply);
