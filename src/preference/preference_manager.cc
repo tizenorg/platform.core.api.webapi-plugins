@@ -214,8 +214,14 @@ common::TizenResult PreferenceManager::GetValue(const std::string& key) {
 common::TizenResult PreferenceManager::Remove(const std::string& key) {
   ScopeLogger();
 
-  int ret = preference_remove(key.c_str());
+  // unsetting listener if it is registered for key to be removed
+  auto res = UnsetChangeListener(key);
+  if (!res) {
+    //only log an error - listener could not be set
+    LoggerD("unsetting listener for given key failed, ignore error");
+  }
 
+  int ret = preference_remove(key.c_str());
   if (ret == PREFERENCE_ERROR_NONE) {
     return common::TizenSuccess();
   } else {
@@ -227,8 +233,9 @@ common::TizenResult PreferenceManager::RemoveAll() {
   ScopeLogger();
 
   int ret = preference_remove_all();
-
   if (ret == PREFERENCE_ERROR_NONE) {
+    //only clear vector (listeners are removed natively in preference_remove_all function)
+    key_listeners_.clear();
     return common::TizenSuccess();
   } else {
     return MakeErrResult(ret, "preference_remove_all function error");
