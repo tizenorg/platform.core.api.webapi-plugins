@@ -402,8 +402,10 @@ PlatformResult SensorData::SetChangeListener(unsigned int interval, unsigned int
   int ret = SENSOR_ERROR_NONE;
   if (batch_latency > 0) {
     ret = sensor_listener_set_max_batch_latency(listener_, batch_latency);
-    LoggerE("sensor_listener_set_max_batch_latency : %d", ret);
-    return GetSensorPlatformResult(ret, "Unable to set batchLatency");
+    if (SENSOR_ERROR_NONE != ret ) {
+      LoggerE("sensor_listener_set_max_batch_latency : %d", ret);
+      return GetSensorPlatformResult(ret, "Unable to set batchLatency");
+    }
   }
 
   ret = sensor_listener_set_event_cb(listener_, interval, SensorCallback, this);
