@@ -160,6 +160,7 @@ NFCInstance::NFCInstance() {
 
 NFCInstance::~NFCInstance() {
   LoggerD("Entered");
+  NFCAdapter::GetInstance()->SetResponder(nullptr);
 }
 
 void NFCInstance::GetDefaultAdapter(

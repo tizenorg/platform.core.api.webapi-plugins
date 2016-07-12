@@ -141,8 +141,12 @@ void NFCAdapter::SetResponder(IResponder* responder) {
 
 void NFCAdapter::RespondAsync(const char* msg) {
   LoggerD("Entered");
-  AssertMsg(GetInstance()->responder_, "Handler variable should be set");
-  GetInstance()->responder_->RespondAsync(msg);
+  if (GetInstance()->responder_) {
+    AssertMsg(GetInstance()->responder_, "Handler variable should be set");
+    GetInstance()->responder_->RespondAsync(msg);
+  } else {
+    LoggerE("Ignoring, instance does not exist");
+  }
 }
 
 static picojson::value CreateEventError(double callbackId, const PlatformResult& ret) {
