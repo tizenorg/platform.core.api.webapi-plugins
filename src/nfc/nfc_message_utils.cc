@@ -767,7 +767,7 @@ static PlatformResult getURIFromHandle(nfc_ndef_record_h handle,
   LoggerD("Entered");
   char* uri = NULL;
   int result = nfc_ndef_record_get_uri(handle, &uri);
-  if (NFC_ERROR_NONE != result) {
+  if (NFC_ERROR_NONE != result || !uri) {
     LoggerE("Can't get record's uri: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
     NFCMessageUtils::RemoveMessageHandle(message_handle);
