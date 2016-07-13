@@ -231,6 +231,11 @@ Storages FilesystemProviderDeviced::GetStorages() {
     return Storages();
   }
 
+  // internal storages are gathered with storage api
+  Storages internal = virtual_roots_provider_.GetStorages();
+
+  // external storages are gathered using deviced implementation
+  Storages result;
   GError* error = nullptr;
   GVariant* variant = g_dbus_connection_call_sync(dbus_,
                                                   kBus,
@@ -246,12 +251,10 @@ Storages FilesystemProviderDeviced::GetStorages() {
   if (!variant || error) {
     std::string message = error ? error->message : "";
     LoggerE("Failed to call GetDeviceList method - %s", message.c_str());
-    return Storages();
+  } else {
+    LoggerD("AAAAAAAAAAAAAAAAA success");
+    result = GetStoragesFromGVariant(variant);
   }
-  // internal storages are gathered with storage api
-  Storages internal = virtual_roots_provider_.GetStorages();
-  // external storages are gathered using deviced implementation
-  Storages result = GetStoragesFromGVariant(variant);
 
   // merging internal and external results together, but internal on the beginning
   result.insert(result.begin(), internal.begin(), internal.end());
