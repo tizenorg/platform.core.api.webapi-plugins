@@ -1433,7 +1433,7 @@ std::string EmailManager::getMessageStatus(int id) {
   MessageStatus status = MessageStatus::STATUS_UNDEFINED;
 
   int ret = email_get_mail_data(id, &mail);
-  if (EMAIL_ERROR_NONE != ret ) {
+  if (EMAIL_ERROR_NONE != ret || !mail) {
     LoggerD("Failed to get data %d (%s)", ret, get_error_message(ret));
     return "";
   }

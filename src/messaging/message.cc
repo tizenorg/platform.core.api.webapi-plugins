@@ -496,7 +496,10 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
     }
 
     if(message->is_id_set()) {
-        email_get_mail_data(message->getId(), &mail_data);
+        int ret = email_get_mail_data(message->getId(), &mail_data);
+        if (EMAIL_ERROR_NONE != ret || !mail_data) {
+          return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to get mail data.");
+        }
     } else {
         mail_data = (email_mail_data_t*)malloc(sizeof(email_mail_data_t));
         if (!mail_data) {
@@ -505,7 +508,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
         memset(mail_data, 0x00, sizeof(email_mail_data_t));
     }
 
-  std::unique_ptr<email_mail_data_t, void (*)(email_mail_data_t*)> mail_data_ptr(
+    std::unique_ptr<email_mail_data_t, void (*)(email_mail_data_t*)> mail_data_ptr(
       mail_data, [](email_mail_data_t* mail) {email_free_mail_data(&mail, 1);});
 
     if(!message->getFrom().empty()) {
