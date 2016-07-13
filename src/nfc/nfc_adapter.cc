@@ -755,7 +755,7 @@ static void targetReceivedCallback(nfc_p2p_target_h /*target*/,
   picojson::object& obj = event.get<picojson::object>();
   obj.insert(make_pair("listenerId", picojson::value("ReceiveNDEFListener")));
   obj.insert(make_pair("id", picojson::value(static_cast<double>(NFCAdapter::GetInstance()->GetPeerId()))));
-
+  obj.insert(make_pair("action",picojson::value("onsuccess")));
   NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, obj);
 
   NFCAdapter::GetInstance()->RespondAsync(event.serialize().c_str());

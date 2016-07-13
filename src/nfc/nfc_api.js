@@ -1231,9 +1231,9 @@ function NFCPeer(peerid) {
     var listener = function(msg) {
       var data = undefined;
       if ('onsuccess' === msg.action && _my_id === msg.id) {
-        data = new NDEFMessage(msg);
+        data = new tizen.NDEFMessage(toRecordsArray(msg.records));
       }
-      args.listener[msg.action](data);
+      args.listener(data);
     };
 
     var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : _my_id});
@@ -1306,7 +1306,6 @@ var isArrayOfType = function(array, type) {
 tizen.NDEFMessage = function(data) {
   validator_.isConstructorCall(this, tizen.NDEFMessage);
   var records_ = [];
-
   try {
     if (arguments.length >= 1) {
       if (type_.isArray(data)) {
@@ -1442,7 +1441,7 @@ tizen.NDEFRecordText = function(text, languageCode, encoding, internal_) {
       languageCode_ = converter_.toString(languageCode);
 
       if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
-        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+        tizen.NDEFRecord.call(this, internal_.tnf, internal_.type, internal_.payload, internal_.id);
       } else {
         var result = native_.callSync(
             'NDEFRecordText_constructor', {
@@ -1487,7 +1486,7 @@ tizen.NDEFRecordURI = function(uri, internal_) {
       uri_ = converter_.toString(uri);
 
       if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
-        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+        tizen.NDEFRecord.call(this, internal_.tnf, internal_.type, internal_.payload, internal_.id);
       } else {
         var result = native_.callSync(
             'NDEFRecordURI_constructor', {
@@ -1528,7 +1527,7 @@ tizen.NDEFRecordMedia = function(mimeType, data, internal_) {
       data_ = toByteArray(data, Math.pow(2, 32) - 1);
 
       if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
-        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+        tizen.NDEFRecord.call(this, internal_.tnf, internal_.type, internal_.payload, internal_.id);
       } else {
         var result = native_.callSync(
             'NDEFRecordMedia_constructor', {
