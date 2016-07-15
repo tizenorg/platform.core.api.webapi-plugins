@@ -630,13 +630,12 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
     LoggerD("Getting");
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, false, &result);
+    async_op_->finish();
     if (ret.IsError()) {
       LogAndReportError(ret,&(response->get<picojson::object>()));
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
-
-    async_op_->finish();
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -667,6 +666,7 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
     picojson::value result = picojson::value(picojson::object());
 
     PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, true, &result);
+    async_op_->finish();
     if (ret.IsError()) {
       LogAndReportError(
           ret, &(response->get<picojson::object>()),
@@ -674,8 +674,6 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
-
-    async_op_->finish();
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
