@@ -632,6 +632,7 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
     PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, false, &result);
     if (ret.IsError()) {
       LogAndReportError(ret,&(response->get<picojson::object>()));
+      async_op_->finish();
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
@@ -671,6 +672,7 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
       LogAndReportError(
           ret, &(response->get<picojson::object>()),
           ("Failed: GetPropertyValue()"));
+      async_op_->finish();
       return;
     }
     ReportSuccess(result, response->get<picojson::object>());
