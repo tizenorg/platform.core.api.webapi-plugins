@@ -81,6 +81,8 @@ SysteminfoInstance::~SysteminfoInstance() {
 
 void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  LoggerW("DEPRECATION WARNING: getCapabilities is deprecated since Tizen 2.3. Instead, use getCapability().");
+
   manager_.GetCapabilities(args, &out);
 }
 
