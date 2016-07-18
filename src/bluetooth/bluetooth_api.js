@@ -2030,6 +2030,9 @@ BluetoothAdapter.prototype.setName = function() {
 
 BluetoothAdapter.prototype.setPowered = function() {
     console.log('Entered BluetoothAdapter.setPowered()');
+    console.warn('DEPRECATION WARNING: setPowered() is deprecated and will be removed from next release. '
+        + 'Let the user turn on/off Bluetooth through the Settings application instead.');
+
     var args = AV.validateMethod(arguments, [
         {
             name : 'powered',

@@ -205,6 +205,9 @@ void NFCInstance::SetExclusiveMode(
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: setPowered() is deprecated and will be removed from next release. Let the user turn NFC on/off "
+      "through the Settings application instead.");
+
   CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcAdmin, &out);
 
   PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);

@@ -516,6 +516,8 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
 
 void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: setPowered() is deprecated and will be removed from next release. "
+        "Let the user turn on/off Bluetooth through the Settings application instead.");
 
   CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
                                               Privilege::kBluetoothAdmin, &out);

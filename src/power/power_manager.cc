@@ -102,6 +102,12 @@ void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value,
   switch (state) {
     case DISPLAY_STATE_NORMAL :
       current = object->bright_state_enabled_ ? POWER_STATE_SCREEN_BRIGHT : POWER_STATE_SCREEN_NORMAL;
+
+      // TODO: Remove log along with removal of deprecation power state
+      if (POWER_STATE_SCREEN_BRIGHT == current) {
+        LoggerW("DEPRECATION WARNING: SCREEN_BRIGHT is deprecated and will be removed from next release.");
+      }
+
       break;
     case DISPLAY_STATE_SCREEN_DIM :
       current = POWER_STATE_SCREEN_DIM;
@@ -187,6 +193,8 @@ PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
     }
     case POWER_STATE_SCREEN_BRIGHT:
     {
+      LoggerW("DEPRECATION WARNING: SCREEN_BRIGHT is deprecated and will be removed from next release.");
+
       int max_brightness;
       ret = device_display_get_max_brightness(0, &max_brightness);
       if (DEVICE_ERROR_NONE != ret) {
@@ -220,8 +228,11 @@ PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
       ret = device_display_get_state(&platform_state);
       if (DEVICE_ERROR_NONE != ret)
         LoggerE("device_display_get_state failed (%d)", ret);
-      if (platform_state == DISPLAY_STATE_NORMAL)
+      if (DISPLAY_STATE_NORMAL == platform_state) {
+        // TODO: Remove log along with removal of deprecation power state
+        LoggerW("DEPRECATION WARNING: SCREEN_BRIGHT is deprecated and will be removed from next release.");
         BroadcastScreenState(POWER_STATE_SCREEN_BRIGHT);
+      }
       break;
     }
     case POWER_STATE_SCREEN_OFF:
@@ -392,6 +403,8 @@ PlatformResult PowerManager::SetPlatformBrightness(int brightness) {
     should_be_read_from_cache_ = true;
     return PlatformResult(ErrorCode::NO_ERROR);
   } else if (current_state_ == POWER_STATE_SCREEN_BRIGHT) {
+    LoggerW("DEPRECATION WARNING: SCREEN_BRIGHT is deprecated and will be removed from next release.");
+
     current_brightness_ = brightness;
     LoggerD("Current state is not normal state the value is saved in cache: %d", brightness);
     should_be_read_from_cache_ = true;

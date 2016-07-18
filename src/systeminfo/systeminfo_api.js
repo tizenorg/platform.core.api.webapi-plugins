@@ -729,6 +729,8 @@ var SystemInfo = function() {
 };
 
 SystemInfo.prototype.getCapabilities = function() {
+    console.warn('DEPRECATION WARNING: getCapabilities() is deprecated and will be removed from next release. Use getCapability() instead.');
+
     var result = native_.callSync('SystemInfo_getCapabilities', {});
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
