@@ -256,6 +256,8 @@ void TimeInstance::TZDate_toString(const picojson::value& args, picojson::object
 void TimeInstance::TZDate_getTimezoneAbbreviation(const picojson::value& args,
                                                   picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: getTimezoneAbbreviation is deprecated since Tizen 2.1.");
+
   if (!args.contains("timezone") || !args.contains("timestamp")) {
     LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
                       ("Required parameters are missing: \"timezone\", \"timestamp\""));

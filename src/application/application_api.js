@@ -564,6 +564,9 @@ var APPLICATION_EVENT_LISTENER = 'ApplicationEventListener';
 var applicationEventListener = new ListenerManager(native, APPLICATION_EVENT_LISTENER);
 
 ApplicationManager.prototype.addAppInfoEventListener = function() {
+  console.warn('DEPRECATION WARNING: addAppInfoEventListener is deprecated since Tizen 2.4. '
+      + 'Instead, use tizen.package.setPackageInfoEventListener().');
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'eventCallback',
@@ -576,6 +579,9 @@ ApplicationManager.prototype.addAppInfoEventListener = function() {
 };
 
 ApplicationManager.prototype.removeAppInfoEventListener = function() {
+  console.warn('DEPRECATION WARNING: removeAppInfoEventListener is deprecated since Tizen 2.4. '
+      + 'Instead, use tizen.package.unsetPackageInfoEventListener().');
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'watchId',

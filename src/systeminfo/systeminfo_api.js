@@ -729,6 +729,8 @@ var SystemInfo = function() {
 };
 
 SystemInfo.prototype.getCapabilities = function() {
+    console.warn('DEPRECATION WARNING: getCapabilities is deprecated since Tizen 2.3. Instead, use getCapability().');
+
     var result = native_.callSync('SystemInfo_getCapabilities', {});
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);

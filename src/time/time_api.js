@@ -533,6 +533,8 @@ tizen.TZDate.prototype.toString = function() {
 
 tizen.TZDate.prototype.getTimezoneAbbreviation = function() {
   console.log('Entered TZDate.getTimezoneAbbreviation');
+  console.warn('DEPRECATION WARNING: getTimezoneAbbreviation is deprecated since Tizen 2.1.');
+
   var result = native_.callSync('TZDate_getTimezoneAbbreviation',
       {timezone: String(this._timezoneName),
     timestamp: String(this._utcTimestamp)});

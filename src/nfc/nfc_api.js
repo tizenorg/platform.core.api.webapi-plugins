@@ -272,6 +272,9 @@ function NFCAdapter() {
 }
 
 NFCAdapter.prototype.setPowered = function() {
+  console.warn('DEPRECATION WARNING: setPowered is deprecated since Tizen 2.3. Instead, let the user turn NFC on/off '
+      + 'through the Settings application.');
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'powered',
