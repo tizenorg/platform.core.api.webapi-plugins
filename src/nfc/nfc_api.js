@@ -272,6 +272,9 @@ function NFCAdapter() {
 }
 
 NFCAdapter.prototype.setPowered = function() {
+  console.warn('DEPRECATION WARNING: setPowered() is deprecated and will be removed from next release. Let the user turn NFC on/off '
+      + 'through the Settings application instead.');
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'powered',

@@ -173,6 +173,8 @@ void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& a
 
 void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  LoggerW("DEPRECATION WARNING: turnScreenOn() is deprecated and will be removed from next release. Use request() instead.");
+
   CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
 
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
@@ -184,6 +186,8 @@ void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojs
 
 void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  LoggerW("DEPRECATION WARNING: turnScreenOff() is deprecated and will be removed from next release. Use request() instead.");
+
   CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
 
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);

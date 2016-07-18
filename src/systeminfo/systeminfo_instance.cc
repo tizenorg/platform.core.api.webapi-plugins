@@ -81,6 +81,8 @@ SysteminfoInstance::~SysteminfoInstance() {
 
 void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  LoggerW("DEPRECATION WARNING: getCapabilities() is deprecated and will be removed from next release. Use getCapability() instead.");
+
   manager_.GetCapabilities(args, &out);
 }
 

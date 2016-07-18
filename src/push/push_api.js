@@ -56,7 +56,7 @@ PushManager.prototype.registerService = function() {
       values: tizen.ApplicationControl
     }
   ]);
-  console.warn('Method registerService() is deprecated, use register() instead.');
+  console.warn('DEPRECATION WARNING: registerService() is deprecated and will be removed from next release. Use register() instead.');
   this.register.apply(this, Array.prototype.slice.call(arguments, 1));
 };
 
@@ -89,7 +89,7 @@ PushManager.prototype.register = function() {
 };
 
 PushManager.prototype.unregisterService = function() {
-  console.warn('Method unregisterService() is deprecated, use unregister() instead.');
+  console.warn('DEPRECATION WARNING: unregisterService() is deprecated and will be removed from next release. Use unregister() instead.');
   this.unregister.apply(this, arguments);
 };
 
