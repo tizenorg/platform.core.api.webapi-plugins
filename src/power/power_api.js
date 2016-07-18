@@ -120,10 +120,14 @@ function PowerManager() {
  *     is desired to be.
  */
 PowerManager.prototype.request = function(resource, state) {
-   var args = validator_.validateArgs(arguments, [
+    var args = validator_.validateArgs(arguments, [
         {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']},
         {'name' : 'state', 'type': types_.ENUM, 'values' : ['SCREEN_OFF', 'SCREEN_DIM', 'SCREEN_NORMAL', 'SCREEN_BRIGHT', 'CPU_AWAKE']}
     ]);
+
+    if (args['state'] && args.state === PowerScreenState['SCREEN_BRIGHT']) {
+        console.warn('DEPRECATION WARNING: SCREEN_BRIGHT is deprecated and will be removed from next release.');
+    }
 
     var nativeParam = {
     };
@@ -273,6 +277,8 @@ PowerManager.prototype.restoreScreenBrightness = function() {
  * Turns on the screen.
  */
 PowerManager.prototype.turnScreenOn = function() {
+    console.warn('DEPRECATION WARNING: turnScreenOn() is deprecated and will be removed from next release. Use request() instead.');
+
     var nativeParam = {
     };
 
@@ -288,6 +294,8 @@ PowerManager.prototype.turnScreenOn = function() {
  * Turns off the screen.
  */
 PowerManager.prototype.turnScreenOff = function() {
+    console.warn('DEPRECATION WARNING: turnScreenOff() is deprecated and will be removed from next release. Use request() instead.');
+
     var nativeParam = {
     };
 
