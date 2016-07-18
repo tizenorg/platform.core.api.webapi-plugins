@@ -516,6 +516,8 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
 
 void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: setPowered is deprecated since Tizen 2.3. "
+        "Instead, let the user turn on/off Bluetooth through the Settings application.");
 
   CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
                                               Privilege::kBluetoothAdmin, &out);

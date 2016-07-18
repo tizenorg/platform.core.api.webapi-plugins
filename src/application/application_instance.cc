@@ -159,12 +159,16 @@ void ApplicationInstance::GetAppMetaData(const picojson::value& args, picojson::
 
 void ApplicationInstance::AddAppInfoEventListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: addAppInfoEventListener is deprecated since Tizen 2.4. "
+      "Instead, use tizen.package.setPackageInfoEventListener().");
 
   manager_.StartAppInfoEventListener(&out);
  }
 
 void ApplicationInstance::RemoveAppInfoEventListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: removeAppInfoEventListener is deprecated since Tizen 2.4. "
+        "Instead, use tizen.package.unsetPackageInfoEventListener().");
 
   manager_.StopAppInfoEventListener();
   ReportSuccess(out);

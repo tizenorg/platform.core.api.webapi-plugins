@@ -205,6 +205,9 @@ void NFCInstance::SetExclusiveMode(
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  LoggerW("DEPRECATION WARNING: setPowered is deprecated since Tizen 2.3. Instead, let the user turn NFC on/off "
+      "through the Settings application.");
+
   CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcAdmin, &out);
 
   PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);
