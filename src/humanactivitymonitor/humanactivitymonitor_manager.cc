@@ -22,11 +22,13 @@
 #include <sensor.h>
 #include <sensor_internal.h>
 #include <system_info.h>
+#include <mutex>
 
 #include "common/logger.h"
 #include "common/optional.h"
 #include "common/picojson.h"
 #include "common/tools.h"
+#include "common/scope_exit.h"
 
 namespace extension {
 namespace humanactivitymonitor {
@@ -36,12 +38,16 @@ using common::ErrorCode;
 using common::tools::ReportError;
 using common::tools::ReportSuccess;
 
+typedef std::map<sensor_recorder_data_e, const std::string&> SensorRecorderDataMap;
+typedef std::map<sensor_recorder_query_e, const std::string&> SensorRecorderQueryMap;
+
 namespace {
 
 const std::string kActivityTypePedometer = "PEDOMETER";
 const std::string kActivityTypeWristUp = "WRIST_UP";
 const std::string kActivityTypeHrm = "HRM";
 const std::string kActivityTypeSleepMonitor = "SLEEP_MONITOR";
+const std::string kActivityTypePressure = "PRESSURE";
 
 const std::string kSleepStateAwake = "AWAKE";
 const std::string kSleepStateAsleep = "ASLEEP";
@@ -69,6 +75,46 @@ const std::string kAccumulativeCalorie = "accumulativeCalorie";
 const std::string kAccumulativeTotalStepCount = "accumulativeTotalStepCount";
 const std::string kAccumulativeWalkStepCount = "accumulativeWalkStepCount";
 const std::string kAccumulativeRunStepCount = "accumulativeRunStepCount";
+
+const std::string kRecordedStartTime = "startTime";
+const std::string kRecordedEndTime = "endTime";
+const std::string kRecordedHeartRate = "heartRate";
+
+const std::string kRecordedDistance = "distance";
+const std::string kRecordedCalorie = "calorie";
+const std::string kRecordedTotalStepCount = "totalStepCount";
+const std::string kRecordedWalkStepCount = "walkStepCount";
+const std::string kRecordedRunStepCount = "runStepCount";
+
+const std::string kRecordedMin = "min";
+const std::string kRecordedMax = "max";
+const std::string kRecordedAverage = "average";
+
+const std::string kRecordedAnchorTime = "anchorTime";
+const std::string kRecordedInterval = "interval";
+
+ErrorCode getErrorCode (const int errorCode) {
+  ScopeLogger();
+  switch (errorCode) {
+    case SENSOR_ERROR_IO_ERROR:
+      return ErrorCode::IO_ERR;
+    case SENSOR_ERROR_NOT_SUPPORTED:
+      return ErrorCode::NOT_SUPPORTED_ERR;
+    case SENSOR_ERROR_PERMISSION_DENIED:
+      return ErrorCode::PERMISSION_DENIED_ERR;
+    case SENSOR_ERROR_NOT_AVAILABLE:
+      return ErrorCode::SERVICE_NOT_AVAILABLE_ERR;
+    case SENSOR_ERROR_NO_DATA:
+      return ErrorCode::NOT_FOUND_ERR;
+    case SENSOR_ERROR_INVALID_PARAMETER:
+      return ErrorCode::INVALID_VALUES_ERR;
+    case SENSOR_ERROR_OUT_OF_MEMORY:
+    case SENSOR_ERROR_OPERATION_FAILED:
+    case SENSOR_ERROR_NOT_NEED_CALIBRATION:
+    default:
+      return ErrorCode::ABORT_ERR;
+  }
+}
 
 // helper structure, allows easier access to data values
 struct PedometerDataWrapper : public sensor_pedometer_data_t {
@@ -155,6 +201,66 @@ std::string FromSensorPedometerState(sensor_pedometer_state_e e) {
   }
 }
 
+PlatformResult ConvertRecordedTime(void* data, picojson::object* obj) {
+  ScopeLogger("convert_recorded_time");
+
+  time_t start_time, end_time;
+
+  int ret = sensor_recorder_data_get_time(data, &start_time, &end_time);
+  if (SENSOR_ERROR_NONE != ret) {
+    return LogAndCreateResult(getErrorCode(ret),
+                                    "Failed to get time",
+                                    ("Failed to get time, error: %d (%s)", ret, get_error_message(ret)));
+  }
+
+  obj->insert(std::make_pair(kRecordedStartTime, picojson::value(static_cast<double>(start_time))));
+  obj->insert(std::make_pair(kRecordedEndTime, picojson::value(static_cast<double>(end_time))));
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ConvertRecordedInt(void* data, picojson::object* obj,
+                                  const SensorRecorderDataMap& map) {
+  ScopeLogger();
+
+  int ret = SENSOR_ERROR_NONE;
+  int tmp = 0;
+
+  for (auto& it : map) {
+    ret = sensor_recorder_data_get_int(data, it.first, &tmp);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                      "Failed to get int value",
+                                      ("Failed to get int value, error: %d (%s)", ret, get_error_message(ret)));
+    }
+
+    obj->insert(std::make_pair(it.second, picojson::value(static_cast<double>(tmp))));
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ConvertRecordedDouble(void* data, picojson::object* obj,
+                                     const SensorRecorderDataMap& map) {
+  ScopeLogger();
+
+  int ret = SENSOR_ERROR_NONE;
+  double tmp = 0;
+
+  for (auto& it : map) {
+    ret = sensor_recorder_data_get_double(data, it.first, &tmp);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                      "Failed to get double value",
+                                      ("Failed to get double value, error: %d (%s)", ret, get_error_message(ret)));
+    }
+
+    obj->insert(std::make_pair(it.second, picojson::value(static_cast<double>(tmp))));
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 }  // namespace
 
 const std::string kActivityTypeGps = "GPS";
@@ -227,6 +333,45 @@ class HumanActivityMonitorManager::Monitor {
     return GetDataImpl(data);
   }
 
+  PlatformResult StartDataRecorder(int interval, int retention_period) {
+    ScopeLogger(type());
+
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    return StartDataRecorderImpl(interval, retention_period);
+  }
+
+  PlatformResult StopDataRecorder() {
+    ScopeLogger(type());
+
+    return StopDataRecorderImpl();
+  }
+
+  PlatformResult ReadRecorderData(picojson::array* data, const picojson::value& query) {
+    ScopeLogger(type());
+
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    return ReadRecorderDataImpl(data, query);
+  }
+
+  PlatformResult GetRetentionPeriod(long* retention_period) {
+    ScopeLogger(type());
+
+    auto result = IsSupported();
+    if (!result) {
+      return result;
+    }
+
+    return GetRetentionPeriodImpl(retention_period);
+  }
+
  protected:
   virtual PlatformResult IsSupportedImpl(bool* supported) const {
     ScopeLogger(type());
@@ -245,6 +390,26 @@ class HumanActivityMonitorManager::Monitor {
   }
 
   virtual PlatformResult GetDataImpl(picojson::value* data) const {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
+  }
+
+  virtual PlatformResult StartDataRecorderImpl(int interval, int retention_period) const {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
+  }
+
+  virtual PlatformResult StopDataRecorderImpl() const {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
+  }
+
+  virtual PlatformResult ReadRecorderDataImpl(picojson::array* data, const picojson::value& query) {
+    ScopeLogger(type());
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
+  }
+
+  virtual PlatformResult GetRetentionPeriodImpl(long* retention_period) const {
     ScopeLogger(type());
     return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,"NOT_SUPPORTED_ERR");
   }
@@ -383,8 +548,10 @@ class HumanActivityMonitorManager::Monitor::GestureMonitor : public HumanActivit
 class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivityMonitorManager::Monitor {
  public:
   using SensorEventConverter = std::function<PlatformResult(sensor_event_s* event, picojson::object* o)>;
+  using SensorRecordedConverter = std::function<PlatformResult(void* data, picojson::object* o)>;
 
-  SensorMonitor(const std::string& t, sensor_type_e s, const SensorEventConverter& c) : Monitor(t), sensor_(s), handle_(nullptr), converter_(c) {
+  SensorMonitor(const std::string& t, sensor_type_e s, const SensorEventConverter& c, const SensorRecordedConverter& r)
+    : Monitor(t), sensor_(s), handle_(nullptr), converter_(c), converter_recorded_(r), recorded_data_(nullptr) {
     ScopeLogger(type());
   }
 
@@ -522,6 +689,103 @@ class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivity
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
+  virtual PlatformResult StartDataRecorderImpl(int interval, int retention_period) const override {
+    ScopeLogger(type());
+
+    sensor_recorder_option_h option = nullptr;
+
+    int ret = sensor_recorder_create_option(&option);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                "Failed to create recorder option",
+                                ("Failed to create (%d) recorder option, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    SCOPE_EXIT {
+      sensor_recorder_destroy_option(option);
+    };
+
+    auto result = SetOptions(&option, interval, retention_period);
+    if (!result) {
+      return result;
+    }
+
+    ret = sensor_recorder_start(sensor_, option);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                "Failed to start recording",
+                                ("Failed to start (%d) recording, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult StopDataRecorderImpl() const override {
+    ScopeLogger(type());
+
+    int ret = sensor_recorder_stop(sensor_);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                "Failed to stop recording",
+                                ("Failed to stop (%d) recording, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult ReadRecorderDataImpl(picojson::array* data, const picojson::value& query) override {
+    ScopeLogger(type());
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    this->recorded_data_ = data;
+
+    sensor_recorder_query_h query_h = nullptr;
+    int ret = sensor_recorder_create_query(&query_h);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                "Failed to create query",
+                                ("Failed to create (%d) query, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    SCOPE_EXIT {
+      sensor_recorder_destroy_query(query_h);
+    };
+
+    if (!query.is<picojson::null>()) {
+      auto result = SetQuery(&query_h, query);
+      if (!result) {
+        return result;
+      }
+    }
+
+    ret = sensor_recorder_read_sync(sensor_, query_h, SensorRecordedDataCb, static_cast<void*>(this));
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(getErrorCode(ret),
+                                "Failed to read recorded data",
+                                ("Failed to read (%d) recorded data, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  virtual PlatformResult GetRetentionPeriodImpl(long* retention_period) const override {
+    ScopeLogger(type());
+//    uncomment when native function will be ready
+//    int ret = sensor_recorder_get_retention_period(sensor_, retention_period);
+//    if (SENSOR_ERROR_NONE != ret) {
+//      return LogAndCreateResult(getErrorCode(ret),
+//                                "Failed to get retention period",
+//                                ("Failed to get (%d) retention period, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+//    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  void addRecordedData(picojson::value* data) {
+    ScopeLogger();
+    recorded_data_->push_back(*data);
+  }
+
  private:
   static void OnSensorEvent(sensor_h, sensor_event_s* event, void* user_data) {
     ScopeLogger();
@@ -545,9 +809,89 @@ class HumanActivityMonitorManager::Monitor::SensorMonitor : public HumanActivity
     callback(&sensor_data);
   }
 
+  static bool SensorRecordedDataCb(sensor_type_e type, void* data, int remains,
+                                   sensor_error_e error, void* user_data) {
+    ScopeLogger();
+
+    auto monitor = static_cast<SensorMonitor*>(user_data);
+
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object* obj = &val.get<picojson::object>();
+
+    auto result = monitor->converter_recorded_(data, obj);
+    if (result) {
+      monitor->addRecordedData(&val);
+    }
+
+    return true; // continue
+  }
+
+  PlatformResult SetOptions(sensor_recorder_option_h *option,
+                            int interval, int retention_period) const {
+    ScopeLogger();
+
+    int ret = SENSOR_ERROR_NONE;
+
+    if (SENSOR_HRM == sensor_) {
+      ret = sensor_recorder_option_set_int(
+          *option, SENSOR_RECORDER_OPTION_INTERVAL, interval);
+
+      if (SENSOR_ERROR_NONE != ret) {
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to set recorder option",
+                                  ("Failed to set (%d) recorder option, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+      }
+    }
+
+    ret = sensor_recorder_option_set_int(
+        *option, SENSOR_RECORDER_OPTION_RETENTION_PERIOD, retention_period);
+    if (SENSOR_ERROR_NONE != ret) {
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to set recorder option",
+                                ("Failed to set (%d) recorder option, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  PlatformResult SetQuery(sensor_recorder_query_h *query_h,
+                          const picojson::value& query) const {
+    ScopeLogger();
+
+    SensorRecorderQueryMap map_query {
+      {SENSOR_RECORDER_QUERY_START_TIME, kRecordedStartTime},
+      {SENSOR_RECORDER_QUERY_END_TIME, kRecordedEndTime},
+    };
+
+    if (SENSOR_HUMAN_PEDOMETER == sensor_ || SENSOR_PRESSURE == sensor_) {
+      map_query.insert(std::make_pair(SENSOR_RECORDER_QUERY_ANCHOR_TIME, kRecordedAnchorTime));
+      map_query.insert(std::make_pair(SENSOR_RECORDER_QUERY_TIME_INTERVAL, kRecordedInterval));
+    }
+
+    for (auto& it : map_query) {
+      int val = -1;
+      if (query.get(it.second).is<double>()) {
+        val = query.get(it.second).get<double>();
+        if (0 <= val) {
+          int ret = sensor_recorder_query_set_time(query_h, it.first, val);
+          if (SENSOR_ERROR_NONE != ret) {
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                      "Failed to set query parameter",
+                                      ("Failed to set (%d) query parameter, error: %d (%s)", sensor_, ret, get_error_message(ret)));
+          }
+        }
+      }
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
   sensor_type_e sensor_;
   sensor_listener_h handle_;
   SensorEventConverter converter_;
+  SensorRecordedConverter converter_recorded_;
+  picojson::array* recorded_data_;
+  std::mutex mutex_;
 };
 
 class HumanActivityMonitorManager::Monitor::GpsMonitor : public HumanActivityMonitorManager::Monitor {
@@ -1089,11 +1433,86 @@ HumanActivityMonitorManager::HumanActivityMonitorManager()
     return PlatformResult(ErrorCode::NO_ERROR);
   };
 
-  monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor::SensorMonitor>(kActivityTypePedometer, SENSOR_HUMAN_PEDOMETER, convert_pedometer)));
+  auto convert_recorded_pedometer = [](void* data, picojson::object* obj) -> PlatformResult {
+    ScopeLogger("convert_recorded_pedometer");
+
+    SensorRecorderDataMap map_int {
+      {SENSOR_RECORDER_DATA_STEPS, kRecordedTotalStepCount},
+      {SENSOR_RECORDER_DATA_WALK_STEPS, kRecordedWalkStepCount},
+      {SENSOR_RECORDER_DATA_RUN_STEPS, kRecordedRunStepCount}
+    };
+
+    SensorRecorderDataMap map_double {
+      {SENSOR_RECORDER_DATA_DISTANCE, kRecordedDistance},
+      {SENSOR_RECORDER_DATA_CALORIE, kRecordedCalorie}
+    };
+
+    auto result = ConvertRecordedInt(data, obj, map_int);
+    if (!result) {
+      return result;
+    }
+
+    result = ConvertRecordedDouble(data, obj, map_double);
+    if (!result) {
+      return result;
+    }
+
+    return ConvertRecordedTime(data, obj);
+  };
+
+  auto convert_recorded_hrm = [](void* data, picojson::object* obj) -> PlatformResult {
+    ScopeLogger("convert_recorded_hrm");
+
+    SensorRecorderDataMap map_int {
+      {SENSOR_RECORDER_DATA_HEART_RATE, kRecordedHeartRate},
+    };
+
+    auto result = ConvertRecordedInt(data, obj, map_int);
+    if (!result) {
+      return result;
+    }
+
+    return ConvertRecordedTime(data, obj);
+  };
+
+  auto convert_recorded_sleep_monitor = [](void* data, picojson::object* obj) -> PlatformResult {
+    ScopeLogger("convert_recorded_sleep_monitor");
+
+    SensorRecorderDataMap map_int {
+      {SENSOR_RECORDER_DATA_SLEEP_STATE, kStatus}
+    };
+
+    auto result = ConvertRecordedInt(data, obj, map_int);
+    if (!result) {
+      return result;
+    }
+
+    return ConvertRecordedTime(data, obj);
+  };
+
+  auto convert_recorded_pressure = [](void* data, picojson::object* obj) -> PlatformResult {
+    ScopeLogger("convert_recorded_pressure");
+
+    SensorRecorderDataMap map_double {
+      {SENSOR_RECORDER_DATA_MAX_PRESSURE, kRecordedMax},
+      {SENSOR_RECORDER_DATA_MIN_PRESSURE, kRecordedMin},
+      {SENSOR_RECORDER_DATA_AVERAGE_PRESSURE, kRecordedAverage}
+    };
+
+    auto result = ConvertRecordedDouble(data, obj, map_double);
+    if (!result) {
+      return result;
+    }
+
+    return ConvertRecordedTime(data, obj);
+  };
+
+  monitors_.insert(std::make_pair(kActivityTypePedometer, std::make_shared<Monitor::SensorMonitor>(kActivityTypePedometer, SENSOR_HUMAN_PEDOMETER, convert_pedometer, convert_recorded_pedometer)));
   monitors_.insert(std::make_pair(kActivityTypeWristUp, std::make_shared<Monitor::GestureMonitor>(kActivityTypeWristUp)));
-  monitors_.insert(std::make_pair(kActivityTypeHrm, std::make_shared<Monitor::SensorMonitor>(kActivityTypeHrm, SENSOR_HRM, convert_hrm)));
+  monitors_.insert(std::make_pair(kActivityTypeHrm, std::make_shared<Monitor::SensorMonitor>(kActivityTypeHrm, SENSOR_HRM, convert_hrm, convert_recorded_hrm)));
   monitors_.insert(std::make_pair(kActivityTypeGps, std::make_shared<Monitor::GpsMonitor>(kActivityTypeGps)));
-  monitors_.insert(std::make_pair(kActivityTypeSleepMonitor, std::make_shared<Monitor::SensorMonitor>(kActivityTypeSleepMonitor, SENSOR_HUMAN_SLEEP_MONITOR, convert_sleep)));
+  monitors_.insert(std::make_pair(kActivityTypeSleepMonitor, std::make_shared<Monitor::SensorMonitor>(kActivityTypeSleepMonitor, SENSOR_HUMAN_SLEEP_MONITOR, convert_sleep, convert_recorded_sleep_monitor)));
+  monitors_.insert(std::make_pair(kActivityTypePressure, std::make_shared<Monitor::SensorMonitor>(kActivityTypePressure, SENSOR_PRESSURE, nullptr, convert_recorded_pressure)));
 }
 
 HumanActivityMonitorManager::~HumanActivityMonitorManager() {
@@ -1133,6 +1552,29 @@ PlatformResult HumanActivityMonitorManager::AddActivityRecognitionListener(
 PlatformResult HumanActivityMonitorManager::RemoveActivityRecognitionListener(const long watch_id) {
   ScopeLogger();
   return activity_recognition_->RemoveListener(watch_id);
+}
+
+PlatformResult HumanActivityMonitorManager::StartDataRecorder(const std::string& type,
+    int interval, int retention_period) {
+  ScopeLogger();
+  return GetMonitor(type)->StartDataRecorder(interval, retention_period);
+}
+
+PlatformResult HumanActivityMonitorManager::StopDataRecorder(const std::string& type) {
+  ScopeLogger();
+  return GetMonitor(type)->StopDataRecorder();
+}
+
+PlatformResult HumanActivityMonitorManager::ReadRecorderData(
+    const std::string& type, picojson::array* data, const picojson::value& query) {
+  ScopeLogger();
+  return GetMonitor(type)->ReadRecorderData(data, query);
+}
+
+PlatformResult HumanActivityMonitorManager::GetRetentionPeriod(
+    const std::string& type, long* retention_period) {
+  ScopeLogger();
+  return GetMonitor(type)->GetRetentionPeriod(retention_period);
 }
 
 std::shared_ptr<HumanActivityMonitorManager::Monitor> HumanActivityMonitorManager::GetMonitor(const std::string& type) {

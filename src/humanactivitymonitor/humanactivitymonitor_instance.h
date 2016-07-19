@@ -42,6 +42,14 @@ class HumanActivityMonitorInstance : public common::ParsedInstance {
       const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerRemoveActivityRecognitionListener(
       const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerStartRecorder(
+      const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerStopRecorder(
+      const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerReadRecorderData(
+      const picojson::value& args, picojson::object& out);
+  void HumanActivityMonitorManagerGetRetentionPeriod(
+      const picojson::value& args, picojson::object& out);
 
   std::shared_ptr<HumanActivityMonitorManager> manager_;
   common::PlatformResult Init();

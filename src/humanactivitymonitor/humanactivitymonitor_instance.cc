@@ -35,6 +35,8 @@ namespace {
 const std::string kPrivilegeHealthInfo = "http://tizen.org/privilege/healthinfo";
 const std::string kPrivilegeLocation = "http://tizen.org/privilege/location";
 
+const int DEFAULT_HRM_INTERVAL = 1440;  // 1440 (1 day) default value for HRM's interval
+const int DEFAULT_RETENTION_PERIOD = 1; // 1 hour default value for retention period
 }  // namespace
 
 using common::PlatformResult;
@@ -58,6 +60,14 @@ HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
                 HumanActivityMonitorManagerAddActivityRecognitionListener);
   REGISTER_SYNC("HumanActivityMonitorManager_removeActivityRecognitionListener",
                 HumanActivityMonitorManagerRemoveActivityRecognitionListener);
+  REGISTER_SYNC("HumanActivityMonitorManager_startRecorder",
+                HumanActivityMonitorManagerStartRecorder);
+  REGISTER_SYNC("HumanActivityMonitorManager_stopRecorder",
+                HumanActivityMonitorManagerStopRecorder);
+  REGISTER_SYNC("HumanActivityMonitorManager_readRecorderData",
+                 HumanActivityMonitorManagerReadRecorderData);
+  REGISTER_SYNC("HumanActivityMonitorManager_getRetentionPeriod",
+                 HumanActivityMonitorManagerGetRetentionPeriod);
 #undef REGISTER_SYNC
 }
 
@@ -258,6 +268,133 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerRemoveActivityReco
     ReportSuccess(out);
   } else {
     LogAndReportError(result, &out, ("Failed: manager_->RemoveActivityRecognitionListener()"));
+  }
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerStartRecorder(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeHealthInfo, &out);
+  CHECK_EXIST(args, "type", out)
+
+  const auto& type = args.get("type").get<std::string>();
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  int interval = DEFAULT_HRM_INTERVAL;
+  int retention_period = DEFAULT_RETENTION_PERIOD;
+
+  if (args.contains("options")) {
+    const auto& options = args.get("options");
+    auto& js_interval = options.get("interval");
+    auto& js_retention_period = options.get("retentionPeriod");
+
+    if (js_interval.is<double>()) {
+      interval = js_interval.get<double>();
+    }
+
+    if (js_retention_period.is<double>()) {
+      retention_period = js_retention_period.get<double>();
+    }
+  }
+
+  LoggerD("interval: %d retentionPeriod: %d", interval, retention_period);
+
+  result = manager_->StartDataRecorder(type, interval, retention_period);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    LogAndReportError(result, &out, ("Failed: manager_->StartDataRecorder()"));
+  }
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerStopRecorder(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_EXIST(args, "type", out)
+
+  const auto& type = args.get("type").get<std::string>();
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  result = manager_->StopDataRecorder(type);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    LogAndReportError(result, &out, ("Failed: manager_->StopDataRecorder()"));
+  }
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerReadRecorderData(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_EXIST(args, "type", out)
+  CHECK_EXIST(args, "query", out)
+
+  const auto& type = args.get("type").get<std::string>();
+  const auto& query = args.get("query");
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  const auto callback_id = args.get("callbackId").get<double>();
+
+  auto get = [this, type, query, callback_id]() -> void {
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    response_obj["callbackId"] = picojson::value(callback_id);
+
+    //picojson::value data = picojson::value();
+    picojson::value array_value{picojson::array{}};
+    auto* array = &array_value.get<picojson::array>();
+
+    PlatformResult result = manager_->ReadRecorderData(type, array, query);
+
+    if (result) {
+      ReportSuccess(array_value, response_obj);
+    } else {
+      LogAndReportError(result, &response_obj, ("Failed: manager_->ReadRecorderData()"));
+    }
+
+    Instance::PostMessage(this, response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(get);
+
+  ReportSuccess(out);
+}
+
+void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetRetentionPeriod(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_EXIST(args, "type", out)
+
+  const auto& type = args.get("type").get<std::string>();
+
+  PlatformResult result = Init();
+  if (!result) {
+    LogAndReportError(result, &out, ("Failed: Init()"));
+    return;
+  }
+
+  long retention_period = 0;
+  result = manager_->GetRetentionPeriod(type, &retention_period);
+  if (result) {
+    ReportSuccess(picojson::value(static_cast<double>(retention_period)), out);
+  } else {
+    LogAndReportError(result, &out, ("Failed: manager_->GetRetentionPeriod()"));
   }
 }
 

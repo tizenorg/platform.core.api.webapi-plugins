@@ -49,6 +49,14 @@ class HumanActivityMonitorManager {
                                                         JsonCallback callback,
                                                         long* watch_id);
   common::PlatformResult RemoveActivityRecognitionListener(const long watchId);
+  common::PlatformResult StartDataRecorder(const std::string& type,
+                                           int interval, int retention_period);
+  common::PlatformResult StopDataRecorder(const std::string& type);
+  common::PlatformResult ReadRecorderData(const std::string& type,
+                                          picojson::array* data,
+                                          const picojson::value& query);
+  common::PlatformResult GetRetentionPeriod(const std::string& type,
+                                            long* retention_period);
 
  private:
   class Monitor;
