@@ -247,6 +247,10 @@ gboolean DownloadInstance::OnProgressChanged(void* user_data) {
   }
 
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", downCbPtr->callbackId);
+    return FALSE;
+  }
 
   picojson::value::object out;
   out["status"] = picojson::value("progress");
@@ -278,6 +282,10 @@ void DownloadInstance::OnStart(int download_id, void* user_data) {
   SLoggerD("OnStart for callbackId %d Called", downCbPtr->callbackId);
 
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", downCbPtr->callbackId);
+    return;
+  }
 
   download_get_content_size(download_id, &totalSize);
 
@@ -296,6 +304,10 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
 
   int callback_id = downCbPtr->callbackId;
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[callback_id];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", downCbPtr->callbackId);
+    return FALSE;
+  }
 
   LoggerD("OnFinished for callbackID %d Called", callback_id);
 
@@ -344,6 +356,10 @@ gboolean DownloadInstance::OnPaused(void* user_data) {
 
   int callback_id = downCbPtr->callbackId;
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[callback_id];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", downCbPtr->callbackId);
+    return FALSE;
+  }
 
   LoggerD("OnPaused for callbackID %d Called", callback_id);
 
@@ -366,6 +382,10 @@ gboolean DownloadInstance::OnCanceled(void* user_data) {
 
   int callback_id = downCbPtr->callbackId;
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[callback_id];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", callback_id);
+    return FALSE;
+  }
 
   LoggerD("OnCanceled for callbackID %d Called", callback_id);
 
@@ -409,6 +429,10 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
 
   int callback_id = downCbPtr->callbackId;
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[callback_id];
+  if (!diPtr) {
+    LoggerW("Download handle does not exist for callback id %d", callback_id);
+    return FALSE;
+  }
 
   LoggerD("OnFailed for callbackID %d called", callback_id);
 
