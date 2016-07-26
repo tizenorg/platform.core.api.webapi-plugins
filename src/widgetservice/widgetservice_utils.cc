@@ -84,12 +84,13 @@ TizenResult WidgetServiceUtils::ConvertErrorCode(int error) {
       return common::NotSupportedError(error);
     case WIDGET_ERROR_CANCELED:
       return common::OperationCanceledError(error);
+    case WIDGET_ERROR_NOT_EXIST:
+      return common::NotFoundError(error);
     case WIDGET_ERROR_OUT_OF_MEMORY:
     case WIDGET_ERROR_FILE_NO_SPACE_ON_DEVICE:
     case WIDGET_ERROR_FAULT:
     case WIDGET_ERROR_ALREADY_EXIST:
     case WIDGET_ERROR_ALREADY_STARTED:
-    case WIDGET_ERROR_NOT_EXIST:
     default:
       return common::AbortError(error);
   }
