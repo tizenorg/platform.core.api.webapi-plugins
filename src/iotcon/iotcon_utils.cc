@@ -286,7 +286,7 @@ TizenResult IotconUtils::ExtractFromResource(const ResourceInfoPtr& pointer,
                                              char** uri_path,
                                              iotcon_resource_types_h* res_types,
                                              iotcon_resource_interfaces_h* ifaces,
-                                             int* properties) {
+                                             uint8_t* properties) {
   ScopeLogger();
 
   auto result = ConvertIotconError(iotcon_resource_get_uri_path(pointer->handle, uri_path));
@@ -318,7 +318,7 @@ TizenResult IotconUtils::ResourceToJson(ResourceInfoPtr pointer,
   char* uri_path = nullptr;
   iotcon_resource_types_h res_types = nullptr;
   iotcon_resource_interfaces_h ifaces = nullptr;
-  int properties = 0;
+  uint8_t properties = 0;
   auto ret = ExtractFromResource(pointer, &uri_path, &res_types, &ifaces, &properties);
   if (!ret){
     return ret;

@@ -32,7 +32,7 @@ class IotconInstance : public common::TizenInstance {
   virtual ~IotconInstance();
  private:
   static void ConnectionChangedCallback(bool is_connected, void* user_data);
-  static void ResourceFoundCallback(iotcon_remote_resource_h resource,
+  static bool ResourceFoundCallback(iotcon_remote_resource_h resource,
                                     iotcon_error_e result, void *user_data);
 
   common::TizenResult ResourceGetObserverIds(const picojson::object& args);

@@ -85,6 +85,8 @@ const std::string kResult = "result";
 const std::string kTimeout = "timeout";
 const std::string kData = "data";
 
+const std::string kVirtualResourcesHandlingPath = "/home/tmp_file_iotcon.dat";
+
 }  // namespace
 
 IotconInstance::IotconInstance() {
@@ -135,7 +137,7 @@ IotconInstance::IotconInstance() {
 #undef REGISTER_ASYNC
 
   // initialize connection to iotcon service
-  int ret = iotcon_initialize();
+  int ret = iotcon_initialize(kVirtualResourcesHandlingPath.c_str());
   if (IOTCON_ERROR_NONE != ret) {
     LoggerE("Could not connnect to iotcon service: %s", get_error_message(ret));
   } else {
@@ -978,14 +980,14 @@ common::TizenResult IotconInstance::RemoteResourceUnsetConnectionChangeListener(
   return common::TizenSuccess{IotconClientManager::GetInstance().RemoveRemoteResource(ptr)};
 }
 
-void IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,
+bool IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,
                                            iotcon_error_e result, void *user_data) {
   ScopeLogger();
   CallbackData* data = static_cast<CallbackData*>(user_data);
   auto ret = IotconUtils::ConvertIotconError(result);
   if (!ret) {
     data->fun(ret, picojson::value{});
-    return;
+    return IOTCON_FUNC_STOP;
   }
 
   picojson::value json_result = picojson::value(picojson::object());
@@ -993,9 +995,11 @@ void IotconInstance::ResourceFoundCallback(iotcon_remote_resource_h resource,
   ret = IotconUtils::RemoteResourceToJson(resource, &(json_result.get<picojson::object>()));
   if (!ret) {
     data->fun(ret, picojson::value{});
-    return;
+    return IOTCON_FUNC_STOP;
   }
   data->fun(ret, json_result);
+
+  return IOTCON_FUNC_STOP;
 }
 
 common::TizenResult IotconInstance::ClientFindResource(const picojson::object& args) {
@@ -1128,7 +1132,7 @@ common::TizenResult IotconInstance::ClientRemovePresenceEventListener(const pico
   return common::TizenSuccess();
 }
 
-void IotconDeviceInfoCb(iotcon_device_info_h device_info,
+bool IotconDeviceInfoCb(iotcon_device_info_h device_info,
                           iotcon_error_e result, void *user_data) {
   ScopeLogger();
 
@@ -1144,6 +1148,8 @@ void IotconDeviceInfoCb(iotcon_device_info_h device_info,
 
   data->fun(ret, v);
   delete data;
+
+  return IOTCON_FUNC_STOP;
 }
 
 common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& args,
@@ -1173,7 +1179,7 @@ common::TizenResult IotconInstance::ClientGetDeviceInfo(const picojson::object& 
   return common::TizenSuccess();
 }
 
-void IotconPlatformInfoCb(iotcon_platform_info_h platform_info,
+bool IotconPlatformInfoCb(iotcon_platform_info_h platform_info,
                           iotcon_error_e result, void *user_data) {
   ScopeLogger();
 
@@ -1189,6 +1195,8 @@ void IotconPlatformInfoCb(iotcon_platform_info_h platform_info,
 
   data->fun(ret, v);
   delete data;
+
+  return IOTCON_FUNC_STOP;
 }
 
 common::TizenResult IotconInstance::ClientGetPlatformInfo(const picojson::object& args,
