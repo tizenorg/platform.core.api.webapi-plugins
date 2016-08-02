@@ -85,7 +85,7 @@ const std::string kResult = "result";
 const std::string kTimeout = "timeout";
 const std::string kData = "data";
 
-const std::string kVirtualResourcesHandlingPath = "/home/tmp_file_iotcon.dat";
+const std::string kVirtualResourcesHandlingPath = "/home/owner/share/tmp_file_iotcon.dat";
 
 }  // namespace
 

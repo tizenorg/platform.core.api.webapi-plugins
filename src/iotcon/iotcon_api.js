@@ -178,18 +178,36 @@ function DeviceInfo(data) {
 function IotconOption(id, data) {
   validator.isConstructorCall(this, tizen.IotconOption);
 
+  var _id = 0;
+  var _data = '';
+
   Object.defineProperties(this, {
     id: {
-      value: id,
-      writable: false,
+      get: function() {
+        return _id;
+      },
+      set: function(v) {
+        if (v) {
+          _id = v;
+        }
+      },
       enumerable: true
     },
     data: {
-      value: data,
-      writable: false,
+      get: function() {
+        return _data;
+      },
+      set: function(v) {
+        if (v) {
+          _data = v;
+        }
+      },
       enumerable: true
     }
   });
+
+  this["id"] = id;
+  this["data"] = data;
 }
 
 function PlatformInfo(data) {
@@ -1078,7 +1096,7 @@ Server.prototype.createResource = function() {
     name: 'dictionary',
     type: types.DICTIONARY,
     optional: true,
-    nullable: true
+    nullable: false
   }]);
 
   var callArgs = args.dictionary || {};

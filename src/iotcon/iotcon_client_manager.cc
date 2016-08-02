@@ -84,7 +84,7 @@ common::TizenResult IotconClientManager::AddPresenceEventListener(
   presence->id = GetPresenceNextId();
   presence_map_.insert(std::make_pair(presence->id, presence));
 
-  return TizenSuccess();
+  return result;
 }
 
 common::TizenResult IotconClientManager::RemovePresenceEventListener(long long id) {
