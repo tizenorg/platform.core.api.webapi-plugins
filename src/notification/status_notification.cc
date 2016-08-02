@@ -856,6 +856,8 @@ PlatformResult StatusNotification::GetProgressValue(
       return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification progress error");
     }
+    // native api uses range 0-1, but webapi expects 0-100, so we need to multiply result with 100
+    tmp_progress_value *= 100;
   } else {
     return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Unknown notification progress type",
@@ -884,7 +886,8 @@ PlatformResult StatusNotification::SetProgressValue(
           progress_value);
     }
   } else if (progress_type == kProgressTypePercentage) {
-    ret = notification_set_progress(noti_handle, progress_value);
+    // native api uses range 0-1, but webapi expects 0-100, so we need to divide by 100
+    ret = notification_set_progress(noti_handle, progress_value/100);
 
     if (is_update) {
       ret = notification_update_progress(noti_handle, NOTIFICATION_PRIV_ID_NONE,
