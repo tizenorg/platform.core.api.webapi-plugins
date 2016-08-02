@@ -33,6 +33,10 @@ function SetReadOnlyProperty(obj, n, v) {
 }
 
 var ACCUMULATIVE_PEDOMETER_DATA = 'ACCUMULATIVE_PEDOMETER_DATA';
+var MIN_OPTION_INTERVAL = 0;
+var MIN_OPTION_RETENTION_PERIOD = 1;
+var MIN_QUERY_TIME = 0;
+var MIN_QUERY_INTERVAL = 0;
 
 var HumanActivityType = {
   PEDOMETER: 'PEDOMETER',
@@ -40,6 +44,13 @@ var HumanActivityType = {
   HRM: 'HRM',
   GPS: 'GPS',
   SLEEP_MONITOR: 'SLEEP_MONITOR'
+};
+
+var HumanActivityRecorderType = {
+  PEDOMETER: 'PEDOMETER',
+  HRM: 'HRM',
+  SLEEP_MONITOR: 'SLEEP_MONITOR',
+  PRESSURE: 'PRESSURE'
 };
 
 var PedometerStepStatus = {
@@ -88,6 +99,39 @@ function convertActivityData(type, data) {
     default:
       console.error('Uknown human activity type: ' + type);
   }
+}
+
+function createRecorderData(func, data) {
+  var array = [];
+
+  data.forEach(function (d) {
+    array.push(new func(d));
+  });
+
+  return array;
+}
+
+function convertActivityRecorderData(type, data) {
+  var func = undefined;
+  switch (type) {
+    case HumanActivityRecorderType.PEDOMETER:
+      func = HumanActivityRecorderPedometerData;
+      break;
+    case HumanActivityRecorderType.HRM:
+      func = HumanActivityRecorderHRMData;
+      break;
+    case HumanActivityRecorderType.SLEEP_MONITOR:
+      func = HumanActivityRecorderSleepMonitorData;
+      break;
+    case HumanActivityRecorderType.PRESSURE:
+      func = HumanActivityRecorderPressureData;
+      break;
+    default:
+      console.error('Uknown human activity recorder type: ' + type);
+      return;
+  }
+
+  return createRecorderData(func, data);
 }
 
 function ActivityRecognitionListenerManager() {
@@ -386,6 +430,87 @@ HumanActivityMonitorManager.prototype.removeActivityRecognitionListener = functi
   activityRecognitionListener.removeListener(args.watchId);
 };
 
+HumanActivityMonitorManager.prototype.startRecorder = function() {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityRecorderType)},
+    {name: 'options', type : types_.DICTIONARY, optional: true, nullable: false}
+  ]);
+
+  var callArgs = {};
+
+  if (args.options) {
+    if (MIN_OPTION_INTERVAL > args.options.interval ||
+        MIN_OPTION_RETENTION_PERIOD > args.options.interval) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid option value');
+    }
+
+    callArgs.options = args.options;
+  }
+
+  callArgs.type = args.type;
+
+  var result = native_.callSync('HumanActivityMonitorManager_startRecorder', callArgs);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+HumanActivityMonitorManager.prototype.stopRecorder = function() {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityRecorderType)},
+  ]);
+
+  var callArgs = {};
+  callArgs.type = args.type;
+
+  var result = native_.callSync('HumanActivityMonitorManager_stopRecorder', callArgs);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+HumanActivityMonitorManager.prototype.readRecorderData = function() {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityRecorderType)},
+    {name: 'query', type : types_.DICTIONARY, optional: false, nullable: true},
+    {name: 'successCallback', type: types_.FUNCTION},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var callArgs = {};
+
+  if (args.query) {
+    if ((args.query.startTime && MIN_QUERY_TIME > args.query.startTime) ||
+        (args.query.endTime && MIN_QUERY_TIME > args.query.endTime) ||
+        (args.query.anchorTime && MIN_QUERY_TIME > args.query.anchorTime) ||
+        (args.query.interval && MIN_QUERY_INTERVAL > args.query.interval) ||
+        (args.query.startTime && args.query.endTime && args.query.startTime > args.query.endTime)) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid query value');
+    }
+  }
+
+  callArgs.options = args.options;
+  callArgs.type = args.type;
+  callArgs.query = args.query;
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+    } else {
+        var array = convertActivityRecorderData(args.type, native_.getResultObject(result));
+        args.successCallback(array);
+    }
+  };
+
+  var result = native_.call('HumanActivityMonitorManager_readRecorderData', callArgs, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 function StepDifference(data) {
   SetReadOnlyProperty(this, 'stepCountDifference', data.stepCountDifference);
   SetReadOnlyProperty(this, 'timestamp', data.timestamp);
@@ -479,5 +604,51 @@ function HumanActivitySleepMonitorData(data) {
 
 HumanActivitySleepMonitorData.prototype = new HumanActivityData();
 HumanActivitySleepMonitorData.prototype.constructor = HumanActivitySleepMonitorData;
+
+//Recorded data
+function HumanActivityRecorderData(data) {
+  if (data) {
+    SetReadOnlyProperty(this, 'startTime', data.startTime);
+    SetReadOnlyProperty(this, 'endTime', data.endTime);
+  }
+}
+
+function HumanActivityRecorderPedometerData(data) {
+  HumanActivityRecorderData.call(this, data);
+  SetReadOnlyProperty(this, 'distance', data.distance);
+  SetReadOnlyProperty(this, 'calorie', data.calorie);
+  SetReadOnlyProperty(this, 'totalStepCount', data.totalStepCount);
+  SetReadOnlyProperty(this, 'walkStepCount', data.walkStepCount);
+  SetReadOnlyProperty(this, 'runStepCount', data.runStepCount);
+}
+
+HumanActivityRecorderPedometerData.prototype = new HumanActivityRecorderData();
+HumanActivityRecorderPedometerData.prototype.constructor = HumanActivityRecorderPedometerData;
+
+function HumanActivityRecorderHRMData(data) {
+  HumanActivityRecorderData.call(this, data);
+  SetReadOnlyProperty(this, 'heartRate', data.heartRate);
+}
+
+HumanActivityRecorderHRMData.prototype = new HumanActivityRecorderData();
+HumanActivityRecorderHRMData.prototype.constructor = HumanActivityRecorderHRMData;
+
+function HumanActivityRecorderSleepMonitorData(data) {
+  HumanActivityRecorderData.call(this, data);
+  SetReadOnlyProperty(this, 'status', data.status);
+}
+
+HumanActivityRecorderSleepMonitorData.prototype = new HumanActivityRecorderData();
+HumanActivityRecorderSleepMonitorData.prototype.constructor = HumanActivityRecorderSleepMonitorData;
+
+function HumanActivityRecorderPressureData(data) {
+  HumanActivityRecorderData.call(this, data);
+  SetReadOnlyProperty(this, 'max', data.max);
+  SetReadOnlyProperty(this, 'min', data.min);
+  SetReadOnlyProperty(this, 'average', data.average);
+}
+
+HumanActivityRecorderPressureData.prototype = new HumanActivityRecorderData();
+HumanActivityRecorderPressureData.prototype.constructor = HumanActivityRecorderPressureData;
 
 exports = new HumanActivityMonitorManager();
