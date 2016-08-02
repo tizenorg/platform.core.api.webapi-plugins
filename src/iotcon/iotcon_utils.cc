@@ -1767,8 +1767,11 @@ common::TizenResult IotconUtils::PlatformInfoGetProperty(iotcon_platform_info_h 
   auto result = ConvertIotconError(iotcon_platform_info_get_property(platform,
                                                                      property_e,
                                                                      &property));
-  if (!result || !property) {
+  if (!result) {
     LogAndReturnTizenError(result, ("iotcon_platform_info_get_property() failed"));
+  } else if (!property) {
+    // TODO check if it should be an error or rather it should be ignored and used some default value
+    LogAndReturnTizenError(common::AbortError("iotcon_platform_info_get_property() returned no result"));
   }
   out->insert(std::make_pair(name, picojson::value{property}));
 
