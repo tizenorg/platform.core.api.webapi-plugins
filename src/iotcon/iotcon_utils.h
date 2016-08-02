@@ -98,7 +98,7 @@ struct RemoteResourceInfo {
   char* device_id;
   iotcon_resource_types_h types;
   iotcon_resource_interfaces_h ifaces;
-  int properties;  // to check if observable
+  uint8_t properties;  // to check if observable
   iotcon_options_h options;
   iotcon_representation_h representation;
   RemoteResourceInfo() :
@@ -144,7 +144,7 @@ class IotconUtils {
                                                  char** uri_path,
                                                  iotcon_resource_types_h* res_types,
                                                  iotcon_resource_interfaces_h* ifaces,
-                                                 int* properties);
+                                                 uint8_t* properties);
   static common::TizenResult ResourceToJson(ResourceInfoPtr pointer,
                                             picojson::object* res);
   static common::TizenResult ExtractFromRemoteResource(RemoteResourceInfo* resource);
