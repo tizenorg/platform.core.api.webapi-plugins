@@ -1108,6 +1108,12 @@ PlatformResult StatusNotification::ToJson(int id,
       GetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_LIST_5, &progress_type);
   if (status.IsError())
     return status;
+
+  //push service daemon doesn't set progress type
+  //so use default if notification type is different from "PROGRESS"
+  if ("PROGRESS" != noti_type_str) {
+    progress_type = progress_type == kProgressTypeByte ? progress_type : kProgressTypePercentage;
+  }
   out["progressType"] = picojson::value(progress_type);
 
   double progress_value;
